@@ -28,7 +28,11 @@ const mockStrategies = [
   { name: "Small Cap Growth", totalItems: 21 },
 ];
 
-export function VaultTabs() {
+interface VaultTabsProps {
+  onFileClick?: (fileName: string) => void;
+}
+
+export function VaultTabs({ onFileClick }: VaultTabsProps) {
   const [activeTab, setActiveTab] = useState("files");
 
   return (
@@ -75,15 +79,15 @@ export function VaultTabs() {
         </TabsList>
 
         <TabsContent value="files" className="mt-6">
-          <DocumentTable data={mockFiles} />
+          <DocumentTable data={mockFiles} onFileClick={onFileClick} />
         </TabsContent>
 
         <TabsContent value="type" className="mt-6">
-          <DocumentTable data={mockTypes} />
+          <DocumentTable data={mockTypes} onFileClick={onFileClick} />
         </TabsContent>
 
         <TabsContent value="strategy" className="mt-6">
-          <DocumentTable data={mockStrategies} />
+          <DocumentTable data={mockStrategies} onFileClick={onFileClick} />
         </TabsContent>
 
         <TabsContent value="data" className="mt-6">

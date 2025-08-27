@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VaultTabs } from "./VaultTabs";
 import { SearchResults } from "./SearchResults";
+import { SingleFileView } from "./SingleFileView";
 
 export function VaultLayout() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedStrategy, setSelectedStrategy] = useState<string>("");
   const [selectedTypes, setSelectedTypes] = useState<string>("");
   const [selectedTags, setSelectedTags] = useState<string>("");
@@ -24,6 +26,24 @@ export function VaultLayout() {
     setShowSearchResults(false);
     // Keep the search query in the input
   };
+
+  const handleFileClick = (fileName: string) => {
+    setSelectedFile(fileName);
+  };
+
+  const handleBackFromFile = () => {
+    setSelectedFile(null);
+  };
+
+  if (selectedFile) {
+    return (
+      <SingleFileView 
+        fileName={selectedFile}
+        questionCount={2}
+        onBack={handleBackFromFile}
+      />
+    );
+  }
 
   if (showSearchResults) {
     return (
@@ -124,7 +144,7 @@ export function VaultLayout() {
 
       {/* Main Content */}
       <main className="p-6">
-        <VaultTabs />
+        <VaultTabs onFileClick={handleFileClick} />
       </main>
     </div>
   );

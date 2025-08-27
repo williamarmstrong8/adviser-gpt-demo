@@ -13,12 +13,13 @@ interface DocumentTableProps {
     name: string;
     totalItems: number;
   }>;
+  onFileClick?: (fileName: string) => void;
 }
 
 type SortField = "name" | "totalItems";
 type SortDirection = "asc" | "desc";
 
-export function DocumentTable({ data }: DocumentTableProps) {
+export function DocumentTable({ data, onFileClick }: DocumentTableProps) {
   const [sortField, setSortField] = useState<SortField>("name");
   const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
@@ -77,7 +78,8 @@ export function DocumentTable({ data }: DocumentTableProps) {
         {sortedData.map((item, index) => (
           <div
             key={index}
-            className="flex items-center justify-between p-4 hover:bg-vault-card-hover transition-colors group"
+            className="flex items-center justify-between p-4 hover:bg-vault-card-hover transition-colors group cursor-pointer"
+            onClick={() => onFileClick?.(item.name)}
           >
             <div className="flex items-center gap-3">
               <File className="h-4 w-4 text-muted-foreground" />

@@ -28,9 +28,10 @@ interface QuestionCardData {
 
 interface QuestionCardProps {
   data: QuestionCardData;
+  hideFileName?: boolean;
 }
 
-export function QuestionCard({ data }: QuestionCardProps) {
+export function QuestionCard({ data, hideFileName = false }: QuestionCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTag, setNewTag] = useState("");
@@ -82,12 +83,14 @@ export function QuestionCard({ data }: QuestionCardProps) {
       <div className="bg-vault-card rounded-lg border p-6 hover:shadow-[var(--shadow-vault-card)] transition-shadow">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <File className="h-5 w-5 text-muted-foreground" />
-            <h3 className="font-medium">{data.fileName}</h3>
-          </div>
+          {!hideFileName && (
+            <div className="flex items-center gap-3">
+              <File className="h-5 w-5 text-muted-foreground" />
+              <h3 className="font-medium">{data.fileName}</h3>
+            </div>
+          )}
           
-          <div className="text-sm text-muted-foreground">
+          <div className={`text-sm text-muted-foreground ${hideFileName ? 'ml-0' : ''}`}>
             Updated {formatDistanceToNow(data.updatedAt, { addSuffix: true })} (
             {data.updatedAt.toLocaleDateString('en-US', { 
               month: 'long', 
