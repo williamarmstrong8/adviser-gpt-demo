@@ -72,8 +72,8 @@ export function SearchResults({ searchQuery, onBackToFiles }: SearchResultsProps
       </header>
 
       {/* Results */}
-      <main className="px-6">
-        <div className="max-w-4xl">
+      <main className="py-6">
+        <div className="max-w-4xl mx-auto">
           {mockResults.map((result) => (
             <QuestionCard key={result.id} data={result} />
           ))}

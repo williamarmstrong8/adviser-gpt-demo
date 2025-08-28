@@ -40,7 +40,7 @@ export function SingleFileView({ fileName, questionCount, onBack }: SingleFileVi
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="space-y-6">
+    <div className="px-6 py-6 space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <Button 
@@ -71,7 +71,7 @@ export function SingleFileView({ fileName, questionCount, onBack }: SingleFileVi
       </div>
 
       {/* Questions List */}
-      <div className="max-w-4xl">
+      <div className="max-w-4xl mx-auto">
         {mockQuestions.map((question) => (
           <QuestionCard 
             key={question.id} 
