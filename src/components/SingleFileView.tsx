@@ -1,4 +1,5 @@
-import { ArrowLeft, Search, Filter } from "lucide-react";
+import { useState } from "react";
+import { ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QuestionCard, QuestionCardData } from "./QuestionCard";
@@ -36,6 +37,8 @@ const mockQuestions = [
 ];
 
 export function SingleFileView({ fileName, questionCount, onBack }: SingleFileViewProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -51,28 +54,24 @@ export function SingleFileView({ fileName, questionCount, onBack }: SingleFileVi
       </div>
 
       {/* File Info */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-2">{fileName}</h1>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-foreground mb-2">{fileName}</h1>
         <p className="text-muted-foreground">{questionCount} questions</p>
       </div>
 
-      {/* Search and Filter Bar */}
-      <div className="flex items-center gap-4 mb-6">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-          <Input
-            placeholder="Search questions"
-            className="pl-10"
-          />
-        </div>
-        <Button variant="outline" className="flex items-center gap-2">
-          <Filter className="h-4 w-4" />
-          Filter questions
-        </Button>
+      {/* Search Bar */}
+      <div className="relative max-w-md mb-6">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+        <Input
+          placeholder="Search questions..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
       </div>
 
       {/* Questions List */}
-      <div className="space-y-6">
+      <div className="max-w-4xl">
         {mockQuestions.map((question) => (
           <QuestionCard 
             key={question.id} 

@@ -1,8 +1,7 @@
 import { useState } from "react";
-import { ArrowLeft, Download, Search, Filter } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { QuestionCard, QuestionCardData } from "./QuestionCard";
 
 interface SearchResultsProps {
@@ -39,108 +38,42 @@ const mockResults = [
   }
 ];
 
-export function SearchResults({ searchQuery, onBackToFiles, strategy, types, tags, status }: SearchResultsProps) {
+export function SearchResults({ searchQuery, onBackToFiles }: SearchResultsProps) {
   const [searchWithinResults, setSearchWithinResults] = useState("");
-  const [filterStrategy, setFilterStrategy] = useState(strategy || "");
-  const [filterTypes, setFilterTypes] = useState(types || "");
-  const [filterTags, setFilterTags] = useState(tags || "");
-  const [filterStatus, setFilterStatus] = useState(status || "");
-
-  const handleExportView = () => {
-    // Mock CSV export functionality
-    console.log("Exporting search results to CSV...");
-  };
 
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={onBackToFiles} className="flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Files
-            </Button>
-          </div>
-          
-          <Button variant="outline" onClick={handleExportView} className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            Export View
+        <div className="flex items-center gap-4 mb-4">
+          <Button variant="ghost" onClick={onBackToFiles} className="flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Files
           </Button>
         </div>
 
-        <div className="mt-4">
-          <div className="flex items-center gap-2 mb-4">
-            <Search className="h-5 w-5 text-muted-foreground" />
-            <h1 className="text-xl font-semibold">"{searchQuery}"</h1>
-          </div>
+        <div className="mb-4">
+          <h1 className="text-2xl font-bold text-foreground mb-2">"{searchQuery}"</h1>
           <p className="text-muted-foreground">
-            {mockResults.length} files
+            {mockResults.length} questions found
           </p>
         </div>
 
         {/* Search within results */}
-        <div className="flex items-center gap-4 mt-6">
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search by keyword, strategy, or tag"
-              value={searchWithinResults}
-              onChange={(e) => setSearchWithinResults(e.target.value)}
-              className="pl-10"
-            />
-          </div>
-          
-          <span className="text-sm text-muted-foreground">Filter questions</span>
-          
-          <Select value={filterStrategy} onValueChange={setFilterStrategy}>
-            <SelectTrigger className="w-32">
-              <SelectValue placeholder="Strategy" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="large-cap">Large Cap Growth</SelectItem>
-              <SelectItem value="firm-wide">Firm Wide</SelectItem>
-              <SelectItem value="small-cap">Small Cap Growth</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterTypes} onValueChange={setFilterTypes}>
-            <SelectTrigger className="w-24">
-              <SelectValue placeholder="Types" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="commentary">Commentary</SelectItem>
-              <SelectItem value="policy">Policy</SelectItem>
-              <SelectItem value="questionnaire">Questionnaire</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterTags} onValueChange={setFilterTags}>
-            <SelectTrigger className="w-20">
-              <SelectValue placeholder="Tags" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ai">AI</SelectItem>
-              <SelectItem value="it">IT</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={filterStatus} onValueChange={setFilterStatus}>
-            <SelectTrigger className="w-24">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="stale">Stale</SelectItem>
-              <SelectItem value="archived">Archived</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="relative max-w-md">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search within results..."
+            value={searchWithinResults}
+            onChange={(e) => setSearchWithinResults(e.target.value)}
+            className="pl-10"
+          />
         </div>
       </header>
 
       {/* Results */}
-      <main className="p-6">
-        <div className="space-y-6">
+      <main className="px-6">
+        <div className="max-w-4xl">
           {mockResults.map((result) => (
             <QuestionCard key={result.id} data={result} />
           ))}
