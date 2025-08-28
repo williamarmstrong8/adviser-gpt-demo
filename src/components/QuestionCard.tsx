@@ -97,13 +97,13 @@ export function QuestionCard({ data, hideFileName = false, onEdit }: QuestionCar
               {data.answer}
             </div>
           </TooltipTrigger>
-          <TooltipContent side="top" align="start">
-            <p>Click to copy answer</p>
+          <TooltipContent side="bottom" align="center" className="text-sm font-medium bg-foreground text-background px-3 py-2">
+            <p>Click anywhere to copy answer</p>
           </TooltipContent>
         </Tooltip>
         
         {/* Floating action bar - appears on hover */}
-        <div className="absolute bottom-2 right-2 opacity-0 group-hover/answer:opacity-100 transition-all duration-200 pointer-events-none group-hover/answer:pointer-events-auto">
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/answer:opacity-100 transition-all duration-200 pointer-events-none group-hover/answer:pointer-events-auto">
           <div className="flex items-center gap-1 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-1">
             <Tooltip>
               <TooltipTrigger asChild>
