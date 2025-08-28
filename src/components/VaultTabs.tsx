@@ -1,8 +1,6 @@
 import { useState } from "react";
-import { File, Shapes, Target, Database, MoreHorizontal, Tag, RefreshCw } from "lucide-react";
+import { File, Shapes, Target, Database } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { DocumentTable } from "./DocumentTable";
 
 const mockFiles = [
@@ -37,42 +35,37 @@ export function VaultTabs({ onFileClick }: VaultTabsProps) {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
+      <div className="mb-6">
         <h2 className="text-lg font-medium">Documents</h2>
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Manage
-          </Button>
-          <Button variant="ghost" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Updates
-            <Badge variant="destructive" className="ml-2">
-              180
-            </Badge>
-          </Button>
-          <Button variant="ghost" size="sm">
-            <Tag className="h-4 w-4 mr-2" />
-            Tags
-          </Button>
-        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="files" className="flex items-center gap-2">
+        <TabsList className="inline-flex bg-transparent p-0 h-auto gap-1">
+          <TabsTrigger 
+            value="files" 
+            className="inline-grid grid-flow-col items-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
+          >
             <File className="h-4 w-4" />
             Files
           </TabsTrigger>
-          <TabsTrigger value="type" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="type" 
+            className="inline-grid grid-flow-col items-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
+          >
             <Shapes className="h-4 w-4" />
             Type
           </TabsTrigger>
-          <TabsTrigger value="strategy" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="strategy" 
+            className="inline-grid grid-flow-col items-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
+          >
             <Target className="h-4 w-4" />
             Strategy
           </TabsTrigger>
-          <TabsTrigger value="data" className="flex items-center gap-2">
+          <TabsTrigger 
+            value="data" 
+            className="inline-grid grid-flow-col items-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
+          >
             <Database className="h-4 w-4" />
             Data
           </TabsTrigger>
