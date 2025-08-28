@@ -2,6 +2,7 @@ import { Copy, Mail, Edit } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 
 export interface QuestionCardData {
@@ -87,45 +88,69 @@ export function QuestionCard({ data, hideFileName = false, onEdit }: QuestionCar
 
       {/* Answer with hover actions */}
       <div className="relative group/answer">
-        <div 
-          className="text-base text-foreground leading-relaxed mb-4 cursor-pointer transition-colors hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md"
-          onClick={handleCopyAnswer}
-          title="Click to copy answer"
-        >
-          {data.answer}
-        </div>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div 
+              className="text-base text-foreground leading-relaxed mb-4 cursor-pointer transition-colors hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md"
+              onClick={handleCopyAnswer}
+            >
+              {data.answer}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent side="top" align="start">
+            <p>Click to copy answer</p>
+          </TooltipContent>
+        </Tooltip>
         
         {/* Floating action bar - appears on hover */}
         <div className="absolute bottom-2 right-2 opacity-0 group-hover/answer:opacity-100 transition-all duration-200 pointer-events-none group-hover/answer:pointer-events-auto">
           <div className="flex items-center gap-1 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-1">
-            <Button
-              onClick={handleCopyAnswer}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              title="Copy answer"
-            >
-              <Copy className="h-4 w-4" />
-            </Button>
-            <Button
-              onClick={handleEmailAnswer}
-              variant="ghost"
-              size="sm"
-              className="h-8 w-8 p-0"
-              title="Email answer"
-            >
-              <Mail className="h-4 w-4" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleCopyAnswer}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Copy answer</p>
+              </TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={handleEmailAnswer}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 w-8 p-0"
+                >
+                  <Mail className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Email answer</p>
+              </TooltipContent>
+            </Tooltip>
             {onEdit && (
-              <Button
-                onClick={handleEdit}
-                variant="ghost"
-                size="sm"
-                className="h-8 w-8 p-0"
-                title="Edit question"
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    onClick={handleEdit}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <Edit className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Edit question</p>
+                </TooltipContent>
+              </Tooltip>
             )}
           </div>
         </div>
