@@ -3,6 +3,7 @@ import { ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QuestionCard, QuestionCardData } from "./QuestionCard";
+import { QuestionSheet } from "./QuestionSheet";
 
 interface SingleFileViewProps {
   fileName: string;
@@ -38,6 +39,11 @@ const mockQuestions = [
 
 export function SingleFileView({ fileName, questionCount, onBack }: SingleFileViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [editingQuestion, setEditingQuestion] = useState<QuestionCardData | null>(null);
+
+  const handleEditQuestion = (questionData: QuestionCardData) => {
+    setEditingQuestion(questionData);
+  };
 
   return (
     <div className="px-6 py-6 space-y-6">
@@ -77,9 +83,19 @@ export function SingleFileView({ fileName, questionCount, onBack }: SingleFileVi
             key={question.id} 
             data={question}
             hideFileName={true}
+            onEdit={handleEditQuestion}
           />
         ))}
       </div>
+
+      {/* Edit Sheet */}
+      {editingQuestion && (
+        <QuestionSheet
+          data={editingQuestion}
+          open={!!editingQuestion}
+          onOpenChange={(open) => !open && setEditingQuestion(null)}
+        />
+      )}
     </div>
   );
 }

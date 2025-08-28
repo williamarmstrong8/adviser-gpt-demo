@@ -3,6 +3,7 @@ import { ArrowLeft, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { QuestionCard, QuestionCardData } from "./QuestionCard";
+import { QuestionSheet } from "./QuestionSheet";
 
 interface SearchResultsProps {
   searchQuery: string;
@@ -40,6 +41,11 @@ const mockResults = [
 
 export function SearchResults({ searchQuery, onBackToFiles }: SearchResultsProps) {
   const [searchWithinResults, setSearchWithinResults] = useState("");
+  const [editingQuestion, setEditingQuestion] = useState<QuestionCardData | null>(null);
+
+  const handleEditQuestion = (questionData: QuestionCardData) => {
+    setEditingQuestion(questionData);
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -75,10 +81,23 @@ export function SearchResults({ searchQuery, onBackToFiles }: SearchResultsProps
       <main className="py-6">
         <div className="max-w-4xl mx-auto">
           {mockResults.map((result) => (
-            <QuestionCard key={result.id} data={result} />
+            <QuestionCard 
+              key={result.id} 
+              data={result} 
+              onEdit={handleEditQuestion}
+            />
           ))}
         </div>
       </main>
+
+      {/* Edit Sheet */}
+      {editingQuestion && (
+        <QuestionSheet
+          data={editingQuestion}
+          open={!!editingQuestion}
+          onOpenChange={(open) => !open && setEditingQuestion(null)}
+        />
+      )}
     </div>
   );
 }

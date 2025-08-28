@@ -1,4 +1,4 @@
-import { Copy } from "lucide-react";
+import { Copy, Mail, Edit } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -19,9 +19,10 @@ export interface QuestionCardData {
 interface QuestionCardProps {
   data: QuestionCardData;
   hideFileName?: boolean;
+  onEdit?: (data: QuestionCardData) => void;
 }
 
-export function QuestionCard({ data, hideFileName = false }: QuestionCardProps) {
+export function QuestionCard({ data, hideFileName = false, onEdit }: QuestionCardProps) {
   const { toast } = useToast();
 
   const handleCopyAnswer = async () => {
@@ -38,6 +39,16 @@ export function QuestionCard({ data, hideFileName = false }: QuestionCardProps) 
         variant: "destructive",
       });
     }
+  };
+
+  const handleEmailAnswer = () => {
+    const subject = encodeURIComponent(`Question: ${data.question}`);
+    const body = encodeURIComponent(`Question: ${data.question}\n\nAnswer: ${data.answer}\n\nFile: ${data.fileName}`);
+    window.open(`mailto:?subject=${subject}&body=${body}`);
+  };
+
+  const handleEdit = () => {
+    onEdit?.(data);
   };
 
   return (
@@ -74,20 +85,50 @@ export function QuestionCard({ data, hideFileName = false }: QuestionCardProps) 
         </p>
       )}
 
-      {/* Answer with copy button */}
-      <div className="relative">
-        <p className="text-base text-foreground leading-relaxed pr-20 mb-4">
-          {data.answer}
-        </p>
-        <Button
+      {/* Answer with hover actions */}
+      <div className="relative group/answer">
+        <div 
+          className="text-base text-foreground leading-relaxed mb-4 cursor-pointer transition-colors hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md"
           onClick={handleCopyAnswer}
-          variant="outline"
-          className="absolute top-0 right-0 h-9 px-4"
-          title="Copy answer"
+          title="Click to copy answer"
         >
-          <Copy className="h-4 w-4 mr-2" />
-          Copy
-        </Button>
+          {data.answer}
+        </div>
+        
+        {/* Floating action bar - appears on hover */}
+        <div className="absolute bottom-2 right-2 opacity-0 group-hover/answer:opacity-100 transition-all duration-200 pointer-events-none group-hover/answer:pointer-events-auto">
+          <div className="flex items-center gap-1 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-1">
+            <Button
+              onClick={handleCopyAnswer}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Copy answer"
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+            <Button
+              onClick={handleEmailAnswer}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Email answer"
+            >
+              <Mail className="h-4 w-4" />
+            </Button>
+            {onEdit && (
+              <Button
+                onClick={handleEdit}
+                variant="ghost"
+                size="sm"
+                className="h-8 w-8 p-0"
+                title="Edit question"
+              >
+                <Edit className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );
