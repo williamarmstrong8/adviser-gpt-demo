@@ -38,7 +38,7 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    /* Vault-specific design tokens */
+    /* Vault-specific design tokens - refined */
     --vault-header: 0 0% 98%;
     --vault-header-foreground: 222.2 84% 4.9%;
     --vault-card: 0 0% 100%;
@@ -49,29 +49,31 @@ All colors MUST be HSL.
     --vault-badge: 47.9 95.8% 53.1%;
     --vault-badge-foreground: 26 83.3% 14.1%;
     
-    /* Gradients */
+    /* Enhanced gradients for modern feel */
     --gradient-fade: linear-gradient(to bottom, transparent 0%, hsl(var(--vault-answer-bg)) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(222.2 47.4% 20%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(210 40% 99%) 100%);
     
-    /* Shadows */
+    /* Modern shadows with blur */
     --shadow-vault-card: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-sheet: 0 10px 38px -10px rgba(22, 23, 24, 0.35), 0 10px 20px -15px rgba(22, 23, 24, 0.2);
+    --shadow-hover: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-sheet: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    --shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
-    --sidebar-background: 0 0% 98%; /* #FAFAFA */
+    /* Sidebar tokens */
+    --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
     --sidebar-primary: 240 5.9% 10%;
     --sidebar-primary-foreground: 0 0% 98%;
     --sidebar-accent: 240 4.8% 95.9%;
     --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%; /* #E4E4E7 */
+    --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
-    /* App-specific sidebar tokens */
-    --sidebar-account-bg: 220 9% 10%; /* #18181B */
-    --sidebar-account-text: 224 71% 4%; /* #27272A */
-    --sidebar-icon-default: 220 9% 25%; /* #3F3F46 */
-    --sidebar-subheader-text: 220 9% 45%; /* #71717A */
-    --sidebar-item-bg: 220 9% 96%; /* #F4F4F5 */
-    --sidebar-item-active-bg: 220 9% 34%; /* #4D5562 */
+    /* Animation tokens */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    --transition-fast: all 0.15s ease-out;
   }
 
   .dark {
@@ -114,10 +116,18 @@ All colors MUST be HSL.
     --vault-badge: 47.9 85.8% 63.1%;
     --vault-badge-foreground: 26 83.3% 14.1%;
     
+    /* Dark mode gradients */
     --gradient-fade: linear-gradient(to bottom, transparent 0%, hsl(var(--vault-answer-bg)) 100%);
-    --shadow-vault-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-sheet: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    --gradient-hero: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(210 40% 95%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(217.2 32.6% 20%) 100%);
     
+    /* Dark mode shadows */
+    --shadow-vault-card: 0 4px 6px -1px rgb(0 0 0 / 0.2), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-hover: 0 8px 15px -3px rgb(0 0 0 / 0.3), 0 4px 6px -4px rgb(0 0 0 / 0.2);
+    --shadow-sheet: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+    --shadow-dropdown: 0 20px 25px -5px rgb(0 0 0 / 0.3), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+    
+    /* Dark mode sidebar */
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -126,14 +136,6 @@ All colors MUST be HSL.
     --sidebar-accent-foreground: 240 4.8% 95.9%;
     --sidebar-border: 240 3.7% 15.9%;
     --sidebar-ring: 217.2 91.2% 59.8%;
-    
-    /* Dark mode app-specific sidebar tokens */
-    --sidebar-account-bg: 220 9% 85%;
-    --sidebar-account-text: 0 0% 98%;
-    --sidebar-icon-default: 240 4.8% 95.9%;
-    --sidebar-subheader-text: 240 5% 64.9%;
-    --sidebar-item-bg: 240 3.7% 15.9%;
-    --sidebar-item-active-bg: 224.3 76.3% 48%;
   }
 }
 
@@ -144,5 +146,44 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Enhanced focus styles */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2;
+  }
+}
+
+@layer components {
+  /* Custom component styles for enhanced UX */
+  .vault-card {
+    @apply transition-all duration-300 hover:shadow-lg;
+    box-shadow: var(--shadow-vault-card);
+  }
+
+  .vault-card:hover {
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-1px);
+  }
+
+  /* Enhanced dropdown styling */
+  .dropdown-content {
+    box-shadow: var(--shadow-dropdown);
+    @apply border border-border bg-popover/95 backdrop-blur-sm;
+  }
+
+  /* Smooth transitions for interactive elements */
+  .interactive {
+    transition: var(--transition-smooth);
+  }
+
+  /* Loading animation */
+  .loading-pulse {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }

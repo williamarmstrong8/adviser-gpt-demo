@@ -1,18 +1,16 @@
 import { useState, useEffect } from "react";
-import { Search, Upload, Copy, Building, Tag, ChevronDown, Filter, ArrowUpDown, Download, X, Loader2, Calendar } from "lucide-react";
+import { Upload, Copy, Building, Tag, ChevronDown, Download, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { QuestionCard, QuestionCardData } from "./QuestionCard";
 import { QuestionSheet } from "./QuestionSheet";
 import { SingleFileView } from "./SingleFileView";
 import { AppSidebar } from "./AppSidebar";
 import { EnhancedSearchBar } from "./EnhancedSearchBar";
-import { TagCloud } from "./TagCloud";
 import { SavedSearches } from "./SavedSearches";
+import { FilterBar } from "./FilterBar";
+import { VaultLoadingSkeleton } from "./VaultLoadingSkeleton";
 import { useDebounce } from "@/hooks/useDebounce";
 
 // Enhanced mock data with content types and expiration dates
@@ -110,7 +108,7 @@ export function VaultLayout() {
   const [editingQuestion, setEditingQuestion] = useState<QuestionCardData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [showTagCloud, setShowTagCloud] = useState(false);
   
   // Filter states
   const [selectedStrategy, setSelectedStrategy] = useState("All Strategies");
@@ -119,6 +117,15 @@ export function VaultLayout() {
   
   // Debounced search for better performance
   const debouncedSearchQuery = useDebounce(searchQuery, 300);
+
+  // Simulate loading state
+  useEffect(() => {
+    if (debouncedSearchQuery) {
+      setIsLoading(true);
+      const timer = setTimeout(() => setIsLoading(false), 300);
+      return () => clearTimeout(timer);
+    }
+  }, [debouncedSearchQuery]);
 
   const handleFileClick = (fileName: string) => {
     setSelectedFile(fileName);
@@ -138,6 +145,7 @@ export function VaultLayout() {
     setSelectedContentType("All Types");
     setSelectedTags([]);
     setSortBy("lastUpdated");
+    setShowTagCloud(false);
   };
 
   const handleTagClick = (tag: string) => {
@@ -214,30 +222,43 @@ export function VaultLayout() {
 
   if (selectedFile) {
     return (
-      <div className="min-h-screen bg-background flex">
+      <SidebarProvider>
         <AppSidebar />
-        <div className="flex-1 ml-64">
+        <SidebarInset>
+          <div className="flex h-16 shrink-0 items-center gap-2 px-4">
+            <SidebarTrigger className="-ml-1" />
+          </div>
           <SingleFileView 
             fileName={selectedFile}
             questionCount={2}
             onBack={handleBackFromFile}
           />
-        </div>
-      </div>
+        </SidebarInset>
+      </SidebarProvider>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex">
+    <SidebarProvider>
       <AppSidebar />
-      
-      <div className="flex-1 ml-64">
-        {/* Header */}
-        <header className="bg-vault-header border-b px-6 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-semibold text-vault-header-foreground">Vault</h1>
+      <SidebarInset>
+        {/* Simplified Header */}
+        <header className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
+          <div className="flex h-16 items-center gap-4 px-4">
+            <SidebarTrigger className="-ml-1" />
+            <h1 className="text-xl font-semibold">Vault</h1>
             
-            <div className="flex items-center gap-3">
+            <div className="ml-auto flex items-center gap-2">
+              <SavedSearches 
+                onLoadSearch={handleLoadSavedSearch}
+                currentQuery={searchQuery}
+                currentFilters={{
+                  strategy: selectedStrategy,
+                  contentType: selectedContentType,
+                  tags: selectedTags
+                }}
+              />
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm">
@@ -276,131 +297,22 @@ export function VaultLayout() {
               </Button>
             </div>
           </div>
+        </header>
 
-          {/* Enhanced Search and Filters */}
-          <div className="mt-4 space-y-4">
-            {/* Enhanced Search Bar */}
-            <div className="flex gap-4">
+        {/* Main Content */}
+        <div className="flex flex-col gap-6 p-6 max-w-5xl mx-auto">
+          {/* Enhanced Search Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
               <div className="flex-1 max-w-2xl">
                 <EnhancedSearchBar
                   value={searchQuery}
                   onChange={setSearchQuery}
                   contentItems={mockContentItems}
+                  className="h-11"
                 />
               </div>
-              
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Advanced Filters
-              </Button>
-            </div>
-
-            {/* Advanced Filters Collapsible */}
-            <Collapsible open={showAdvancedFilters} onOpenChange={setShowAdvancedFilters}>
-              <CollapsibleContent className="space-y-4 border rounded-lg p-4 bg-muted/50">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Strategy Filter */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Strategy</label>
-                    <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Strategies" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border z-50">
-                        {strategies.map(strategy => (
-                          <SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Content Type Filter */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Content Type</label>
-                    <Select value={selectedContentType} onValueChange={setSelectedContentType}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="All Types" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border z-50">
-                        {contentTypes.map(type => (
-                          <SelectItem key={type} value={type}>{type}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Sort Options */}
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">Sort By</label>
-                    <Select value={sortBy} onValueChange={setSortBy}>
-                      <SelectTrigger>
-                        <ArrowUpDown className="h-4 w-4 mr-2" />
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover border z-50">
-                        {sortOptions.map(option => (
-                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-
-                {/* Tag Cloud */}
-                <div>
-                  <label className="text-sm font-medium mb-2 block">Filter by Tags</label>
-                  <TagCloud
-                    contentItems={mockContentItems}
-                    onTagClick={handleTagClick}
-                    selectedTags={selectedTags}
-                  />
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-
-            {/* Quick Filters Row */}
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3 flex-wrap">
-                <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="Strategy" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border z-50">
-                    {strategies.map(strategy => (
-                      <SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={selectedContentType} onValueChange={setSelectedContentType}>
-                  <SelectTrigger className="w-40">
-                    <SelectValue placeholder="Content Type" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border z-50">
-                    {contentTypes.map(type => (
-                      <SelectItem key={type} value={type}>{type}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-
-                <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-36">
-                    <ArrowUpDown className="h-4 w-4 mr-2" />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover border z-50">
-                    {sortOptions.map(option => (
-                      <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button variant="outline" size="sm">
@@ -408,111 +320,81 @@ export function VaultLayout() {
                       Export
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="bg-popover border z-50">
-                    <DropdownMenuItem onClick={() => handleExport('pdf')}>
-                      Export as PDF
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleExport('csv')}>
+                      Export as CSV
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => handleExport('excel')}>
                       Export as Excel
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => handleExport('word')}>
-                      Export as Word
+                    <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                      Export as PDF
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               </div>
             </div>
 
-            {/* Active Filters and Results Count */}
-            {(activeFilters.length > 0 || sortedItems.length > 0) && (
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-2 flex-wrap">
-                  {activeFilters.length > 0 && (
-                    <>
-                      {activeFilters.map((filter, index) => (
-                        <Badge key={index} variant="secondary" className="gap-1">
-                          {filter.type === "search" && "Search: "}
-                          {filter.type === "strategy" && "Strategy: "}
-                          {filter.type === "contentType" && "Type: "}
-                          {filter.type === "tags" && "Tags: "}
-                          {filter.value}
-                          <X 
-                            className="h-3 w-3 cursor-pointer" 
-                            onClick={() => {
-                              if (filter.type === "search") setSearchQuery("");
-                              if (filter.type === "strategy") setSelectedStrategy("All Strategies");
-                              if (filter.type === "contentType") setSelectedContentType("All Types");
-                              if (filter.type === "tags") setSelectedTags([]);
-                            }}
-                          />
-                        </Badge>
-                      ))}
-                      <Button variant="ghost" size="sm" onClick={clearAllFilters}>
-                        Clear all
-                      </Button>
-                    </>
-                  )}
-                </div>
-                
-                <div className="text-sm text-muted-foreground">
-                  {sortedItems.length} {sortedItems.length === 1 ? 'result' : 'results'}
-                </div>
+            {/* Filter Bar */}
+            <FilterBar
+              selectedStrategy={selectedStrategy}
+              setSelectedStrategy={setSelectedStrategy}
+              selectedContentType={selectedContentType}
+              setSelectedContentType={setSelectedContentType}
+              sortBy={sortBy}
+              setSortBy={setSortBy}
+              selectedTags={selectedTags}
+              onTagClick={handleTagClick}
+              contentItems={mockContentItems}
+              onClearAll={clearAllFilters}
+              activeFilters={activeFilters}
+              showTagCloud={showTagCloud}
+              onToggleTagCloud={() => setShowTagCloud(!showTagCloud)}
+            />
+          </div>
+
+          {/* Results Section */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                {isLoading ? 'Searching...' : `${sortedItems.length} results found`}
+              </div>
+            </div>
+
+            {/* Loading State */}
+            {isLoading && <VaultLoadingSkeleton />}
+
+            {/* Results */}
+            {!isLoading && (
+              <div className="border rounded-lg bg-card shadow-sm">
+                {sortedItems.length === 0 ? (
+                  <div className="p-12 text-center">
+                    <Search className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No results found</h3>
+                    <p className="text-muted-foreground mb-4">
+                      Try adjusting your search criteria or filters to find what you're looking for.
+                    </p>
+                    <Button variant="outline" onClick={clearAllFilters}>
+                      Clear all filters
+                    </Button>
+                  </div>
+                ) : (
+                  <div>
+                    {sortedItems.map((item, index) => (
+                      <QuestionCard
+                        key={item.id}
+                        data={item}
+                        onEdit={handleEditQuestion}
+                        onTagAdd={handleTagAdd}
+                        onTagRemove={handleTagRemove}
+                        onQuickEdit={handleQuickEdit}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
-        </header>
-
-        {/* Main Content with Sidebar */}
-        <div className="flex gap-6 p-6">
-          {/* Left Sidebar - Saved Searches */}
-          <aside className="w-80 space-y-6">
-            <SavedSearches
-              onLoadSearch={handleLoadSavedSearch}
-              currentQuery={searchQuery}
-              currentFilters={{
-                strategy: selectedStrategy,
-                contentType: selectedContentType,
-                tags: selectedTags,
-              }}
-            />
-          </aside>
-
-          {/* Main Content Area */}
-          <main className="flex-1">
-            <div className="max-w-4xl space-y-4">
-              {isLoading ? (
-                <div className="text-center py-12">
-                  <Loader2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 animate-spin" />
-                  <h3 className="text-lg font-medium mb-2">Loading...</h3>
-                  <p className="text-muted-foreground">Searching your vault content...</p>
-                </div>
-              ) : sortedItems.length === 0 ? (
-                <div className="text-center py-12">
-                  <Search className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-medium mb-2">No results found</h3>
-                  <p className="text-muted-foreground">
-                    Try adjusting your search query or filters to find what you're looking for.
-                  </p>
-                  {(searchQuery || selectedStrategy !== "All Strategies" || selectedContentType !== "All Types" || selectedTags.length > 0) && (
-                    <Button variant="outline" onClick={clearAllFilters} className="mt-4">
-                      Clear all filters
-                    </Button>
-                  )}
-                </div>
-              ) : (
-                sortedItems.map((item) => (
-                  <QuestionCard 
-                    key={item.id} 
-                    data={item}
-                    onEdit={handleEditQuestion}
-                    onTagAdd={handleTagAdd}
-                    onTagRemove={handleTagRemove}
-                    onQuickEdit={handleQuickEdit}
-                  />
-                ))
-              )}
-            </div>
-          </main>
         </div>
 
         {/* Edit Sheet */}
@@ -520,10 +402,14 @@ export function VaultLayout() {
           <QuestionSheet
             data={editingQuestion}
             open={!!editingQuestion}
-            onOpenChange={(open) => !open && setEditingQuestion(null)}
+            onOpenChange={(open) => {
+              if (!open) {
+                setEditingQuestion(null);
+              }
+            }}
           />
         )}
-      </div>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

@@ -152,11 +152,11 @@ export function QuestionCard({
 
   const getContentTypeColor = (contentType?: string) => {
     switch (contentType) {
-      case 'RFP': return 'bg-blue-100 text-blue-800 border-blue-200';
-      case 'DDQ': return 'bg-green-100 text-green-800 border-green-200';
-      case 'Policy': return 'bg-purple-100 text-purple-800 border-purple-200';
-      case 'Commentary': return 'bg-orange-100 text-orange-800 border-orange-200';
-      default: return 'bg-gray-100 text-gray-800 border-gray-200';
+      case 'RFP': return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800';
+      case 'DDQ': return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800';
+      case 'Policy': return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800';
+      case 'Commentary': return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800';
+      default: return 'bg-muted text-muted-foreground border-border';
     }
   };
 
@@ -164,36 +164,36 @@ export function QuestionCard({
   const isExpired = data.expirationDate && data.expirationDate <= new Date();
 
   return (
-    <div className="group px-6 py-6 border-b border-border last:border-0 hover:bg-accent/30 transition-colors">
+    <div className="group px-6 py-8 border-b border-border last:border-0 hover:bg-accent/50 transition-all duration-200">
       {/* Header with Question and Bookmark */}
-      <div className="flex items-start justify-between gap-4 mb-3">
-        <h3 className="text-lg font-semibold text-foreground leading-tight flex-1">
+      <div className="flex items-start justify-between gap-4 mb-4">
+        <h3 className="text-lg font-semibold text-foreground leading-tight flex-1 group-hover:text-primary transition-colors">
           {data.question}
         </h3>
         <Button
           variant="ghost"
           size="sm"
-          className={`h-8 w-8 p-0 ${isBookmarked(data.id) ? 'text-yellow-500' : 'text-muted-foreground'}`}
+          className={`h-8 w-8 p-0 shrink-0 ${isBookmarked(data.id) ? 'text-yellow-500' : 'text-muted-foreground'}`}
           onClick={() => toggleBookmark(data.id)}
         >
           <Bookmark className={`h-4 w-4 ${isBookmarked(data.id) ? 'fill-current' : ''}`} />
         </Button>
       </div>
 
-      {/* Enhanced Metadata */}
+      {/* Enhanced Metadata Row */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <Clock className="h-3 w-3" />
-          Updated {formatDistanceToNow(data.updatedAt, { addSuffix: true })}
+          <span>Updated {formatDistanceToNow(data.updatedAt, { addSuffix: true })}</span>
         </div>
         <div className="flex items-center gap-1 text-xs text-muted-foreground">
           <User className="h-3 w-3" />
-          {data.updatedBy}
+          <span>{data.updatedBy}</span>
         </div>
         
-        {/* Content Type */}
+        {/* Content Type Badge */}
         {data.contentType && (
-          <Badge className={`text-xs ${getContentTypeColor(data.contentType)}`}>
+          <Badge variant="outline" className={`text-xs ${getContentTypeColor(data.contentType)}`}>
             {data.contentType}
           </Badge>
         )}
@@ -205,15 +205,18 @@ export function QuestionCard({
           </Badge>
         )}
         {isExpiring && !isExpired && (
-          <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700">
+          <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700 dark:text-yellow-400">
             Expiring Soon
           </Badge>
         )}
-        
+      </div>
+
+      {/* Strategy and Tags Row */}
+      <div className="flex flex-wrap items-center gap-2 mb-4">
         {/* Strategy with Quick Edit */}
         {editingStrategy ? (
           <Select value={data.strategy} onValueChange={handleStrategyChange}>
-            <SelectTrigger className="h-6 text-xs w-auto min-w-32">
+            <SelectTrigger className="h-7 text-xs w-auto min-w-32">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -225,88 +228,89 @@ export function QuestionCard({
         ) : (
           <Badge 
             variant="outline" 
-            className="text-xs cursor-pointer hover:bg-accent"
+            className="text-xs cursor-pointer hover:bg-accent transition-colors"
             onClick={() => setEditingStrategy(true)}
           >
             {data.strategy}
           </Badge>
         )}
-      </div>
-
-      {/* Enhanced Tags Section */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        {data.tags.map((tag) => (
-          <Badge 
-            key={tag} 
-            variant="secondary" 
-            className="text-xs group/tag cursor-pointer hover:bg-secondary/80"
-          >
-            <Tag className="h-3 w-3 mr-1" />
-            {tag}
-            {onTagRemove && (
-              <X 
-                className="h-3 w-3 ml-1 opacity-0 group-hover/tag:opacity-100 transition-opacity"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveTag(tag);
-                }}
-              />
-            )}
-          </Badge>
-        ))}
         
-        {/* Add Tag */}
-        {onTagAdd && (
-          isAddingTag ? (
-            <div className="flex items-center gap-1">
-              <Input
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="New tag"
-                className="h-6 text-xs w-20"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleAddTag();
-                  if (e.key === 'Escape') {
-                    setIsAddingTag(false);
-                    setNewTag('');
-                  }
-                }}
-                onBlur={() => {
-                  if (!newTag.trim()) {
-                    setIsAddingTag(false);
-                  }
-                }}
-                autoFocus
-              />
-              <Button size="sm" className="h-6 px-2" onClick={handleAddTag}>
-                <Check className="h-3 w-3" />
-              </Button>
-            </div>
-          ) : (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="h-6 px-2"
-              onClick={() => setIsAddingTag(true)}
+        {/* Tags */}
+        <div className="flex flex-wrap items-center gap-2">
+          {data.tags.map((tag) => (
+            <Badge 
+              key={tag} 
+              variant="secondary" 
+              className="text-xs group/tag cursor-pointer hover:bg-secondary/80 transition-colors"
             >
-              <Plus className="h-3 w-3 mr-1" />
-              Add Tag
-            </Button>
-          )
-        )}
+              <Tag className="h-3 w-3 mr-1" />
+              {tag}
+              {onTagRemove && (
+                <X 
+                  className="h-3 w-3 ml-1 opacity-0 group-hover/tag:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveTag(tag);
+                  }}
+                />
+              )}
+            </Badge>
+          ))}
+          
+          {/* Add Tag Button */}
+          {onTagAdd && (
+            isAddingTag ? (
+              <div className="flex items-center gap-1">
+                <Input
+                  value={newTag}
+                  onChange={(e) => setNewTag(e.target.value)}
+                  placeholder="New tag"
+                  className="h-7 text-xs w-24"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleAddTag();
+                    if (e.key === 'Escape') {
+                      setIsAddingTag(false);
+                      setNewTag('');
+                    }
+                  }}
+                  onBlur={() => {
+                    if (!newTag.trim()) {
+                      setIsAddingTag(false);
+                    }
+                  }}
+                  autoFocus
+                />
+                <Button size="sm" className="h-7 px-2" onClick={handleAddTag}>
+                  <Check className="h-3 w-3" />
+                </Button>
+              </div>
+            ) : (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-7 px-2 text-xs"
+                onClick={() => setIsAddingTag(true)}
+              >
+                <Plus className="h-3 w-3 mr-1" />
+                Add Tag
+              </Button>
+            )
+          )}
+        </div>
       </div>
       
+      {/* File Name */}
       {!hideFileName && (
-        <p className="text-sm text-muted-foreground mb-4">
+        <p className="text-sm text-muted-foreground mb-4 font-medium">
           {data.fileName}
         </p>
       )}
 
-      {/* Answer with cursor-following tooltip and hover actions */}
+      {/* Answer with improved interaction */}
       <div className="relative group/answer">
         <div 
           ref={answerRef}
-          className="text-base text-foreground leading-relaxed mb-4 cursor-pointer transition-colors hover:bg-muted/50 -mx-2 px-2 py-2 rounded-md relative"
+          className="text-base text-foreground leading-relaxed mb-4 cursor-pointer transition-all duration-200 hover:bg-muted/50 -mx-3 px-3 py-3 rounded-lg relative"
           onClick={handleCopyAnswer}
           onMouseEnter={handleMouseEnter}
           onMouseMove={handleMouseMove}
@@ -319,8 +323,8 @@ export function QuestionCard({
             <div 
               className={`absolute pointer-events-none z-50 px-3 py-2 text-sm font-medium rounded-md shadow-lg transition-all duration-300 flex items-center gap-2 ${
                 isCopied 
-                  ? 'bg-green-600 text-white' 
-                  : 'bg-foreground text-background'
+                  ? 'bg-emerald-600 text-white' 
+                  : 'bg-foreground text-background border border-border'
               } ${isSticky ? 'opacity-100' : 'opacity-90'}`}
               style={{
                 left: `${tooltipPosition.x}px`,
@@ -335,7 +339,7 @@ export function QuestionCard({
                   Copied!
                 </>
               ) : (
-                'Click anywhere to copy answer'
+                'Click to copy answer'
               )}
               {isSticky && !isCopied && (
                 <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
@@ -344,8 +348,8 @@ export function QuestionCard({
           )}
         </div>
         
-        {/* Enhanced Floating action bar - appears on hover */}
-        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover/answer:opacity-100 transition-all duration-200 pointer-events-none group-hover/answer:pointer-events-auto">
+        {/* Enhanced Floating action bar */}
+        <div className="absolute bottom-2 right-3 opacity-0 group-hover/answer:opacity-100 transition-all duration-200 pointer-events-none group-hover/answer:pointer-events-auto">
           <div className="flex items-center gap-1 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-1">
             <Tooltip>
               <TooltipTrigger asChild>
@@ -375,21 +379,6 @@ export function QuestionCard({
               </TooltipTrigger>
               <TooltipContent>
                 <p>Email answer</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => toggleBookmark(data.id)}
-                  variant="ghost"
-                  size="sm"
-                  className={`h-8 w-8 p-0 ${isBookmarked(data.id) ? 'text-yellow-500' : ''}`}
-                >
-                  <Bookmark className={`h-4 w-4 ${isBookmarked(data.id) ? 'fill-current' : ''}`} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>{isBookmarked(data.id) ? 'Remove bookmark' : 'Add bookmark'}</p>
               </TooltipContent>
             </Tooltip>
             {onEdit && (
