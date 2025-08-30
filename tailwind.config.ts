@@ -26,8 +26,7 @@ export default {
         foreground: 'hsl(var(--foreground))',
         primary: {
           DEFAULT: 'hsl(var(--primary))',
-          foreground: 'hsl(var(--primary-foreground))',
-          glow: 'hsl(var(--primary-glow))'
+          foreground: 'hsl(var(--primary-foreground))'
         },
         secondary: {
           DEFAULT: 'hsl(var(--secondary))',
@@ -53,18 +52,16 @@ export default {
           DEFAULT: 'hsl(var(--card))',
           foreground: 'hsl(var(--card-foreground))'
         },
-        // Enhanced vault colors with content type theming
+        // Vault-specific colors
         'vault-header': 'hsl(var(--vault-header))',
         'vault-header-foreground': 'hsl(var(--vault-header-foreground))',
         'vault-card': 'hsl(var(--vault-card))',
         'vault-card-hover': 'hsl(var(--vault-card-hover))',
         'vault-answer-bg': 'hsl(var(--vault-answer-bg))',
-        'vault-rfp': 'hsl(var(--vault-rfp))',
-        'vault-rfp-light': 'hsl(var(--vault-rfp-light))',
-        'vault-ddq': 'hsl(var(--vault-ddq))',
-        'vault-ddq-light': 'hsl(var(--vault-ddq-light))',
-        'vault-policy': 'hsl(var(--vault-policy))',
-        'vault-policy-light': 'hsl(var(--vault-policy-light))',
+        'vault-tag': 'hsl(var(--vault-tag))',
+        'vault-tag-foreground': 'hsl(var(--vault-tag-foreground))',
+        'vault-badge': 'hsl(var(--vault-badge))',
+        'vault-badge-foreground': 'hsl(var(--vault-badge-foreground))',
         sidebar: {
           DEFAULT: 'hsl(var(--sidebar-background))',
           foreground: 'hsl(var(--sidebar-foreground))',

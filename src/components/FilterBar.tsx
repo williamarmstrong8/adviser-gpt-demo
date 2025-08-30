@@ -61,13 +61,13 @@ export function FilterBar({
 
   return (
     <div className="space-y-4">
-      {/* Modern Pill Filters */}
+      {/* Quick Filters Row */}
       <div className="flex items-center gap-3 flex-wrap">
         <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-          <SelectTrigger className="filter-pill w-48 border-primary/20">
+          <SelectTrigger className="w-48">
             <SelectValue placeholder="Strategy" />
           </SelectTrigger>
-          <SelectContent className="bg-popover border z-50 rounded-xl">
+          <SelectContent className="bg-popover border z-50">
             {strategies.map(strategy => (
               <SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>
             ))}
@@ -75,10 +75,10 @@ export function FilterBar({
         </Select>
 
         <Select value={selectedContentType} onValueChange={setSelectedContentType}>
-          <SelectTrigger className="filter-pill w-36 border-primary/20">
+          <SelectTrigger className="w-36">
             <SelectValue placeholder="Content Type" />
           </SelectTrigger>
-          <SelectContent className="bg-popover border z-50 rounded-xl">
+          <SelectContent className="bg-popover border z-50">
             {contentTypes.map(type => (
               <SelectItem key={type} value={type}>{type}</SelectItem>
             ))}
@@ -86,11 +86,11 @@ export function FilterBar({
         </Select>
 
         <Select value={sortBy} onValueChange={setSortBy}>
-          <SelectTrigger className="filter-pill w-36 border-primary/20">
+          <SelectTrigger className="w-36">
             <ArrowUpDown className="h-4 w-4 mr-2" />
             <SelectValue />
           </SelectTrigger>
-          <SelectContent className="bg-popover border z-50 rounded-xl">
+          <SelectContent className="bg-popover border z-50">
             {sortOptions.map(option => (
               <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
             ))}
@@ -102,11 +102,7 @@ export function FilterBar({
             variant="outline" 
             size="sm"
             onClick={onToggleTagCloud}
-            className={`filter-pill transition-all duration-200 ${
-              showTagCloud 
-                ? "bg-primary text-primary-foreground border-primary hover:bg-primary/90" 
-                : "hover:bg-primary/5 hover:border-primary/30"
-            }`}
+            className={showTagCloud ? "bg-accent" : ""}
           >
             <Filter className="h-4 w-4 mr-2" />
             Tags
@@ -118,7 +114,7 @@ export function FilterBar({
             variant="outline" 
             size="sm" 
             onClick={onClearAll}
-            className="filter-pill text-muted-foreground hover:text-foreground hover:bg-muted/50"
+            className="text-muted-foreground"
           >
             Clear All
           </Button>
