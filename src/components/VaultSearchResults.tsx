@@ -25,6 +25,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VaultEditSheet } from "./VaultEditSheet";
 import { useVaultState, useVaultEdits } from "@/hooks/useVaultState";
+import { useToast } from "@/hooks/use-toast";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
 import { STRATEGIES, CONTENT_TYPES, STATUS_OPTIONS } from "@/types/vault";
 import { ContentItem } from "@/types/vault";
@@ -34,6 +35,7 @@ export function VaultSearchResults() {
   const [searchParams] = useSearchParams();
   const { state, setQuery, setFilters } = useVaultState();
   const { edits, saveEdit, getEdit } = useVaultEdits();
+  const { toast } = useToast();
   
   const [query, setQueryState] = useState(searchParams.get('query') || '');
   const [isEditingQuery, setIsEditingQuery] = useState(false);
@@ -240,6 +242,22 @@ export function VaultSearchResults() {
   const exportData = (format: string) => {
     console.log(`Exporting ${filteredItems.length} results as ${format}`);
     // Implementation would depend on format
+  };
+
+  const handleCopyAnswer = async (answer: string) => {
+    try {
+      await navigator.clipboard.writeText(answer);
+      toast({
+        title: "Copied to clipboard",
+        description: "The answer has been copied to your clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy to clipboard. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -681,6 +699,7 @@ export function VaultSearchResults() {
                   <button 
                     className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md text-sm font-medium"
                     style={{ backgroundColor: '#18181B', color: '#fafafa', boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+                    onClick={() => handleCopyAnswer(displayData.content?.answer || '')}
                   >
                     <Copy className="h-4 w-4" />
                     Copy
