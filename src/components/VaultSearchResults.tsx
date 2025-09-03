@@ -513,9 +513,9 @@ export function VaultSearchResults() {
             const displayAnswer = isExpanded ? answer : answer.substring(0, 300);
             
             return (
-          <div className="border rounded-lg p-6 bg-card space-y-4 vault-result-card">
+          <div className="border rounded-lg bg-card vault-result-card">
             {/* Header with file info and badge */}
-            <div className="flex items-start justify-between pb-4 border-b border-[#E4E4E7]">
+            <div className="flex items-start justify-between pb-4 border-b border-[#E4E4E7] px-6 py-4">
               <div className="flex items-center gap-3 text-sm" style={{ fontSize: '14px', lineHeight: '1.4' }}>
                 <FileText className="h-4 w-4" style={{ color: '#71717A' }} />
                 <span className="font-bold">{item.title}</span>
@@ -541,7 +541,7 @@ export function VaultSearchResults() {
 
                  {/* Answer Section */}
                  {displayData.content?.answer && (
-                   <div className="space-y-2">
+                   <div className="space-y-2 px-6 py-5">
                      <h4 style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5', letterSpacing: '-0.2px' }}>Answer</h4>
                      <div className="bg-muted/50 rounded-md p-4">
                        <p className="text-sm leading-relaxed">
@@ -564,7 +564,7 @@ export function VaultSearchResults() {
 
                  {/* Question Section */}
                  {displayData.content?.question && (
-                   <div className="space-y-2" style={{ paddingInlineStart: '20px' }}>
+                   <div className="space-y-2 px-6 py-5" style={{ paddingInlineStart: '20px' }}>
                      <div className="flex items-start gap-2">
                        <CornerDownRight className="h-4 w-4 mt-1 flex-shrink-0" style={{ color: '#71717A' }} />
                        <div className="space-y-2">
@@ -624,14 +624,14 @@ export function VaultSearchResults() {
                    </div>
                  )}
 
-                {/* Actions */}
-                <div className="flex items-center gap-2">
+                {/* Action Footer */}
+                <div className="border-t border-[#E4E4E7] px-6 py-3 flex items-center justify-end gap-2" style={{ backgroundColor: '#fafafa' }}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
+                      <button className="flex h-8 px-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium" style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}>
                         Actions
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem>View Details</DropdownMenuItem>
@@ -642,11 +642,11 @@ export function VaultSearchResults() {
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <Mail className="h-4 w-4 mr-2" />
+                      <button className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium" style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}>
+                        <Mail className="h-4 w-4" />
                         Email
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
+                        <ChevronDown className="h-4 w-4" />
+                      </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
                       <DropdownMenuItem>Send via Email</DropdownMenuItem>
@@ -654,19 +654,22 @@ export function VaultSearchResults() {
                     </DropdownMenuContent>
                   </DropdownMenu>
 
-                  <Button 
-                    variant="outline" 
-                    size="sm"
+                  <button 
+                    className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium"
+                    style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
                     onClick={() => handleEdit(item)}
                   >
-                    <Edit className="h-4 w-4 mr-2" />
+                    <Edit className="h-4 w-4" />
                     Edit
-                  </Button>
+                  </button>
 
-                  <Button variant="outline" size="sm">
-                    <Copy className="h-4 w-4 mr-2" />
+                  <button 
+                    className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md text-sm font-medium"
+                    style={{ backgroundColor: '#18181B', color: '#fafafa', boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+                  >
+                    <Copy className="h-4 w-4" />
                     Copy
-                  </Button>
+                  </button>
                 </div>
               </div>
             );
