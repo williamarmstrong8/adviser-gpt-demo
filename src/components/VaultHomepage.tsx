@@ -17,19 +17,19 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useVaultState } from "@/hooks/useVaultState";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
-import { STRATEGIES, CONTENT_TYPES, STATUS_OPTIONS } from "@/types/vault";
+import { STRATEGIES, CONTENT_TYPES, STATUS_OPTIONS, TAGS_INFO } from "@/types/vault";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 
 export function VaultHomepage() {
   const navigate = useNavigate();
   const { state, setQuery, setFilters, setActiveView } = useVaultState();
   const [searchInput, setSearchInput] = useState(state.query);
-  const [selectedStrategy, setSelectedStrategy] = useState<string>("");
-  const [selectedType, setSelectedType] = useState<string>("");  
-  const [selectedTags, setSelectedTags] = useState<string>("");
-  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedStrategy, setSelectedStrategy] = useState<string[]>([]);
+  const [selectedType, setSelectedType] = useState<string[]>([]);  
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [sortColumn, setSortColumn] = useState<"name" | "totalItems">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
@@ -37,18 +37,18 @@ export function VaultHomepage() {
     if (searchInput.trim()) {
       setQuery(searchInput);
       setFilters({
-        strategy: selectedStrategy || undefined,
-        contentType: selectedType || undefined,
-        tags: selectedTags ? [selectedTags] : undefined,
-        status: selectedStatus || undefined
+        strategy: selectedStrategy.length > 0 ? selectedStrategy[0] : undefined,
+        contentType: selectedType.length > 0 ? selectedType[0] : undefined,
+        tags: selectedTags.length > 0 ? selectedTags : undefined,
+        status: selectedStatus.length > 0 ? selectedStatus[0] : undefined
       });
       
       const params = new URLSearchParams();
       params.set('query', searchInput);
-      if (selectedStrategy) params.set('strategy', selectedStrategy);
-      if (selectedType) params.set('type', selectedType);
-      if (selectedTags) params.set('tags', selectedTags);
-      if (selectedStatus) params.set('status', selectedStatus);
+      if (selectedStrategy.length > 0) params.set('strategy', selectedStrategy.join(','));
+      if (selectedType.length > 0) params.set('type', selectedType.join(','));
+      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+      if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
       
       navigate(`/vault/search?${params.toString()}`);
     }
@@ -149,50 +149,37 @@ export function VaultHomepage() {
               />
             </div>
             
-            <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-              <SelectTrigger className="w-40">
-                <SelectValue placeholder="Strategy" />
-              </SelectTrigger>
-              <SelectContent>
-                {STRATEGIES.map(strategy => (
-                  <SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter
+              title="Strategy"
+              options={STRATEGIES}
+              selectedValues={selectedStrategy}
+              onSelectionChange={setSelectedStrategy}
+              placeholder="All Strategies"
+            />
 
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="w-32">
-                <SelectValue placeholder="Types" />
-              </SelectTrigger>
-              <SelectContent>
-                {CONTENT_TYPES.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter
+              title="Types"
+              options={CONTENT_TYPES}
+              selectedValues={selectedType}
+              onSelectionChange={setSelectedType}
+              placeholder="All Types"
+            />
 
-            <Select value={selectedTags} onValueChange={setSelectedTags}>
-              <SelectTrigger className="w-28">
-                <SelectValue placeholder="Tags" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="AI">AI</SelectItem>
-                <SelectItem value="ESG">ESG</SelectItem>
-                <SelectItem value="RFP">RFP</SelectItem>
-                <SelectItem value="Policy">Policy</SelectItem>
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter
+              title="Tags"
+              options={TAGS_INFO.map(tag => tag.name)}
+              selectedValues={selectedTags}
+              onSelectionChange={setSelectedTags}
+              placeholder="All Tags"
+            />
 
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-28">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                {STATUS_OPTIONS.map(status => (
-                  <SelectItem key={status} value={status}>{status}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <MultiSelectFilter
+              title="Status"
+              options={STATUS_OPTIONS}
+              selectedValues={selectedStatus}
+              onSelectionChange={setSelectedStatus}
+              placeholder="All Status"
+            />
 
             <Button 
               onClick={handleSearch}

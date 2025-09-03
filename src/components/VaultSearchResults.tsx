@@ -317,7 +317,6 @@ export function VaultSearchResults() {
                   if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
                   navigate(`/vault/search?${params.toString()}`, { replace: true });
                 }}
-                width="w-40"
               />
 
               <MultiSelectFilter
@@ -334,7 +333,6 @@ export function VaultSearchResults() {
                   if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
                   navigate(`/vault/search?${params.toString()}`, { replace: true });
                 }}
-                width="w-32"
               />
 
               <MultiSelectFilter
@@ -351,7 +349,6 @@ export function VaultSearchResults() {
                   if (values.length > 0) params.set('tags', values.join(','));
                   navigate(`/vault/search?${params.toString()}`, { replace: true });
                 }}
-                width="w-28"
               />
 
               <MultiSelectFilter
@@ -368,7 +365,6 @@ export function VaultSearchResults() {
                   if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
                   navigate(`/vault/search?${params.toString()}`, { replace: true });
                 }}
-                width="w-28"
               />
             </div>
 

@@ -57,7 +57,7 @@ export function MultiSelectFilter({
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className={cn("p-0 bg-popover border z-50", width)} align="start">
+      <PopoverContent className="p-0 bg-popover border z-50 min-w-max max-w-[300px]" align="start">
         <div className="flex flex-col">
           {/* Search bar */}
           <div className="p-3 border-b">
