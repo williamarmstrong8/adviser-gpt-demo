@@ -46,18 +46,37 @@ export function VaultSearchResults() {
   );
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
 
-  // Filter items based on search and filters
+  // Helper function to merge original item with saved edits
+  const getDisplayData = (item: ContentItem) => {
+    const savedEdit = getEdit(item.id);
+    if (!savedEdit) return item;
+
+    return {
+      ...item,
+      content: {
+        ...item.content,
+        question: savedEdit.question || item.content?.question,
+        answer: savedEdit.answer || item.content?.answer,
+      },
+      strategy: savedEdit.strategy || item.strategy,
+      tags: savedEdit.tags || item.tags,
+    };
+  };
+
+  // Filter items based on search and filters (using merged data)
   const filteredItems = MOCK_CONTENT_ITEMS.filter(item => {
-    const matchesQuery = !query || 
-      item.title.toLowerCase().includes(query.toLowerCase()) ||
-      item.content?.question?.toLowerCase().includes(query.toLowerCase()) ||
-      item.content?.answer?.toLowerCase().includes(query.toLowerCase()) ||
-      item.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
+    const displayData = getDisplayData(item);
     
-    const matchesStrategy = !selectedStrategy || item.strategy === selectedStrategy;
-    const matchesType = !selectedType || item.type === selectedType;
+    const matchesQuery = !query || 
+      displayData.title.toLowerCase().includes(query.toLowerCase()) ||
+      displayData.content?.question?.toLowerCase().includes(query.toLowerCase()) ||
+      displayData.content?.answer?.toLowerCase().includes(query.toLowerCase()) ||
+      displayData.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
+    
+    const matchesStrategy = !selectedStrategy || displayData.strategy === selectedStrategy;
+    const matchesType = !selectedType || displayData.type === selectedType;
     const matchesTags = selectedTags.length === 0 || 
-      selectedTags.some(tag => item.tags.includes(tag));
+      selectedTags.some(tag => displayData.tags.includes(tag));
     
     return matchesQuery && matchesStrategy && matchesType && matchesTags;
   });
@@ -362,9 +381,11 @@ export function VaultSearchResults() {
           </div>
         ) : (
           filteredItems.map((item, index) => {
+            const displayData = getDisplayData(item);
+            const hasEdits = !!getEdit(item.id);
             const isFirstResult = index === 0;
             const isExpanded = expandedAnswers.has(item.id);
-            const answer = item.content?.answer || '';
+            const answer = displayData.content?.answer || '';
             const shouldTruncate = answer.length > 300;
             const displayAnswer = isExpanded ? answer : answer.substring(0, 300);
             
@@ -376,13 +397,18 @@ export function VaultSearchResults() {
                 <FileText className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <h3 className="font-medium">{item.title}</h3>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <span>
-                      {formatRelativeTime(item.updatedAt)} ({formatFullDate(item.updatedAt)})
-                    </span>
-                    <User className="h-3 w-3" />
-                    <span>{item.updatedBy}</span>
-                  </div>
+                   <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                     <span>
+                       {formatRelativeTime(item.updatedAt)} ({formatFullDate(item.updatedAt)})
+                     </span>
+                     <User className="h-3 w-3" />
+                     <span>{item.updatedBy}</span>
+                     {hasEdits && (
+                       <Badge variant="outline" className="text-xs">
+                         Edited
+                       </Badge>
+                     )}
+                   </div>
                 </div>
               </div>
               
@@ -393,52 +419,52 @@ export function VaultSearchResults() {
               )}
             </div>
 
-                {/* Answer Section */}
-                {item.content?.answer && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Answer</h4>
-                    <div className="bg-muted/50 rounded-md p-4">
-                      <p className="text-sm leading-relaxed">
-                        {displayAnswer}
-                        {shouldTruncate && !isExpanded && '...'}
-                      </p>
-                      {shouldTruncate && (
-                        <Button
-                          variant="link"
-                          size="sm"
-                          className="mt-2 p-0 h-auto"
-                          onClick={() => toggleAnswerExpansion(item.id)}
-                        >
-                          {isExpanded ? 'Show less' : 'Show more'}
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                )}
+                 {/* Answer Section */}
+                 {displayData.content?.answer && (
+                   <div className="space-y-2">
+                     <h4 className="font-medium">Answer</h4>
+                     <div className="bg-muted/50 rounded-md p-4">
+                       <p className="text-sm leading-relaxed">
+                         {displayAnswer}
+                         {shouldTruncate && !isExpanded && '...'}
+                       </p>
+                       {shouldTruncate && (
+                         <Button
+                           variant="link"
+                           size="sm"
+                           className="mt-2 p-0 h-auto"
+                           onClick={() => toggleAnswerExpansion(item.id)}
+                         >
+                           {isExpanded ? 'Show less' : 'Show more'}
+                         </Button>
+                       )}
+                     </div>
+                   </div>
+                 )}
 
-                {/* Question Section */}
-                {item.content?.question && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Question</h4>
-                    <p className="text-sm text-muted-foreground">
-                      {item.content.question}
-                    </p>
-                  </div>
-                )}
+                 {/* Question Section */}
+                 {displayData.content?.question && (
+                   <div className="space-y-2">
+                     <h4 className="font-medium">Question</h4>
+                     <p className="text-sm text-muted-foreground">
+                       {displayData.content.question}
+                     </p>
+                   </div>
+                 )}
 
-                {/* Tags */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="vault-tag">Evergreen</Badge>
-                  <Badge variant="outline" className="vault-tag">{item.strategy}</Badge>
-                  {item.tags.map(tag => (
-                    <Badge key={tag} variant="outline" className="text-xs vault-tag">
-                      {tag}
-                    </Badge>
-                  ))}
-                  <Badge variant="outline" className="text-xs text-muted-foreground vault-tag">
-                    + New
-                  </Badge>
-                </div>
+                 {/* Tags */}
+                 <div className="flex flex-wrap items-center gap-2">
+                   <Badge variant="outline" className="vault-tag">Evergreen</Badge>
+                   <Badge variant="outline" className="vault-tag">{displayData.strategy}</Badge>
+                   {displayData.tags.map(tag => (
+                     <Badge key={tag} variant="outline" className="text-xs vault-tag">
+                       {tag}
+                     </Badge>
+                   ))}
+                   <Badge variant="outline" className="text-xs text-muted-foreground vault-tag">
+                     + New
+                   </Badge>
+                 </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-2">
