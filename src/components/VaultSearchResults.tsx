@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { VaultSidebar } from "./VaultSidebar";
+import { MultiSelectFilter } from "./MultiSelectFilter";
 import { 
   ChevronRight, 
   Home, 
@@ -16,7 +17,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { VaultEditSheet } from "./VaultEditSheet";
 import { useVaultState, useVaultEdits } from "@/hooks/useVaultState";
@@ -38,9 +38,15 @@ export function VaultSearchResults() {
   const queryButtonRef = useRef<HTMLButtonElement>(null);
   const measureRef = useRef<HTMLSpanElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [selectedStrategy, setSelectedStrategy] = useState(searchParams.get('strategy') || '');
-  const [selectedType, setSelectedType] = useState(searchParams.get('type') || '');
-  const [selectedStatus, setSelectedStatus] = useState(searchParams.get('status') || '');
+  const [selectedStrategies, setSelectedStrategies] = useState<string[]>(
+    searchParams.get('strategy')?.split(',').filter(Boolean) || []
+  );
+  const [selectedTypes, setSelectedTypes] = useState<string[]>(
+    searchParams.get('type')?.split(',').filter(Boolean) || []
+  );
+  const [selectedStatuses, setSelectedStatuses] = useState<string[]>(
+    searchParams.get('status')?.split(',').filter(Boolean) || []
+  );
   const [selectedTags, setSelectedTags] = useState<string[]>(
     searchParams.get('tags')?.split(',').filter(Boolean) || []
   );
@@ -73,20 +79,24 @@ export function VaultSearchResults() {
       displayData.content?.answer?.toLowerCase().includes(query.toLowerCase()) ||
       displayData.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
     
-    const matchesStrategy = !selectedStrategy || displayData.strategy === selectedStrategy;
-    const matchesType = !selectedType || displayData.type === selectedType;
+    const matchesStrategy = selectedStrategies.length === 0 || 
+      selectedStrategies.includes(displayData.strategy);
+    const matchesType = selectedTypes.length === 0 || 
+      selectedTypes.includes(displayData.type);
     const matchesTags = selectedTags.length === 0 || 
       selectedTags.some(tag => displayData.tags.includes(tag));
+    const matchesStatus = selectedStatuses.length === 0 || 
+      selectedStatuses.includes(displayData.type); // Using type as status for mock data
     
-    return matchesQuery && matchesStrategy && matchesType && matchesTags;
+    return matchesQuery && matchesStrategy && matchesType && matchesTags && matchesStatus;
   });
 
-  const hasActiveFilters = selectedStrategy || selectedType || selectedTags.length > 0;
+  const hasActiveFilters = selectedStrategies.length > 0 || selectedTypes.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0;
 
   const clearFilters = () => {
-    setSelectedStrategy('');
-    setSelectedType('');
-    setSelectedStatus('');
+    setSelectedStrategies([]);
+    setSelectedTypes([]);
+    setSelectedStatuses([]);
     setSelectedTags([]);
     navigate(`/vault/search?query=${query}`);
   };
@@ -97,9 +107,9 @@ export function VaultSearchResults() {
     
     const params = new URLSearchParams();
     params.set('query', query);
-    if (selectedStrategy) params.set('strategy', selectedStrategy);
-    if (selectedType) params.set('type', selectedType);
-    if (selectedStatus) params.set('status', selectedStatus);
+    if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
+    if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
+    if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
     if (newTags.length > 0) params.set('tags', newTags.join(','));
     
     navigate(`/vault/search?${params.toString()}`);
@@ -127,9 +137,9 @@ export function VaultSearchResults() {
     
     const params = new URLSearchParams();
     params.set('query', newQuery);
-    if (selectedStrategy) params.set('strategy', selectedStrategy);
-    if (selectedType) params.set('type', selectedType);
-    if (selectedStatus) params.set('status', selectedStatus);
+    if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
+    if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
+    if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
     if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
     
     navigate(`/vault/search?${params.toString()}`, { replace: true });
@@ -293,50 +303,73 @@ export function VaultSearchResults() {
           {/* Filters and Export */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Select value={selectedStrategy} onValueChange={setSelectedStrategy}>
-                <SelectTrigger className="w-40">
-                  <SelectValue placeholder="Strategy" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STRATEGIES.map(strategy => (
-                    <SelectItem key={strategy} value={strategy}>{strategy}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                title="Strategy"
+                options={STRATEGIES}
+                selectedValues={selectedStrategies}
+                onSelectionChange={(values) => {
+                  setSelectedStrategies(values);
+                  const params = new URLSearchParams();
+                  params.set('query', query);
+                  if (values.length > 0) params.set('strategy', values.join(','));
+                  if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
+                  if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
+                  if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                }}
+                width="w-40"
+              />
 
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="w-32">
-                  <SelectValue placeholder="Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CONTENT_TYPES.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                title="Types"
+                options={CONTENT_TYPES}
+                selectedValues={selectedTypes}
+                onSelectionChange={(values) => {
+                  setSelectedTypes(values);
+                  const params = new URLSearchParams();
+                  params.set('query', query);
+                  if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
+                  if (values.length > 0) params.set('type', values.join(','));
+                  if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
+                  if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                }}
+                width="w-32"
+              />
 
-              <Select value={selectedTags.join(',')} onValueChange={(value) => setSelectedTags(value ? [value] : [])}>
-                <SelectTrigger className="w-28">
-                  <SelectValue placeholder="Tags" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="AI">AI</SelectItem>
-                  <SelectItem value="ESG">ESG</SelectItem>
-                  <SelectItem value="RFP">RFP</SelectItem>
-                  <SelectItem value="Policy">Policy</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                title="Tags"
+                options={["AI", "ESG", "RFP", "Policy", "Risk Management", "Investment Strategy", "Portfolio Management", "Asset Management", "Financial Services", "Financial Analysis"]}
+                selectedValues={selectedTags}
+                onSelectionChange={(values) => {
+                  setSelectedTags(values);
+                  const params = new URLSearchParams();
+                  params.set('query', query);
+                  if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
+                  if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
+                  if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
+                  if (values.length > 0) params.set('tags', values.join(','));
+                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                }}
+                width="w-28"
+              />
 
-              <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                <SelectTrigger className="w-28">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  {STATUS_OPTIONS.map(status => (
-                    <SelectItem key={status} value={status}>{status}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <MultiSelectFilter
+                title="Status"
+                options={STATUS_OPTIONS}
+                selectedValues={selectedStatuses}
+                onSelectionChange={(values) => {
+                  setSelectedStatuses(values);
+                  const params = new URLSearchParams();
+                  params.set('query', query);
+                  if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
+                  if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
+                  if (values.length > 0) params.set('status', values.join(','));
+                  if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                }}
+                width="w-28"
+              />
             </div>
 
             <DropdownMenu>
@@ -362,29 +395,68 @@ export function VaultSearchResults() {
 
           {/* Active Filters */}
           {hasActiveFilters && (
-            <div className="flex items-center gap-2 mt-4">
+            <div className="flex items-center gap-2 mt-4 flex-wrap">
               <span className="text-sm text-muted-foreground">Active filters:</span>
-              {selectedStrategy && (
-                <Badge variant="secondary" className="gap-1">
-                  {selectedStrategy}
+              {selectedStrategies.map(strategy => (
+                <Badge key={strategy} variant="secondary" className="gap-1">
+                  Strategy: {strategy}
                   <X 
                     className="h-3 w-3 cursor-pointer" 
-                    onClick={() => setSelectedStrategy('')}
+                    onClick={() => {
+                      const newStrategies = selectedStrategies.filter(s => s !== strategy);
+                      setSelectedStrategies(newStrategies);
+                      const params = new URLSearchParams();
+                      params.set('query', query);
+                      if (newStrategies.length > 0) params.set('strategy', newStrategies.join(','));
+                      if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
+                      if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
+                      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+                      navigate(`/vault/search?${params.toString()}`);
+                    }}
                   />
                 </Badge>
-              )}
-              {selectedType && (
-                <Badge variant="secondary" className="gap-1">
-                  {selectedType}
+              ))}
+              {selectedTypes.map(type => (
+                <Badge key={type} variant="secondary" className="gap-1">
+                  Type: {type}
                   <X 
                     className="h-3 w-3 cursor-pointer" 
-                    onClick={() => setSelectedType('')}
+                    onClick={() => {
+                      const newTypes = selectedTypes.filter(t => t !== type);
+                      setSelectedTypes(newTypes);
+                      const params = new URLSearchParams();
+                      params.set('query', query);
+                      if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
+                      if (newTypes.length > 0) params.set('type', newTypes.join(','));
+                      if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
+                      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+                      navigate(`/vault/search?${params.toString()}`);
+                    }}
                   />
                 </Badge>
-              )}
+              ))}
+              {selectedStatuses.map(status => (
+                <Badge key={status} variant="secondary" className="gap-1">
+                  Status: {status}
+                  <X 
+                    className="h-3 w-3 cursor-pointer" 
+                    onClick={() => {
+                      const newStatuses = selectedStatuses.filter(s => s !== status);
+                      setSelectedStatuses(newStatuses);
+                      const params = new URLSearchParams();
+                      params.set('query', query);
+                      if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
+                      if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
+                      if (newStatuses.length > 0) params.set('status', newStatuses.join(','));
+                      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+                      navigate(`/vault/search?${params.toString()}`);
+                    }}
+                  />
+                </Badge>
+              ))}
               {selectedTags.map(tag => (
                 <Badge key={tag} variant="secondary" className="gap-1">
-                  {tag}
+                  Tag: {tag}
                   <X 
                     className="h-3 w-3 cursor-pointer" 
                     onClick={() => removeTag(tag)}

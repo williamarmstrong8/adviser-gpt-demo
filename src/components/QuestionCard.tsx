@@ -316,7 +316,7 @@ export function QuestionCard({
                 onClick={() => setIsAddingTag(true)}
               >
                 <Plus className="h-3 w-3 mr-1" />
-                Add Tag
+                + New
               </Button>
             )
           )}
