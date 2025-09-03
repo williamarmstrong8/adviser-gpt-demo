@@ -164,6 +164,11 @@ export function QuestionCard({
     }
   };
 
+  const handleCancelTag = () => {
+    setNewTag("");
+    setIsAddingTag(false);
+  };
+
   const handleRemoveTag = (tag: string) => {
     onTagRemove?.(data.id, tag);
   };
@@ -291,20 +296,16 @@ export function QuestionCard({
                   className="h-7 text-xs w-24"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleAddTag();
-                    if (e.key === 'Escape') {
-                      setIsAddingTag(false);
-                      setNewTag('');
-                    }
+                    if (e.key === 'Escape') handleCancelTag();
                   }}
-                  onBlur={() => {
-                    if (!newTag.trim()) {
-                      setIsAddingTag(false);
-                    }
-                  }}
+                  onBlur={handleCancelTag}
                   autoFocus
                 />
                 <Button size="sm" className="h-7 px-2" onClick={handleAddTag}>
                   <Check className="h-3 w-3" />
+                </Button>
+                <Button size="sm" variant="outline" className="h-7 px-2" onClick={handleCancelTag}>
+                  <X className="h-3 w-3" />
                 </Button>
               </div>
             ) : (

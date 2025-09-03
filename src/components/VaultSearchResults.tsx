@@ -172,6 +172,37 @@ export function VaultSearchResults() {
     setEditingItem(null);
   };
 
+  const handleTagAdd = (id: string, tag: string) => {
+    // Update localStorage with new tag
+    const existingEdits = JSON.parse(localStorage.getItem('vaultEdits') || '{}');
+    const currentEdit = existingEdits[id] || {};
+    const originalItem = MOCK_CONTENT_ITEMS.find(item => item.id === id);
+    const currentTags = currentEdit.tags || originalItem?.tags || [];
+    
+    if (!currentTags.includes(tag)) {
+      existingEdits[id] = { ...currentEdit, tags: [...currentTags, tag] };
+      localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
+    }
+  };
+
+  const handleTagRemove = (id: string, tag: string) => {
+    // Update localStorage removing tag
+    const existingEdits = JSON.parse(localStorage.getItem('vaultEdits') || '{}');
+    const currentEdit = existingEdits[id] || {};
+    const originalItem = MOCK_CONTENT_ITEMS.find(item => item.id === id);
+    const currentTags = currentEdit.tags || originalItem?.tags || [];
+    
+    existingEdits[id] = { ...currentEdit, tags: currentTags.filter(t => t !== tag) };
+    localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
+  };
+
+  const handleQuickEdit = (id: string, field: string, value: string) => {
+    // Update localStorage with field change
+    const existingEdits = JSON.parse(localStorage.getItem('vaultEdits') || '{}');
+    existingEdits[id] = { ...existingEdits[id], [field]: value };
+    localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
+  };
+
   const exportData = (format: string) => {
     console.log(`Exporting ${filteredItems.length} results as ${format}`);
     // Implementation would depend on format

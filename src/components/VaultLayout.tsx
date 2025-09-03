@@ -157,18 +157,40 @@ export function VaultLayout() {
   };
 
   const handleTagAdd = (id: string, tag: string) => {
-    // Mock implementation - in real app would update backend
-    console.log(`Adding tag "${tag}" to item ${id}`);
+    // Update the item in the local data and persist to localStorage
+    const updatedItems = mockContentItems.map(item => {
+      if (item.id === id && !item.tags.includes(tag)) {
+        return { ...item, tags: [...item.tags, tag] };
+      }
+      return item;
+    });
+    
+    // In a real app, you'd update the state and persist changes
+    const existingEdits = JSON.parse(localStorage.getItem('vaultEdits') || '{}');
+    existingEdits[id] = { ...existingEdits[id], tags: updatedItems.find(item => item.id === id)?.tags };
+    localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
   };
 
   const handleTagRemove = (id: string, tag: string) => {
-    // Mock implementation - in real app would update backend
-    console.log(`Removing tag "${tag}" from item ${id}`);
+    // Update the item in the local data and persist to localStorage
+    const updatedItems = mockContentItems.map(item => {
+      if (item.id === id) {
+        return { ...item, tags: item.tags.filter(t => t !== tag) };
+      }
+      return item;
+    });
+    
+    // In a real app, you'd update the state and persist changes
+    const existingEdits = JSON.parse(localStorage.getItem('vaultEdits') || '{}');
+    existingEdits[id] = { ...existingEdits[id], tags: updatedItems.find(item => item.id === id)?.tags };
+    localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
   };
 
   const handleQuickEdit = (id: string, field: string, value: string) => {
-    // Mock implementation - in real app would update backend
-    console.log(`Updating ${field} to "${value}" for item ${id}`);
+    // Update the item in the local data and persist to localStorage
+    const existingEdits = JSON.parse(localStorage.getItem('vaultEdits') || '{}');
+    existingEdits[id] = { ...existingEdits[id], [field]: value };
+    localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
   };
 
   const handleLoadSavedSearch = (searchData: { query: string; filters: { strategy?: string; contentType?: string; tags?: string[]; }; }) => {
