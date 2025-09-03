@@ -241,9 +241,64 @@ export function VaultSearchResults() {
     localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
   };
 
-  const exportData = (format: string) => {
-    console.log(`Exporting ${filteredItems.length} results as ${format}`);
-    // Implementation would depend on format
+  // Export functionality
+  const exportData = async (format: 'pdf' | 'csv' | 'docx') => {
+    try {
+      toast({
+        title: "Preparing export...",
+        description: "Please wait while we prepare your data.",
+        duration: 2000,
+      });
+
+      const { exportToPDF, exportToCSV, exportToDocx, getExportFilename } = await import('@/utils/exportUtils');
+      
+      const exportItems = filteredItems.map(item => ({
+        id: item.id,
+        title: item.title,
+        answer: item.content?.answer || '',
+        question: item.content?.question || '',
+        fileName: item.title, // Use title as filename for export
+        lastEdited: formatFullDate(item.updatedAt),
+        lastEditor: item.updatedBy,
+        tags: getDisplayData(item).tags,
+        strategy: getDisplayData(item).strategy,
+        type: item.type
+      }));
+
+      const isFileView = fileName && !query;
+      const contextTitle = isFileView 
+        ? `${filteredItems.length} Questions in ${fileName}`
+        : `Search Results for "${query}"`;
+      
+      const contextName = isFileView ? fileName || 'file' : `Search_${query}`;
+      const filename = getExportFilename(format, contextName);
+
+      switch (format) {
+        case 'pdf':
+          await exportToPDF(exportItems, contextTitle, filename);
+          break;
+        case 'csv':
+          exportToCSV(exportItems, filename);
+          break;
+        case 'docx':
+          await exportToDocx(exportItems, contextTitle, filename);
+          break;
+      }
+
+      toast({
+        title: "Export successful!",
+        description: `Your ${format.toUpperCase()} file has been downloaded.`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting your data. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
   };
 
   const handleCopyAnswer = async (answer: string) => {
@@ -544,8 +599,10 @@ export function VaultSearchResults() {
           <div className="border rounded-lg bg-card vault-result-card overflow-hidden">
             {/* Header with file info and badge */}
             <div className="flex items-start justify-between pb-4 border-b border-[#E4E4E7] px-6 py-4">
-              <div className="flex items-center min-w-0 gap-3 flex-1 flex-wrap">
-                <FileText className="h-4 w-4 flex-shrink-0" style={{ color: '#71717A' }} />
+              <div className="flex items-center min-w-0 gap-3 flex-1">
+                {!fileName && (
+                  <FileText className="h-4 w-4 flex-shrink-0" style={{ color: '#71717A' }} />
+                )}
                 <div 
                   className="font-bold break-words flex-grow text-sm"
                   style={{ 
@@ -557,24 +614,26 @@ export function VaultSearchResults() {
                 >
                   {item.title}
                 </div>
+                <div className="flex items-center gap-4 text-sm" style={{ fontSize: '14px', lineHeight: '1.4' }}>
+                  <div className="flex items-center gap-1 whitespace-nowrap">
+                    <Calendar className="h-4 w-4" style={{ color: '#71717A' }} />
+                    <span style={{ color: '#27272A' }}>{formatRelativeTime(item.updatedAt)}</span>
+                    <span style={{ color: '#71717A' }}>({formatFullDate(item.updatedAt)})</span>
+                  </div>
+                  <div className="flex items-center gap-1 whitespace-nowrap">
+                    <UsersRound className="h-4 w-4" style={{ color: '#71717A' }} />
+                    <span>{item.updatedBy}</span>
+                  </div>
+                  {hasEdits && (
+                    <Badge variant="outline" className="text-xs flex-shrink-0">
+                      Edited
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <div className="flex items-center gap-4 text-sm ml-4 flex-shrink-0" style={{ fontSize: '14px', lineHeight: '1.4' }}>
-                <div className="flex items-center gap-1 whitespace-nowrap">
-                  <Calendar className="h-4 w-4" style={{ color: '#71717A' }} />
-                  <span style={{ color: '#27272A' }}>{formatRelativeTime(item.updatedAt)}</span>
-                  <span style={{ color: '#71717A' }}>({formatFullDate(item.updatedAt)})</span>
-                </div>
-                <div className="flex items-center gap-1 whitespace-nowrap">
-                  <UsersRound className="h-4 w-4" style={{ color: '#71717A' }} />
-                  <span>{item.updatedBy}</span>
-                </div>
-                {hasEdits && (
-                  <Badge variant="outline" className="text-xs flex-shrink-0">
-                    Edited
-                  </Badge>
-                )}
-                {isFirstResult && (
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full flex-shrink-0" style={{ backgroundColor: '#CCECB6', color: '#09090B' }}>
+              <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+                {!fileName && isFirstResult && (
+                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#CCECB6', color: '#09090B' }}>
                     <Star className="h-3 w-3" />
                     <span className="text-xs font-semibold">Best Answer</span>
                   </div>
