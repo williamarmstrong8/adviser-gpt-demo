@@ -18,7 +18,8 @@ import {
   Calendar,
   UsersRound,
   CornerDownRight,
-  Check
+  Check,
+  ArrowUpDown
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +36,7 @@ export function VaultSearchResults() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const location = useLocation();
-  const { state, setQuery, setFilters } = useVaultState();
+  const { state, setQuery, setFilters, setSort } = useVaultState();
   const { edits, saveEdit, getEdit } = useVaultEdits();
   const { toast } = useToast();
   
@@ -66,6 +67,9 @@ export function VaultSearchResults() {
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
   const [addingTagToItem, setAddingTagToItem] = useState<string | null>(null);
   const [newTagValue, setNewTagValue] = useState("");
+  
+  // Get sort state from URL or default to 'relevance'
+  const currentSort = searchParams.get('sort') || state.sort || 'relevance';
 
   // Helper function to merge original item with saved edits
   const getDisplayData = (item: ContentItem) => {
@@ -106,6 +110,21 @@ export function VaultSearchResults() {
     return matchesQuery && matchesStrategy && matchesType && matchesTags && matchesStatus;
   });
 
+  // Sort filtered items
+  const sortItems = (items: ContentItem[], sortBy: string) => {
+    switch (sortBy) {
+      case 'lastEdited':
+        return [...items].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      case 'lastEditor':
+        return [...items].sort((a, b) => a.updatedBy.localeCompare(b.updatedBy));
+      case 'relevance':
+      default:
+        return items; // Original order
+    }
+  };
+
+  const sortedAndFilteredItems = sortItems(filteredItems, currentSort);
+
   const hasActiveFilters = selectedStrategies.length > 0 || selectedTypes.length > 0 || selectedTags.length > 0 || selectedStatuses.length > 0;
 
   const clearFilters = () => {
@@ -142,6 +161,27 @@ export function VaultSearchResults() {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSearch();
+    }
+  };
+
+  const handleSortChange = (sortValue: string) => {
+    setSort(sortValue);
+    
+    const params = new URLSearchParams(searchParams);
+    if (sortValue !== 'relevance') {
+      params.set('sort', sortValue);
+    } else {
+      params.delete('sort');
+    }
+    
+    // Preserve existing parameters
+    if (query) params.set('query', query);
+    if (isFileMode && fileName) {
+      params.set('fileName', fileName);
+      params.set('count', fileCount.toString());
+      navigate(`/vault/file?${params.toString()}`);
+    } else {
+      navigate(`/vault/search?${params.toString()}`);
     }
   };
 
@@ -439,6 +479,33 @@ export function VaultSearchResults() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
+                  <ArrowUpDown className="mr-2 h-4 w-4" />
+                  Sort: {currentSort === 'relevance' ? 'Relevance' : currentSort === 'lastEdited' ? 'Last edited' : 'Last editor'}
+                  <ChevronDown className="ml-2 h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handleSortChange('relevance')}>
+                  {currentSort === 'relevance' && <Check className="mr-2 h-4 w-4" />}
+                  {currentSort !== 'relevance' && <div className="mr-6" />}
+                  Relevance
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSortChange('lastEdited')}>
+                  {currentSort === 'lastEdited' && <Check className="mr-2 h-4 w-4" />}
+                  {currentSort !== 'lastEdited' && <div className="mr-6" />}
+                  Last edited
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleSortChange('lastEditor')}>
+                  {currentSort === 'lastEditor' && <Check className="mr-2 h-4 w-4" />}
+                  {currentSort !== 'lastEditor' && <div className="mr-6" />}
+                  Last editor
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline">
                   Export View
                   <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
@@ -519,7 +586,7 @@ export function VaultSearchResults() {
 
       {/* Results */}
       <div className="flex-1 p-6 space-y-6">
-        {filteredItems.length === 0 ? (
+        {sortedAndFilteredItems.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-lg text-muted-foreground mb-4">
               No results match your filters.
@@ -529,7 +596,7 @@ export function VaultSearchResults() {
             </Button>
           </div>
         ) : (
-          filteredItems.map((item, index) => {
+          sortedAndFilteredItems.map((item, index) => {
             const displayData = getDisplayData(item);
             const hasEdits = !!getEdit(item.id);
             const isFirstResult = index === 0;

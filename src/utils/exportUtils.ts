@@ -186,7 +186,10 @@ export const exportToDocx = async (
   });
 
   const buffer = await Packer.toBuffer(doc);
-  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+  const arrayBuffer = buffer instanceof ArrayBuffer ? buffer : 
+    (buffer as any).buffer ? (buffer as any).buffer.slice((buffer as any).byteOffset, (buffer as any).byteOffset + (buffer as any).byteLength) : 
+    buffer;
+  const blob = new Blob([arrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
