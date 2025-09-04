@@ -88,6 +88,24 @@ export function VaultSearchResults() {
     };
   };
 
+  // Smart highlighting function
+  const highlightSearchTerms = (text: string, query: string) => {
+    if (!query?.trim()) return text;
+    
+    // Split query into meaningful terms (2+ chars, exclude common words)
+    const terms = query.split(/\s+/)
+      .filter(term => term.length >= 2)
+      .filter(term => !['the', 'and', 'or', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'is', 'are', 'was', 'were', 'a', 'an'].includes(term.toLowerCase()));
+    
+    if (terms.length === 0) return text;
+    
+    // Create regex for phrase matching and individual terms
+    const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${terms.map(term => escapeRegex(term)).join('|')})`, 'gi');
+    
+    return text.replace(regex, '<mark class="bg-yellow-200 px-0.5 rounded">$1</mark>');
+  };
+
   // Filter items based on search and filters (using merged data)
   const filteredItems = MOCK_CONTENT_ITEMS.filter(item => {
     const displayData = getDisplayData(item);
@@ -644,7 +662,7 @@ export function VaultSearchResults() {
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                {!fileName && isFirstResult && (
+                {!fileName && isFirstResult && currentSort === 'relevance' && (
                   <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#CCECB6', color: '#09090B' }}>
                     <Star className="h-3 w-3" />
                     <span className="text-xs font-semibold">Best Answer</span>
@@ -657,11 +675,13 @@ export function VaultSearchResults() {
                  {displayData.content?.answer && (
                    <div className="space-y-2 px-6 py-4">
                      <h4 style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5', letterSpacing: '-0.2px' }}>Answer</h4>
-                     <div className="bg-muted/50 rounded-md p-4">
-                       <p className="text-sm leading-relaxed">
-                         {displayAnswer}
-                         {shouldTruncate && !isExpanded && '...'}
-                       </p>
+                      <div className="bg-muted/50 rounded-md p-4">
+                        <p 
+                          className="text-sm leading-relaxed"
+                          dangerouslySetInnerHTML={{ 
+                            __html: highlightSearchTerms(displayAnswer, query) + (shouldTruncate && !isExpanded ? '...' : '')
+                          }}
+                        />
                        {shouldTruncate && (
                          <Button
                            variant="link"
@@ -683,9 +703,10 @@ export function VaultSearchResults() {
                        <CornerDownRight className="h-4 w-4 mt-1 flex-shrink-0" style={{ color: '#71717A' }} />
                        <div className="space-y-2">
                          <h4 style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5', letterSpacing: '-0.2px' }}>Question</h4>
-                         <p style={{ fontSize: '16px', lineHeight: '1.5', fontWeight: '700', letterSpacing: '-0.4px' }}>
-                           {displayData.content.question}
-                         </p>
+                          <p 
+                            style={{ fontSize: '16px', lineHeight: '1.5', fontWeight: '700', letterSpacing: '-0.4px' }}
+                            dangerouslySetInnerHTML={{ __html: highlightSearchTerms(displayData.content.question, query) }}
+                          />
                          
                          {/* Tags in Question Section */}
                          <div className="flex flex-wrap items-center gap-2 mt-3">
