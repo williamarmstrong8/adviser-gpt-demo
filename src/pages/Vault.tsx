@@ -1,9 +1,10 @@
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useLocation } from "react-router-dom";
 import { VaultHomepage } from "@/components/VaultHomepage";
 import { VaultSearchResults } from "@/components/VaultSearchResults";
 
 export default function Vault() {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const query = searchParams.get('query');
   const fileName = searchParams.get('fileName');
   
@@ -13,6 +14,11 @@ export default function Vault() {
                      searchParams.get('tags') || 
                      searchParams.get('status');
 
-  // If there's a search query, file view, or any filters, show search results; otherwise show homepage
-  return (query || fileName || hasFilters) ? <VaultSearchResults /> : <VaultHomepage />;
+  // Always show search results for /vault/search and /vault/file routes
+  // Only show homepage for exact /vault route without search context
+  const isSearchRoute = location.pathname === '/vault/search';
+  const isFileRoute = location.pathname === '/vault/file';
+  const shouldShowSearchResults = isSearchRoute || isFileRoute || query || fileName || hasFilters;
+
+  return shouldShowSearchResults ? <VaultSearchResults /> : <VaultHomepage />;
 }

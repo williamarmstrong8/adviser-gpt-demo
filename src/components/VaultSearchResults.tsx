@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { useSearchParams, useNavigate, Link } from "react-router-dom";
+import { useSearchParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { VaultSidebar } from "./VaultSidebar";
 import { MultiSelectFilter } from "./MultiSelectFilter";
 import { 
+  Search,
   ChevronRight, 
   Home, 
   ChevronDown, 
@@ -33,20 +34,23 @@ import { ContentItem } from "@/types/vault";
 export function VaultSearchResults() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
   const { state, setQuery, setFilters } = useVaultState();
   const { edits, saveEdit, getEdit } = useVaultEdits();
   const { toast } = useToast();
   
-  const [query, setQueryState] = useState(searchParams.get('query') || '');
+  // Extract URL parameters
+  const urlQuery = searchParams.get('query') || '';
   const fileName = searchParams.get('fileName');
-  const fileCount = searchParams.get('count');
-  const [isEditingQuery, setIsEditingQuery] = useState(false);
+  const fileCount = parseInt(searchParams.get('count') || '0');
+  
+  // Determine if we're in file view mode
+  const isFileMode = location.pathname === '/vault/file' && fileName;
+  
+  const [query, setQueryState] = useState(urlQuery);
+  const [searchInput, setSearchInput] = useState(urlQuery);
   const [editingItem, setEditingItem] = useState<ContentItem | null>(null);
-  const [minWidth, setMinWidth] = useState(100);
-  const [currentWidth, setCurrentWidth] = useState(100);
-  const queryButtonRef = useRef<HTMLButtonElement>(null);
-  const measureRef = useRef<HTMLSpanElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>(
     searchParams.get('strategy')?.split(',').filter(Boolean) || []
   );
@@ -109,52 +113,70 @@ export function VaultSearchResults() {
     setSelectedTypes([]);
     setSelectedStatuses([]);
     setSelectedTags([]);
-    navigate(`/vault/search?query=${query}`);
+    
+    const params = new URLSearchParams();
+    if (query) params.set('query', query);
+    
+    // Preserve file context if in file mode
+    if (isFileMode && fileName) {
+      params.set('fileName', fileName);
+      params.set('count', fileCount.toString());
+      navigate(`/vault/file?${params.toString()}`);
+    } else {
+      navigate(`/vault/search?${params.toString()}`);
+    }
   };
 
   const removeTag = (tagToRemove: string) => {
     const newTags = selectedTags.filter(tag => tag !== tagToRemove);
     setSelectedTags(newTags);
-    
-    const params = new URLSearchParams();
-    params.set('query', query);
-    if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
-    if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
-    if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
-    if (newTags.length > 0) params.set('tags', newTags.join(','));
-    
-    navigate(`/vault/search?${params.toString()}`);
+    updateFiltersInUrl(query, selectedStrategies, selectedTypes, newTags, selectedStatuses);
   };
 
-  // Dynamic width calculation
-  const measureTextWidth = (text: string) => {
-    if (!measureRef.current) return minWidth;
-    measureRef.current.textContent = `"${text}"`;
-    const measuredWidth = measureRef.current.offsetWidth;
-    return Math.max(minWidth, Math.min(measuredWidth + 16, window.innerWidth * 0.8)); // 16px for padding
+  const handleSearch = () => {
+    setQuery(searchInput);
+    setQueryState(searchInput);
+    updateFiltersInUrl(searchInput, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  // Helper function to update filters in URL
+  const updateFiltersInUrl = (
+    queryValue: string,
+    strategies: string[],
+    types: string[],
+    tags: string[],
+    statuses: string[]
+  ) => {
+    const params = new URLSearchParams();
+    
+    if (queryValue.trim()) params.set('query', queryValue.trim());
+    if (strategies.length > 0) params.set('strategy', strategies.join(','));
+    if (types.length > 0) params.set('type', types.join(','));
+    if (tags.length > 0) params.set('tags', tags.join(','));
+    if (statuses.length > 0) params.set('status', statuses.join(','));
+    
+    // Preserve file context if in file mode
+    if (isFileMode && fileName) {
+      params.set('fileName', fileName);
+      params.set('count', fileCount.toString());
+      navigate(`/vault/file?${params.toString()}`);
+    } else {
+      navigate(`/vault/search?${params.toString()}`);
+    }
   };
 
   // Update width when query changes in edit mode
   useEffect(() => {
-    if (isEditingQuery) {
-      const newWidth = measureTextWidth(query);
-      setCurrentWidth(newWidth);
-    }
-  }, [query, isEditingQuery, minWidth]);
-
-  const handleQueryEdit = (newQuery: string) => {
-    setQueryState(newQuery);
-    setQuery(newQuery);
-    
-    const params = new URLSearchParams();
-    params.set('query', newQuery);
-    if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
-    if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
-    if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
-    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-    
-    navigate(`/vault/search?${params.toString()}`, { replace: true });
-  };
+    setQuery(urlQuery);
+    setQueryState(urlQuery);
+    setSearchInput(urlQuery);
+  }, [urlQuery, setQuery]);
 
   const formatRelativeTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -225,10 +247,9 @@ export function VaultSearchResults() {
   };
 
   const handleQuickEdit = (id: string, field: string, value: string) => {
-    // Update localStorage with field change
-    const existingEdits = JSON.parse(localStorage.getItem('vaultEdits') || '{}');
-    existingEdits[id] = { ...existingEdits[id], [field]: value };
-    localStorage.setItem('vaultEdits', JSON.stringify(existingEdits));
+    // Use the useVaultEdits hook instead of direct localStorage manipulation
+    const currentEdit = getEdit(id) || {};
+    saveEdit(id, { ...currentEdit, [field]: value });
   };
 
   // Export functionality
@@ -318,7 +339,7 @@ export function VaultSearchResults() {
       <div className="border-b bg-background">
         <div className="p-6">
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm mb-4">
+          <div className="flex items-center gap-2 text-sm mb-6">
             <Link to="/" className="text-muted-foreground hover:text-foreground">
               <Home className="h-4 w-4" />
             </Link>
@@ -330,71 +351,35 @@ export function VaultSearchResults() {
               Vault
             </Link>
             <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            <span className="text-foreground">ai policy guidelines and regulations</span>
-          </div>
-
-          {/* Title with editable query */}
-          <div className="flex items-center gap-2 mb-4">
             {fileName ? (
-              <span className="text-lg font-medium">
-                {fileCount} Questions in {fileName}
+              <span className="text-foreground font-medium">
+                {fileCount} questions in {fileName}
               </span>
             ) : (
-              <>
-                <span className="text-lg">{filteredItems.length} Results for</span>
-                <div className="relative">
-                  {/* Hidden measuring element */}
-                  <span 
-                    ref={measureRef}
-                    className="absolute -top-96 left-0 font-medium text-lg px-1 pointer-events-none opacity-0"
-                    aria-hidden="true"
-                  />
-                  
-                  {isEditingQuery ? (
-                    <Input
-                      ref={inputRef}
-                      value={query}
-                      onChange={(e) => setQueryState(e.target.value)}
-                      onBlur={() => {
-                        setIsEditingQuery(false);
-                        handleQueryEdit(query);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          setIsEditingQuery(false);
-                          handleQueryEdit(query);
-                        } else if (e.key === 'Escape') {
-                          setIsEditingQuery(false);
-                          setQueryState(searchParams.get('query') || '');
-                        }
-                      }}
-                      className="font-medium text-lg border-dashed border-b-2 border-t-0 border-l-0 border-r-0 rounded-none px-1 py-0.5 focus-visible:ring-0 bg-transparent transition-all duration-200"
-                      style={{
-                        width: `${currentWidth}px`,
-                        minWidth: `${minWidth}px`,
-                        maxWidth: '80vw'
-                      }}
-                      autoFocus
-                    />
-                  ) : (
-                    <button
-                      ref={queryButtonRef}
-                      onClick={() => {
-                        if (queryButtonRef.current) {
-                          const rect = queryButtonRef.current.getBoundingClientRect();
-                          setMinWidth(rect.width);
-                          setCurrentWidth(rect.width);
-                        }
-                        setIsEditingQuery(true);
-                      }}
-                      className="font-medium text-lg border-dashed border-b-2 border-foreground hover:bg-muted px-1 py-0.5 rounded-none transition-colors duration-250"
-                    >
-                      "{query}"
-                    </button>
-                  )}
-                </div>
-              </>
+              <span className="text-foreground font-medium">{filteredItems.length} results</span>
             )}
+          </div>
+
+          {/* Search Bar */}
+          <div className="mb-6">
+            <div className="flex items-center gap-3">
+              <div className="relative flex-1 max-w-xl">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder={fileName ? `Search within ${fileName}...` : "Search all content..."}
+                  className="pl-10 h-10"
+                />
+              </div>
+              <Button 
+                onClick={handleSearch}
+                className="bg-black text-white hover:bg-black/90 px-6"
+              >
+                Find
+              </Button>
+            </div>
           </div>
 
           {/* Filters and Export */}
@@ -406,13 +391,7 @@ export function VaultSearchResults() {
                 selectedValues={selectedStrategies}
                 onSelectionChange={(values) => {
                   setSelectedStrategies(values);
-                  const params = new URLSearchParams();
-                  params.set('query', query);
-                  if (values.length > 0) params.set('strategy', values.join(','));
-                  if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
-                  if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
-                  if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                  updateFiltersInUrl(query, values, selectedTypes, selectedTags, selectedStatuses);
                 }}
               />
 
@@ -422,13 +401,7 @@ export function VaultSearchResults() {
                 selectedValues={selectedTypes}
                 onSelectionChange={(values) => {
                   setSelectedTypes(values);
-                  const params = new URLSearchParams();
-                  params.set('query', query);
-                  if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
-                  if (values.length > 0) params.set('type', values.join(','));
-                  if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
-                  if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                  updateFiltersInUrl(query, selectedStrategies, values, selectedTags, selectedStatuses);
                 }}
               />
 
@@ -438,13 +411,7 @@ export function VaultSearchResults() {
                 selectedValues={selectedTags}
                 onSelectionChange={(values) => {
                   setSelectedTags(values);
-                  const params = new URLSearchParams();
-                  params.set('query', query);
-                  if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
-                  if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
-                  if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
-                  if (values.length > 0) params.set('tags', values.join(','));
-                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                  updateFiltersInUrl(query, selectedStrategies, selectedTypes, values, selectedStatuses);
                 }}
               />
 
@@ -454,13 +421,7 @@ export function VaultSearchResults() {
                 selectedValues={selectedStatuses}
                 onSelectionChange={(values) => {
                   setSelectedStatuses(values);
-                  const params = new URLSearchParams();
-                  params.set('query', query);
-                  if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
-                  if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
-                  if (values.length > 0) params.set('status', values.join(','));
-                  if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-                  navigate(`/vault/search?${params.toString()}`, { replace: true });
+                  updateFiltersInUrl(query, selectedStrategies, selectedTypes, selectedTags, values);
                 }}
               />
             </div>
@@ -498,13 +459,7 @@ export function VaultSearchResults() {
                     onClick={() => {
                       const newStrategies = selectedStrategies.filter(s => s !== strategy);
                       setSelectedStrategies(newStrategies);
-                      const params = new URLSearchParams();
-                      params.set('query', query);
-                      if (newStrategies.length > 0) params.set('strategy', newStrategies.join(','));
-                      if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
-                      if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
-                      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-                      navigate(`/vault/search?${params.toString()}`);
+                      updateFiltersInUrl(query, newStrategies, selectedTypes, selectedTags, selectedStatuses);
                     }}
                   />
                 </Badge>
@@ -517,13 +472,7 @@ export function VaultSearchResults() {
                     onClick={() => {
                       const newTypes = selectedTypes.filter(t => t !== type);
                       setSelectedTypes(newTypes);
-                      const params = new URLSearchParams();
-                      params.set('query', query);
-                      if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
-                      if (newTypes.length > 0) params.set('type', newTypes.join(','));
-                      if (selectedStatuses.length > 0) params.set('status', selectedStatuses.join(','));
-                      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-                      navigate(`/vault/search?${params.toString()}`);
+                      updateFiltersInUrl(query, selectedStrategies, newTypes, selectedTags, selectedStatuses);
                     }}
                   />
                 </Badge>
@@ -536,13 +485,7 @@ export function VaultSearchResults() {
                     onClick={() => {
                       const newStatuses = selectedStatuses.filter(s => s !== status);
                       setSelectedStatuses(newStatuses);
-                      const params = new URLSearchParams();
-                      params.set('query', query);
-                      if (selectedStrategies.length > 0) params.set('strategy', selectedStrategies.join(','));
-                      if (selectedTypes.length > 0) params.set('type', selectedTypes.join(','));
-                      if (newStatuses.length > 0) params.set('status', newStatuses.join(','));
-                      if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
-                      navigate(`/vault/search?${params.toString()}`);
+                      updateFiltersInUrl(query, selectedStrategies, selectedTypes, selectedTags, newStatuses);
                     }}
                   />
                 </Badge>
