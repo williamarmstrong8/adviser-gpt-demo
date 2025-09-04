@@ -546,6 +546,7 @@ export function VaultSearchResults() {
                 {!fileName && (
                   <FileText className="h-4 w-4 flex-shrink-0" style={{ color: '#71717A' }} />
                 )}
+                {!fileName && (
                 <div 
                   className="font-bold break-words min-w-0 text-sm"
                   style={{ 
@@ -557,6 +558,7 @@ export function VaultSearchResults() {
                 >
                   {item.title}
                 </div>
+                )}
                 <div className="flex items-center gap-4 text-sm" style={{ fontSize: '14px', lineHeight: '1.4' }}>
                   <div className="flex items-center gap-1 whitespace-nowrap">
                     <Calendar className="h-4 w-4" style={{ color: '#71717A' }} />
