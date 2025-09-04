@@ -34,7 +34,11 @@ export function VaultHomepage() {
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
 
   const handleSearch = () => {
-    if (searchInput.trim()) {
+    // Check if there's search text or any filters selected
+    const hasSearchText = searchInput.trim();
+    const hasFilters = selectedStrategy.length > 0 || selectedType.length > 0 || selectedTags.length > 0 || selectedStatus.length > 0;
+    
+    if (hasSearchText || hasFilters) {
       setQuery(searchInput);
       setFilters({
         strategy: selectedStrategy.length > 0 ? selectedStrategy[0] : undefined,
@@ -44,7 +48,10 @@ export function VaultHomepage() {
       });
       
       const params = new URLSearchParams();
-      params.set('query', searchInput);
+      // Only set query param if there's actual search text
+      if (hasSearchText) {
+        params.set('query', searchInput);
+      }
       if (selectedStrategy.length > 0) params.set('strategy', selectedStrategy.join(','));
       if (selectedType.length > 0) params.set('type', selectedType.join(','));
       if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
