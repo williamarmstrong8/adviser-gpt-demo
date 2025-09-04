@@ -781,8 +781,8 @@ export function VaultSearchResults() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem>View Details</DropdownMenuItem>
-                      <DropdownMenuItem>Add to Collection</DropdownMenuItem>
+                      <DropdownMenuItem>Archive</DropdownMenuItem>
+                      <DropdownMenuItem>Mark as Stale</DropdownMenuItem>
                       <DropdownMenuItem>Share</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -796,8 +796,9 @@ export function VaultSearchResults() {
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                      <DropdownMenuItem>Send via Email</DropdownMenuItem>
-                      <DropdownMenuItem>Create Email Template</DropdownMenuItem>
+                      <DropdownMenuItem>Open in Gmail</DropdownMenuItem>
+                      <DropdownMenuItem>Open in Mail</DropdownMenuItem>
+                      <DropdownMenuItem>Open in Outlook</DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
 

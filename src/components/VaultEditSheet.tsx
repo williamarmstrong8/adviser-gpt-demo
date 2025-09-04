@@ -113,7 +113,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div>
-              <h2 className="text-lg font-semibold">Question</h2>
+              <h2 className="text-lg font-semibold">Editing Question/Answer</h2>
               <p className="text-sm text-muted-foreground mt-1">{item.title}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
