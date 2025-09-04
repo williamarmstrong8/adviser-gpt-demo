@@ -604,7 +604,7 @@ export function VaultSearchResults() {
                   <FileText className="h-4 w-4 flex-shrink-0" style={{ color: '#71717A' }} />
                 )}
                 <div 
-                  className="font-bold break-words flex-grow text-sm"
+                  className="font-bold break-words min-w-0 text-sm"
                   style={{ 
                     wordBreak: 'break-word',
                     hyphens: 'auto',
