@@ -40,7 +40,7 @@ export function VaultTabs({ onFileClick }: VaultTabsProps) {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="inline-flex bg-transparent p-0 h-auto gap-1">
+        <TabsList className="inline-flex w-fit bg-transparent p-0 h-auto gap-2">
           <TabsTrigger 
             value="files" 
             className="inline-grid grid-flow-col items-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
