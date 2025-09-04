@@ -228,8 +228,10 @@ export function VaultSearchResults() {
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       handleSearch();
     }
+    // All other keys proceed with default behavior for normal typing
   };
 
   // Removed handleSearchDebounced - search now only triggers on Enter
