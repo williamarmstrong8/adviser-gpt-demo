@@ -31,6 +31,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
 import { STRATEGIES, CONTENT_TYPES, STATUS_OPTIONS } from "@/types/vault";
 import { ContentItem } from "@/types/vault";
+import { smartSearch, getSemanticVariations, getSearchSuggestions } from "@/utils/smartSearch";
 
 export function VaultSearchResults() {
   const navigate = useNavigate();
@@ -88,7 +89,7 @@ export function VaultSearchResults() {
     };
   };
 
-  // Smart highlighting function
+  // Smart highlighting function that works with semantic search
   const highlightSearchTerms = (text: string, query: string) => {
     if (!query?.trim()) return text;
     
@@ -99,22 +100,27 @@ export function VaultSearchResults() {
     
     if (terms.length === 0) return text;
     
+    // Get all semantic variations for highlighting
+    const allTerms = new Set<string>();
+    terms.forEach(term => {
+      allTerms.add(term);
+      const variations = getSemanticVariations(term);
+      variations.forEach(variation => allTerms.add(variation));
+    });
+    
     // Create regex for phrase matching and individual terms
     const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(`(${terms.map(term => escapeRegex(term)).join('|')})`, 'gi');
+    const regex = new RegExp(`(${Array.from(allTerms).map(term => escapeRegex(term)).join('|')})`, 'gi');
     
     return text.replace(regex, '<mark class="bg-yellow-200 px-0.5 rounded">$1</mark>');
   };
 
-  // Filter items based on search and filters (using merged data)
-  const filteredItems = MOCK_CONTENT_ITEMS.filter(item => {
+  // Use smart search for query matching, then apply filters
+  const smartSearchResults = query ? smartSearch(MOCK_CONTENT_ITEMS, query) : MOCK_CONTENT_ITEMS;
+  
+  // Apply additional filters to smart search results
+  const filteredItems = smartSearchResults.filter(item => {
     const displayData = getDisplayData(item);
-    
-    const matchesQuery = !query || 
-      displayData.title.toLowerCase().includes(query.toLowerCase()) ||
-      displayData.content?.question?.toLowerCase().includes(query.toLowerCase()) ||
-      displayData.content?.answer?.toLowerCase().includes(query.toLowerCase()) ||
-      displayData.tags.some(tag => tag.toLowerCase().includes(query.toLowerCase()));
     
     const matchesStrategy = selectedStrategies.length === 0 || 
       selectedStrategies.includes(displayData.strategy);
@@ -125,7 +131,7 @@ export function VaultSearchResults() {
     const matchesStatus = selectedStatuses.length === 0 || 
       selectedStatuses.includes(displayData.type); // Using type as status for mock data
     
-    return matchesQuery && matchesStrategy && matchesType && matchesTags && matchesStatus;
+    return matchesStrategy && matchesType && matchesTags && matchesStatus;
   });
 
   // Sort filtered items
@@ -241,7 +247,7 @@ export function VaultSearchResults() {
     setQuery(urlQuery);
     setQueryState(urlQuery);
     setSearchInput(urlQuery);
-  }, [urlQuery, setQuery]);
+  }, [urlQuery]);
 
   const formatRelativeTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -440,12 +446,12 @@ export function VaultSearchResults() {
                 </span>
               )}
           <div className="relative">
-            <input
+            <Input
               type="text"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               onKeyDown={handleKeyPress}
-              className="bg-transparent outline-none border-b-2 border-dotted border-muted-foreground text-foreground font-medium px-1 min-w-[250px]"
+              className="bg-transparent outline-none border-t-0 border-x-0 border-b-2 border-dashed border-muted-foreground text-foreground font-medium px-1 min-w-[250px]"
               placeholder="filter results"
               style={{ width: `${Math.max(searchInput.length * 12 + 20, 250)}px` }}
             />
@@ -626,7 +632,7 @@ export function VaultSearchResults() {
             const displayAnswer = isExpanded ? answer : answer.substring(0, 300);
             
             return (
-          <div className="border rounded-lg bg-card vault-result-card overflow-hidden">
+          <div key={item.id} className="border rounded-lg bg-card vault-result-card overflow-hidden">
             {/* Header with file info and badge */}
             <div className="flex items-start justify-between pb-4 border-b border-[#E4E4E7] px-6 py-4">
               <div className="flex items-center min-w-0 gap-3 flex-1">
