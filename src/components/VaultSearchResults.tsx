@@ -356,33 +356,53 @@ export function VaultSearchResults() {
                 {fileCount} questions in {fileName}
               </span>
             ) : (
-              <span className="text-foreground font-medium">{filteredItems.length} results</span>
+              <span className="text-foreground font-medium">
+                {query || "All results"}
+              </span>
             )}
           </div>
 
-          {/* Inline Search with Query */}
+          {/* Main Title and Search */}
           <div className="mb-6">
-            <div className="flex flex-wrap items-center gap-2 text-xl">
-              <span className="text-muted-foreground">
-                {fileName ? `Results in ${fileName} for` : 'Results for'}
-              </span>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={query}
+            {query ? (
+              <div className="flex flex-wrap items-center gap-2 text-xl">
+                <span className="text-muted-foreground">
+                  {filteredItems.length} Results for
+                </span>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => {
+                      setQuery(e.target.value);
+                      setQueryState(e.target.value);
+                      setSearchInput(e.target.value);
+                      updateFiltersInUrl(e.target.value, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
+                    }}
+                    className="bg-transparent border-none outline-none border-b-2 border-dotted border-muted-foreground text-foreground font-medium px-1 min-w-[200px]"
+                    placeholder="enter search term"
+                    style={{ width: `${Math.max(query.length * 12 + 20, 200)}px` }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h1 className="text-xl text-muted-foreground">
+                  {filteredItems.length} Results
+                </h1>
+                <Input
+                  value={searchInput}
                   onChange={(e) => {
+                    setSearchInput(e.target.value);
                     setQuery(e.target.value);
                     setQueryState(e.target.value);
-                    setSearchInput(e.target.value);
                     updateFiltersInUrl(e.target.value, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
                   }}
-                  className="bg-transparent border-none outline-none border-b-2 border-dotted border-muted-foreground text-foreground font-medium px-1 min-w-[200px]"
-                  placeholder="enter search term"
-                  style={{ width: `${Math.max(query.length * 12 + 20, 200)}px` }}
+                  placeholder={fileName ? `Search within ${fileName}...` : "Search all content..."}
+                  className="min-w-[250px] max-w-xl"
                 />
               </div>
-              <span className="text-muted-foreground">({filteredItems.length} results)</span>
-            </div>
+            )}
           </div>
 
           {/* Filters and Export */}
