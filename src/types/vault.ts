@@ -15,6 +15,7 @@ export interface ContentItem {
   updatedAt: string; // ISO string
   updatedBy: string;
   totalItems?: number; // For file view
+  isBestAnswer?: boolean; // Mark high-quality answers for badge display
 }
 
 export interface VaultFilters {

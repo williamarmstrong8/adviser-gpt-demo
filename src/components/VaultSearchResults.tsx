@@ -170,15 +170,32 @@ export function VaultSearchResults() {
     updateFiltersInUrl(query, selectedStrategies, selectedTypes, newTags, selectedStatuses);
   };
 
-  const handleSearch = () => {
-    setQuery(searchInput);
-    setQueryState(searchInput);
-    updateFiltersInUrl(searchInput, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
-  };
+  const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
+  // Helper function to update filters in URL
+  const updateFiltersInUrl = (
+    queryValue: string,
+    strategies: string[],
+    types: string[],
+    tags: string[],
+    statuses: string[]
+  ) => {
+    const params = new URLSearchParams();
+    
+    // Only trim leading/trailing spaces, preserve internal spaces
+    if (queryValue && queryValue.trim()) params.set('query', queryValue.trim());
+    if (strategies.length > 0) params.set('strategy', strategies.join(','));
+    if (types.length > 0) params.set('type', types.join(','));
+    if (tags.length > 0) params.set('tags', tags.join(','));
+    if (statuses.length > 0) params.set('status', statuses.join(','));
+    
+    // Preserve file context if in file mode
+    if (isFileMode && fileName) {
+      params.set('fileName', fileName);
+      params.set('count', fileCount.toString());
+      navigate(`/vault/file?${params.toString()}`);
+    } else {
+      navigate(`/vault/search?${params.toString()}`);
     }
   };
 
@@ -203,30 +220,29 @@ export function VaultSearchResults() {
     }
   };
 
-  // Helper function to update filters in URL
-  const updateFiltersInUrl = (
-    queryValue: string,
-    strategies: string[],
-    types: string[],
-    tags: string[],
-    statuses: string[]
-  ) => {
-    const params = new URLSearchParams();
-    
-    if (queryValue.trim()) params.set('query', queryValue.trim());
-    if (strategies.length > 0) params.set('strategy', strategies.join(','));
-    if (types.length > 0) params.set('type', types.join(','));
-    if (tags.length > 0) params.set('tags', tags.join(','));
-    if (statuses.length > 0) params.set('status', statuses.join(','));
-    
-    // Preserve file context if in file mode
-    if (isFileMode && fileName) {
-      params.set('fileName', fileName);
-      params.set('count', fileCount.toString());
-      navigate(`/vault/file?${params.toString()}`);
-    } else {
-      navigate(`/vault/search?${params.toString()}`);
+  const handleSearch = () => {
+    setQuery(searchInput);
+    setQueryState(searchInput);
+    updateFiltersInUrl(searchInput, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
     }
+  };
+
+  const handleSearchDebounced = (newQuery: string) => {
+    setQuery(newQuery);
+    setQueryState(newQuery);
+    setSearchInput(newQuery);
+    
+    // Debounce URL updates to prevent space stripping during typing
+    if (searchTimeout) clearTimeout(searchTimeout);
+    const timeout = setTimeout(() => {
+      updateFiltersInUrl(newQuery, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
+    }, 300);
+    setSearchTimeout(timeout);
   };
 
   // Update width when query changes in edit mode
@@ -432,21 +448,21 @@ export function VaultSearchResults() {
                   {filteredItems.length} Results {query ? `for` : ""}
                 </span>
               )}
-              <div className="relative">
-                <input
-                  type="text"
-                  value={query}
-                  onChange={(e) => {
-                    setQuery(e.target.value);
-                    setQueryState(e.target.value);
-                    setSearchInput(e.target.value);
-                    updateFiltersInUrl(e.target.value, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
-                  }}
-                  className="bg-transparent outline-none border-b-2 border-dotted border-muted-foreground text-foreground font-medium px-1 min-w-[250px]"
-                  placeholder="filter results"
-                  style={{ width: `${Math.max(query.length * 12 + 20, 250)}px` }}
-                />
-              </div>
+          <div className="relative">
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchInput(value);
+                // Debounce the search to prevent immediate space removal
+                handleSearchDebounced(value);
+              }}
+              className="bg-transparent outline-none border-b-2 border-dotted border-muted-foreground text-foreground font-medium px-1 min-w-[250px]"
+              placeholder="filter results"
+              style={{ width: `${Math.max(searchInput.length * 12 + 20, 250)}px` }}
+            />
+          </div>
             </div>
           </div>
 
@@ -662,7 +678,7 @@ export function VaultSearchResults() {
                 </div>
               </div>
               <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                {!fileName && isFirstResult && currentSort === 'relevance' && (
+                {displayData.isBestAnswer && (
                   <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#CCECB6', color: '#09090B' }}>
                     <Star className="h-3 w-3" />
                     <span className="text-xs font-semibold">Best Answer</span>
