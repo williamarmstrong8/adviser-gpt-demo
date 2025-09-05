@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useDebounce } from "@/hooks/useDebounce";
-import { QuestionCardData } from "./QuestionCard";
+import { QuestionItem } from "@/types/vault";
 
 interface EnhancedSearchBarProps {
   value: string;
   onChange: (value: string) => void;
   onSearch?: (query: string) => void;
-  contentItems: QuestionCardData[];
+  contentItems: QuestionItem[];
   className?: string;
 }
 

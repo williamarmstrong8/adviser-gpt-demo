@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useNavigate, useLocation, Link } from "react-router-dom";
 import { VaultSidebar } from "./VaultSidebar";
 import { MultiSelectFilter } from "./MultiSelectFilter";
+import { QuestionCard } from "./QuestionCard";
 import { 
   Search,
   Archive,
@@ -29,6 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { VaultEditSheet } from "./VaultEditSheet";
+import { SaveSearchPrompt } from "./SaveSearchPrompt";
 import { useVaultState, useVaultEdits } from "@/hooks/useVaultState";
 import { useToast } from "@/hooks/use-toast";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
@@ -533,7 +535,7 @@ const formatRelativeTime = (isoString: string) => {
           </div>
 
           {/* Main Title and Search */}
-          <div className="mb-6">
+          <div className="mb-6 flex items-end justify-between">
             <div className="flex flex-wrap items-center gap-2 text-xl">
               {fileName ? (
               <span className="text-muted-foreground">
@@ -544,17 +546,33 @@ const formatRelativeTime = (isoString: string) => {
                   {filteredItems.length} Results {query ? `for` : ""}
                 </span>
               )}
-          <div className="relative">
-            <Input
-              type="text"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              onKeyDown={handleKeyPress}
-              className="bg-transparent outline-none border-t-0 border-x-0 border-b-2 border-dashed border-muted-foreground text-foreground font-medium px-1 min-w-[250px]"
-              placeholder="filter results"
-              style={{ width: `${Math.max(searchInput.length * 12 + 20, 250)}px` }}
-            />
-          </div>
+              <div className="relative">
+                <Input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  className="bg-transparent outline-none border-t-0 border-x-0 border-b-2 border-dashed border-muted-foreground text-foreground font-medium px-1 min-w-[250px]"
+                  placeholder="filter results"
+                  style={{ width: `${Math.max(searchInput.length * 12 + 20, 250)}px` }}
+                />
+              </div>
+            </div>
+            
+            {/* Save Search Prompt */}
+            <div className="flex justify-end">
+              <div>
+                <SaveSearchPrompt
+                  query={query}
+                  filters={{
+                    strategies: selectedStrategies,
+                    types: selectedTypes,
+                    tags: selectedTags,
+                    statuses: selectedStatuses,
+                  }}
+                  sort={currentSort}
+                />
+              </div>
             </div>
           </div>
 
@@ -722,264 +740,29 @@ const formatRelativeTime = (isoString: string) => {
           </div>
         ) : (
           sortedAndFilteredItems.map((item, index) => {
-            const displayData = getDisplayData(item);
             const hasEdits = !!getEdit(item.id);
-            const isFirstResult = index === 0;
             const isExpanded = expandedAnswers.has(item.id);
-            const answer = displayData.answer || '';
-            const shouldTruncate = answer.length > 300;
-            const displayAnswer = isExpanded ? answer : answer.substring(0, 300);
             
             return (
-          <div key={item.id} className="border rounded-lg bg-card vault-result-card">
-            {/* Header with file info and badge */}
-            <div className="flex items-start justify-between pb-4 border-b border-[#E4E4E7] px-6 py-4">
-              <div className="flex items-center min-w-0 gap-3 flex-1">
-                {!fileName && (
-                  <FileText className="h-4 w-4 flex-shrink-0" style={{ color: '#71717A' }} />
-                )}
-                {!fileName && (
-                <div 
-                  className="font-bold break-words min-w-0 text-sm"
-                  style={{ 
-                    wordBreak: 'break-word',
-                    hyphens: 'auto',
-                    fontSize: '14px', 
-                    lineHeight: '1.4' 
-                  }}
-                >
-                  {(item as any).documentTitle || 'Unknown Document'}
-                </div>
-                )}
-                <div className="flex items-center gap-4 text-sm" style={{ fontSize: '14px', lineHeight: '1.4' }}>
-                  <div className="flex items-center gap-1 whitespace-nowrap">
-                    <Calendar className="h-4 w-4" style={{ color: '#71717A' }} />
-                    <span style={{ color: '#71717A' }}>Last edited</span>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                      <span className="inline-grid border border-t-0 border-x-0 border-b-1 border-dashed border-gray-300 cursor-help" style={{ color: '#27272A' }}>{formatRelativeTime(item.updatedAt)}</span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p className="z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2">{formatFullDate(item.updatedAt)}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                    
-                    <span style={{ color: '#71717A' }}>by</span>
-                    <span style={{ color: '#27272A' }}>{item.updatedBy}</span>
-                  </div>
-                  <div className="flex items-center gap-1 whitespace-nowrap">
-
-                    
-                  </div>
-                  {hasEdits && (
-                    <Badge variant="outline" className="text-xs flex-shrink-0">
-                      Edited
-                    </Badge>
-                  )}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-                {displayData.isBestAnswer && (
-                  <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#CCECB6', color: '#09090B' }}>
-                    <Star className="h-3 w-3" />
-                    <span className="text-xs font-semibold">Best Answer</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-                 {/* Answer Section */}
-                 {displayData.answer && (
-                   <div className="space-y-2 px-6 py-4">
-                     <h4 style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5', letterSpacing: '-0.2px' }}>Answer</h4>
-                      <div className="bg-muted/50 rounded-md p-4">
-                        <p 
-                          className="text-sm leading-relaxed"
-                          dangerouslySetInnerHTML={{ 
-                            __html: highlightSearchTerms(displayAnswer, query) + (shouldTruncate && !isExpanded ? '...' : '')
-                          }}
-                        />
-                       {shouldTruncate && (
-                         <Button
-                           variant="link"
-                           size="sm"
-                           className="mt-2 p-0 h-auto"
-                           onClick={() => toggleAnswerExpansion(item.id)}
-                         >
-                           {isExpanded ? 'Show less' : 'Show more'}
-                         </Button>
-                       )}
-                     </div>
-                   </div>
-                 )}
-
-                 {/* Question Section */}
-                 {displayData.question && (
-                   <div className="space-y-2 px-6 pb-4" style={{ paddingInlineStart: '40px' }}>
-                     <div className="flex items-start gap-2">
-                       <CornerDownRight className="h-4 w-4 mt-1 flex-shrink-0" style={{ color: '#71717A' }} />
-                       <div className="space-y-2">
-                         <h4 style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5', letterSpacing: '-0.2px' }}>Question</h4>
-                          <p 
-                            style={{ fontSize: '16px', lineHeight: '1.5', fontWeight: '700', letterSpacing: '-0.4px' }}
-                            dangerouslySetInnerHTML={{ __html: highlightSearchTerms(displayData.question, query) }}
-                          />
-                         
-                         {/* Tags in Question Section */}
-                         <div className="flex flex-wrap items-center gap-2 mt-3">
-                           {normalizeStrategies(displayData.strategy).map((strategy, index) => (
-                             <Badge 
-                               key={`${strategy}-${index}`} 
-                               variant="outline" 
-                               className="vault-tag flex items-center gap-1 cursor-pointer hover:bg-blue-50"
-                               onClick={() => {
-                                 // Add click handler for editing strategies
-                                 console.log('Edit strategy:', strategy);
-                               }}
-                             >
-                               <Lightbulb className="h-3 w-3" />
-                               {strategy}
-                               <X 
-                                 className="h-3 w-3 cursor-pointer hover:text-red-500" 
-                                 onClick={(e) => {
-                                   e.stopPropagation();
-                                   handleStrategyRemove(item.id, strategy);
-                                 }}
-                               />
-                             </Badge>
-                           ))}
-                           {addingStrategyToItem === item.id ? (
-                             <Select 
-                               value={newStrategyValue} 
-                               onValueChange={(value) => {
-                                 handleStrategyAdd(item.id, value);
-                                 setNewStrategyValue("");
-                                 setAddingStrategyToItem(null);
-                               }}
-                               onOpenChange={(open) => {
-                                 if (!open) {
-                                   setAddingStrategyToItem(null);
-                                   setNewStrategyValue("");
-                                 }
-                               }}
-                             >
-                               <SelectTrigger className="h-6 text-xs w-32">
-                                 <SelectValue placeholder="Select strategy" />
-                               </SelectTrigger>
-                               <SelectContent>
-                                 {STRATEGIES.filter(strategy => 
-                                   !normalizeStrategies(displayData.strategy).includes(strategy)
-                                 ).map(strategyOption => (
-                                   <SelectItem key={strategyOption} value={strategyOption}>
-                                     {strategyOption}
-                                   </SelectItem>
-                                 ))}
-                               </SelectContent>
-                             </Select>
-                           ) : (
-                             <Badge 
-                               variant="outline" 
-                               className="text-xs text-muted-foreground vault-tag cursor-pointer hover:bg-muted flex items-center gap-1"
-                               style={{ backgroundColor: '#F4F4F5' }}
-                               onClick={() => setAddingStrategyToItem(item.id)}
-                             >
-                               <Lightbulb className="h-3 w-3" />
-                               + Strategy
-                             </Badge>
-                           )}
-                           {displayData.tags.map(tag => (
-                             <Badge key={tag} variant="outline" className="text-xs vault-tag flex items-center gap-1" style={{ backgroundColor: '#F4F4F5' }}>
-                               {tag}
-                               <X 
-                                 className="h-3 w-3 cursor-pointer hover:text-red-500" 
-                                 onClick={() => handleTagRemove(item.id, tag)}
-                               />
-                             </Badge>
-                           ))}
-                           {addingTagToItem === item.id ? (
-                             <div className="flex items-center gap-1">
-                               <Input
-                                 value={newTagValue}
-                                 onChange={(e) => setNewTagValue(e.target.value)}
-                                 className="h-6 text-xs w-20"
-                                 placeholder="Tag name"
-                                 autoFocus
-                                 onKeyDown={(e) => {
-                                   if (e.key === 'Enter') handleNewTagSave(item.id);
-                                   if (e.key === 'Escape') handleNewTagCancel();
-                                 }}
-                               />
-                                <button 
-                                  className="h-6 w-6 flex items-center justify-center border border-green-200 bg-white hover:bg-green-50 rounded text-green-600 hover:text-green-700 hover:border-green-300 transition-colors" 
-                                  onClick={() => handleNewTagSave(item.id)}
-                                >
-                                  <Check className="h-3 w-3" />
-                                </button>
-                                <button 
-                                  className="h-6 w-6 flex items-center justify-center border border-red-200 bg-white hover:bg-red-50 rounded text-red-500 hover:text-red-600 hover:border-red-300 transition-colors" 
-                                  onClick={handleNewTagCancel}
-                                >
-                                  <X className="h-3 w-3" />
-                                </button>
-                             </div>
-                           ) : (
-                             <Badge 
-                               variant="outline" 
-                               className="text-xs text-muted-foreground vault-tag cursor-pointer hover:bg-muted"
-                               style={{ backgroundColor: '#F4F4F5' }}
-                               onClick={() => setAddingTagToItem(item.id)}
-                             >
-                               + New
-                             </Badge>
-                           )}
-                         </div>
-                       </div>
-                     </div>
-                   </div>
-                 )}
-
-                {/* Action Footer */}
-                <div className="border-t border-[#E4E4E7] px-6 py-3 flex items-center justify-end gap-2 rounded-b-lg" style={{ backgroundColor: '#fafafa' }}>
-                  <button 
-                    className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium"
-                    style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
-                    onClick={() => handleEdit(item)}
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </button>
-                  <button 
-                    className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium"
-                    style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
-                  >
-                    <Archive className="h-4 w-4" />
-                    Archive
-                  </button>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium" style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}>
-                        <Mail className="h-4 w-4" />
-                        Email
-                        <ChevronDown className="h-4 w-4" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                      <DropdownMenuItem>Open in Gmail</DropdownMenuItem>
-                      <DropdownMenuItem>Open in Mail</DropdownMenuItem>
-                      <DropdownMenuItem>Open in Outlook</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <button 
-                    className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md text-sm font-medium"
-                    style={{ backgroundColor: '#18181B', color: '#fafafa', boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
-                    onClick={() => handleCopyAnswer(displayData.answer || '')}
-                  >
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </button>
-                </div>
-              </div>
+              <QuestionCard
+                key={item.id}
+                item={item}
+                query={query}
+                fileName={fileName}
+                hasEdits={hasEdits}
+                isExpanded={isExpanded}
+                showBestAnswerTag={true}
+                onToggleExpansion={toggleAnswerExpansion}
+                onEdit={handleEdit}
+                onCopyAnswer={handleCopyAnswer}
+                onStrategyRemove={handleStrategyRemove}
+                onStrategyAdd={handleStrategyAdd}
+                onTagRemove={handleTagRemove}
+                onTagAdd={handleTagAdd}
+                highlightSearchTerms={highlightSearchTerms}
+                formatRelativeTime={formatRelativeTime}
+                formatFullDate={formatFullDate}
+              />
             );
           })
         )}

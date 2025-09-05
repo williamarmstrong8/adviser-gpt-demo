@@ -10,16 +10,25 @@ import {
   GraduationCap, 
   UserRound, 
   ChevronUp,
+  ChevronRight,
+  ChevronDown,
   Users,
-  LogOut
+  LogOut,
+  Bookmark,
+  Search
 } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { useSavedSearches } from "@/hooks/useSavedSearches";
 
 export function VaultSidebar() {
   const location = useLocation();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useState(true);
+  const { getRecentSearches } = useSavedSearches();
+  
+  const recentSearches = getRecentSearches(5);
 
   const isActiveRoute = (path: string) => {
     if (path === "/vault") {
@@ -168,6 +177,81 @@ export function VaultSidebar() {
               </span>
             </Link>
           </li>
+          
+          {/* Saved Searches Sub-menu */}
+          {recentSearches.length > 0 && (
+            <li>
+              <div className="ml-2">
+                <button
+                  onClick={() => setIsSavedSearchesOpen(!isSavedSearchesOpen)}
+                  className="h-6 px-2 rounded-md flex items-center gap-1 text-[#71717A] hover:bg-gray-100 transition-colors w-full"
+                >
+                  {isSavedSearchesOpen ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                  <span 
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      lineHeight: "1.4",
+                      letterSpacing: "-0.2px"
+                    }}
+                  >
+                    Saved Searches
+                  </span>
+                </button>
+                
+                {isSavedSearchesOpen && (
+                  <ul className="ml-4 mt-1 space-y-1">
+                    {recentSearches.map((search) => (
+                      <li key={search.id}>
+                        <Link
+                          to={`/vault/search?query=${encodeURIComponent(search.query)}&strategy=${search.filters.strategies?.join(',') || ''}&type=${search.filters.types?.join(',') || ''}&tags=${search.filters.tags?.join(',') || ''}&status=${search.filters.statuses?.join(',') || ''}&sort=${search.sort || 'relevance'}`}
+                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors"
+                        >
+                          <Bookmark className="w-3 h-3" />
+                          <span 
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "400",
+                              lineHeight: "1.4",
+                              letterSpacing: "-0.1px"
+                            }}
+                            className="truncate"
+                          >
+                            {search.name}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                    
+                    {recentSearches.length >= 5 && (
+                      <li>
+                        <Link
+                          to="/vault/saved-searches"
+                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors"
+                        >
+                          <Search className="w-3 h-3" />
+                          <span 
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "400",
+                              lineHeight: "1.4",
+                              letterSpacing: "-0.1px"
+                            }}
+                          >
+                            View all
+                          </span>
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </li>
+          )}
         </ul>
       </div>
 

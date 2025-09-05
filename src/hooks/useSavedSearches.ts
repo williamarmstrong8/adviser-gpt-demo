@@ -5,10 +5,12 @@ export interface SavedSearch {
   name: string;
   query: string;
   filters: {
-    strategy?: string;
-    contentType?: string;
+    strategies?: string[];
+    types?: string[];
     tags?: string[];
+    statuses?: string[];
   };
+  sort?: string;
   createdAt: Date;
 }
 
@@ -32,12 +34,13 @@ export function useSavedSearches() {
     }
   }, []);
 
-  const saveSearch = (name: string, query: string, filters: SavedSearch['filters']) => {
+  const saveSearch = (name: string, query: string, filters: SavedSearch['filters'], sort?: string) => {
     const newSearch: SavedSearch = {
       id: Date.now().toString(),
       name,
       query,
       filters,
+      sort,
       createdAt: new Date(),
     };
 
@@ -56,7 +59,12 @@ export function useSavedSearches() {
     return {
       query: search.query,
       filters: search.filters,
+      sort: search.sort,
     };
+  };
+
+  const getRecentSearches = (limit: number = 5) => {
+    return savedSearches.slice(0, limit);
   };
 
   return {
@@ -64,5 +72,6 @@ export function useSavedSearches() {
     saveSearch,
     deleteSearch,
     loadSearch,
+    getRecentSearches,
   };
 }

@@ -329,7 +329,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
         id: "4-1",
         type: "Questionnaire",
         strategy: "Firm-Wide (Not Strategy-Specific)",
-        tags: [],
+        tags: ["Active Management"],
         question: "Who is responsible for setting the long-term strategy of the firm? Please list key individuals and committees and how those decisions are made.",
         answer: "At Oakland Investment Management, the responsibility for shaping the firm's long-term strategy rests with its senior leadership team. Strategic planning is a collaborative process, with major initiatives and direction reviewed and approved by the Oakland Management Committee. This committee brings together leaders from across the organization to ensure a comprehensive approach to decision-making. The current members of the Management Committee include: - Michael Carter, CFA, Chief Executive Officer & Chief Investment Officer - Emily Tran, CFA, Managing Director, Head of Research - David Lin, CFA, Principal, Portfolio Manager - Rachel Kim, Chief Operating Officer - Thomas Bennett, Director of Business Development - Priya Shah, General Counsel - Laura Evans, Director of Client Relations The committee meets regularly to discuss and evaluate strategic priorities, with decisions made through consensus and guided by the firm's mission and long-term objectives.",
         updatedAt: "2025-06-16T00:00:00Z",

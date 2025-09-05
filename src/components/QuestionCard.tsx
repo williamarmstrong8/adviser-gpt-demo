@@ -1,467 +1,364 @@
-import { Copy, Mail, Edit, Check, Bookmark, Clock, User, Tag, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import { useState, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { useBookmarks } from "@/hooks/useBookmarks";
-import { useToast } from "@/hooks/use-toast";
-
-export interface QuestionCardData {
-  id: string;
-  fileName: string;
-  updatedAt: Date;
-  updatedBy: string;
-  question: string;
-  answer: string;
-  duration: string;
-  strategy: string;
-  tags: string[];
-  contentType?: string;
-  expirationDate?: Date;
-}
+import React, { useState } from 'react';
+import { 
+  FileText, 
+  Calendar, 
+  Star, 
+  CornerDownRight, 
+  Lightbulb, 
+  X, 
+  Edit, 
+  Archive, 
+  Mail, 
+  ChevronDown, 
+  Copy, 
+  Check
+} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { QuestionItem, STRATEGIES } from '@/types/vault';
 
 interface QuestionCardProps {
-  data: QuestionCardData;
-  hideFileName?: boolean;
-  onEdit?: (data: QuestionCardData) => void;
-  onTagAdd?: (id: string, tag: string) => void;
-  onTagRemove?: (id: string, tag: string) => void;
-  onQuickEdit?: (id: string, field: string, value: string) => void;
+  item: QuestionItem & { documentTitle?: string; documentId?: string };
+  query?: string;
+  fileName?: string;
+  hasEdits?: boolean;
+  isExpanded?: boolean;
+  showBestAnswerTag?: boolean;
+  onToggleExpansion?: (itemId: string) => void;
+  onEdit?: (item: QuestionItem) => void;
+  onCopyAnswer?: (answer: string) => void;
+  onStrategyRemove?: (itemId: string, strategy: string) => void;
+  onStrategyAdd?: (itemId: string, strategy: string) => void;
+  onTagRemove?: (itemId: string, tag: string) => void;
+  onTagAdd?: (itemId: string, tag: string) => void;
+  highlightSearchTerms?: (text: string, query: string) => string;
+  formatRelativeTime?: (isoString: string) => string;
+  formatFullDate?: (isoString: string) => string;
 }
 
-export function QuestionCard({ 
-  data, 
-  hideFileName = false, 
-  onEdit, 
-  onTagAdd, 
-  onTagRemove, 
-  onQuickEdit 
-}: QuestionCardProps) {
-  const { toast } = useToast();
-  // Custom cursor-following tooltip state
-  const [tooltipVisible, setTooltipVisible] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-  const [isSticky, setIsSticky] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
-  
-  // Inline editing states
-  const [isAddingTag, setIsAddingTag] = useState(false);
-  const [newTag, setNewTag] = useState("");
-  const [editingStrategy, setEditingStrategy] = useState(false);
-  
-  // Expand/collapse state for long answers
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  const answerRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const stickyTimeoutRef = useRef<NodeJS.Timeout>();
-  const copiedTimeoutRef = useRef<NodeJS.Timeout>();
-  
-  const { toggleBookmark, isBookmarked } = useBookmarks();
-  
-  // Check if answer is long enough to need expansion
-  const isLongAnswer = data.answer.length > 400;
-  const displayAnswer = isLongAnswer && !isExpanded 
-    ? data.answer.substring(0, 400) + "..."
-    : data.answer;
+export const QuestionCard: React.FC<QuestionCardProps> = ({
+  item,
+  query = '',
+  fileName,
+  hasEdits = false,
+  isExpanded = false,
+  showBestAnswerTag = true,
+  onToggleExpansion,
+  onEdit,
+  onCopyAnswer,
+  onStrategyRemove,
+  onStrategyAdd,
+  onTagRemove,
+  onTagAdd,
+  highlightSearchTerms = (text) => text,
+  formatRelativeTime = (date) => date,
+  formatFullDate = (date) => date,
+}) => {
+  const [addingStrategyToItem, setAddingStrategyToItem] = useState<string | null>(null);
+  const [newStrategyValue, setNewStrategyValue] = useState('');
+  const [addingTagToItem, setAddingTagToItem] = useState<string | null>(null);
+  const [newTagValue, setNewTagValue] = useState('');
 
-  const handleCopyAnswer = async () => {
-    try {
-      // Always copy the full answer, regardless of display state
-      await navigator.clipboard.writeText(data.answer);
-      setIsCopied(true);
-      setTooltipVisible(true);
-      setIsSticky(true);
-      
-      toast({
-        title: "Full answer copied",
-        description: `${data.answer.length} characters copied to clipboard`,
-        duration: 2000,
-      });
-      
-      // Reset copied state after 3 seconds
-      clearTimeout(copiedTimeoutRef.current);
-      copiedTimeoutRef.current = setTimeout(() => {
-        setIsCopied(false);
-        setTooltipVisible(false);
-        setIsSticky(false);
-      }, 3000);
-    } catch (error) {
-      toast({
-        title: "Copy failed",
-        description: "Unable to copy to clipboard",
-        variant: "destructive",
-        duration: 2000,
-      });
+  const normalizeStrategies = (strategy: string | string[]) => {
+    return Array.isArray(strategy) ? strategy : [strategy];
+  };
+
+  const getDisplayData = (item: QuestionItem) => ({
+    question: item.question || '',
+    answer: item.answer || '',
+    strategy: item.strategy || [],
+    tags: item.tags || [],
+    isBestAnswer: item.isBestAnswer || false,
+  });
+
+  const displayData = getDisplayData(item);
+  const answer = displayData.answer || '';
+  const shouldTruncate = answer.length > 300;
+  const displayAnswer = isExpanded ? answer : answer.substring(0, 300);
+
+  const handleStrategyAdd = (itemId: string, strategy: string) => {
+    if (onStrategyAdd) {
+      onStrategyAdd(itemId, strategy);
     }
+    setNewStrategyValue("");
+    setAddingStrategyToItem(null);
   };
 
-  const updateTooltipPosition = useCallback((e: React.MouseEvent) => {
-    if (!answerRef.current || isSticky) return;
-    
-    const rect = answerRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left + 15; // 15px offset from cursor
-    const y = e.clientY - rect.top + 15;
-    
-    // Ensure tooltip stays within answer area bounds
-    const maxX = rect.width - 200; // Account for tooltip width
-    const maxY = rect.height - 50; // Account for tooltip height
-    
-    setTooltipPosition({
-      x: Math.min(x, maxX),
-      y: Math.min(y, maxY)
-    });
-  }, [isSticky]);
-
-  const handleMouseEnter = () => {
-    clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setTooltipVisible(true);
-      setIsSticky(false);
-    }, 200);
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    updateTooltipPosition(e);
-    
-    // Reset sticky timeout on movement
-    clearTimeout(stickyTimeoutRef.current);
-    if (tooltipVisible && !isSticky) {
-      stickyTimeoutRef.current = setTimeout(() => {
-        setIsSticky(true);
-      }, 800);
+  const handleNewTagSave = (itemId: string) => {
+    if (newTagValue.trim() && onTagAdd) {
+      onTagAdd(itemId, newTagValue.trim());
     }
+    setNewTagValue("");
+    setAddingTagToItem(null);
   };
 
-  const handleMouseLeave = () => {
-    // Don't hide tooltip if in copied state
-    if (isCopied) return;
-    
-    clearTimeout(timeoutRef.current);
-    clearTimeout(stickyTimeoutRef.current);
-    setTooltipVisible(false);
-    setIsSticky(false);
+  const handleNewTagCancel = () => {
+    setNewTagValue("");
+    setAddingTagToItem(null);
   };
-
-  const handleEmailAnswer = () => {
-    const subject = encodeURIComponent(`Question: ${data.question}`);
-    const body = encodeURIComponent(`Question: ${data.question}\n\nAnswer: ${data.answer}\n\nFile: ${data.fileName}`);
-    window.open(`mailto:?subject=${subject}&body=${body}`);
-  };
-
-  const handleEdit = () => {
-    onEdit?.(data);
-  };
-
-  const handleAddTag = () => {
-    if (newTag.trim() && !data.tags.includes(newTag.trim())) {
-      onTagAdd?.(data.id, newTag.trim());
-      setNewTag("");
-      setIsAddingTag(false);
-    }
-  };
-
-  const handleCancelTag = () => {
-    setNewTag("");
-    setIsAddingTag(false);
-  };
-
-  const handleRemoveTag = (tag: string) => {
-    onTagRemove?.(data.id, tag);
-  };
-
-  const handleStrategyChange = (newStrategy: string) => {
-    onQuickEdit?.(data.id, 'strategy', newStrategy);
-    setEditingStrategy(false);
-  };
-
-  const getContentTypeColor = (contentType?: string) => {
-    switch (contentType) {
-      case 'RFP': return 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800';
-      case 'DDQ': return 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800';
-      case 'Policy': return 'bg-purple-50 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800';
-      case 'Commentary': return 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-950 dark:text-orange-300 dark:border-orange-800';
-      default: return 'bg-muted text-muted-foreground border-border';
-    }
-  };
-
-  const isExpiring = data.expirationDate && data.expirationDate <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days
-  const isExpired = data.expirationDate && data.expirationDate <= new Date();
 
   return (
-    <div className="group px-6 py-8 border-b border-border last:border-0 hover:bg-accent/50 transition-all duration-200">
-      {/* Header with Question and Bookmark */}
-      <div className="flex items-start justify-between gap-4 mb-4">
-        <h3 className="text-lg font-semibold text-foreground leading-tight flex-1 group-hover:text-primary transition-colors">
-          {data.question}
-        </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-8 w-8 p-0 shrink-0 ${isBookmarked(data.id) ? 'text-yellow-500' : 'text-muted-foreground'}`}
-          onClick={() => toggleBookmark(data.id)}
-        >
-          <Bookmark className={`h-4 w-4 ${isBookmarked(data.id) ? 'fill-current' : ''}`} />
-        </Button>
-      </div>
-
-      {/* Enhanced Metadata Row */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <Clock className="h-3 w-3" />
-          <span>Updated {formatDistanceToNow(data.updatedAt, { addSuffix: true })}</span>
-        </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-          <User className="h-3 w-3" />
-          <span>{data.updatedBy}</span>
-        </div>
-        
-        {/* Content Type Badge */}
-        {data.contentType && (
-          <Badge variant="outline" className={`text-xs ${getContentTypeColor(data.contentType)}`}>
-            {data.contentType}
-          </Badge>
-        )}
-        
-        {/* Expiration Status */}
-        {isExpired && (
-          <Badge variant="destructive" className="text-xs">
-            Expired
-          </Badge>
-        )}
-        {isExpiring && !isExpired && (
-          <Badge variant="outline" className="text-xs border-yellow-500 text-yellow-700 dark:text-yellow-400">
-            Expiring Soon
-          </Badge>
-        )}
-      </div>
-
-      {/* Strategy and Tags Row */}
-      <div className="flex flex-wrap items-center gap-2 mb-4">
-        {/* Strategy with Quick Edit */}
-        {editingStrategy ? (
-          <Select value={data.strategy} onValueChange={handleStrategyChange}>
-            <SelectTrigger className="h-7 text-xs w-auto min-w-32">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="Firm Wide (Not Strategy Specific)">Firm Wide</SelectItem>
-              <SelectItem value="Large Cap Growth">Large Cap Growth</SelectItem>
-              <SelectItem value="Small Cap Growth">Small Cap Growth</SelectItem>
-            </SelectContent>
-          </Select>
-        ) : (
-          <Badge 
-            variant="outline" 
-            className="text-xs cursor-pointer hover:bg-accent transition-colors"
-            onClick={() => setEditingStrategy(true)}
-          >
-            {data.strategy}
-          </Badge>
-        )}
-        
-        {/* Tags */}
-        <div className="flex flex-wrap items-center gap-2">
-          {data.tags.map((tag) => (
-            <Badge 
-              key={tag} 
-              variant="secondary" 
-              className="text-xs group/tag cursor-pointer transition-colors"
-            >
-              <Tag className="h-3 w-3 mr-1" />
-              {tag}
-              {onTagRemove && (
-                <X 
-                  className="h-3 w-3 ml-1 opacity-0 group-hover/tag:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleRemoveTag(tag);
-                  }}
-                />
-              )}
-            </Badge>
-          ))}
-          
-          {/* Add Tag Button */}
-          {onTagAdd && (
-            isAddingTag ? (
-              <div className="flex items-center gap-1">
-                <Input
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  placeholder="New tag"
-                  className="h-7 text-xs w-24"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAddTag();
-                    if (e.key === 'Escape') handleCancelTag();
-                  }}
-                  onBlur={handleCancelTag}
-                  autoFocus
-                />
-                <Button size="sm" className="h-7 px-2" onClick={handleAddTag}>
-                  <Check className="h-3 w-3" />
-                </Button>
-                <Button size="sm" variant="outline" className="h-7 px-2" onClick={handleCancelTag}>
-                  <X className="h-3 w-3" />
-                </Button>
-              </div>
-            ) : (
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-7 px-2 text-xs"
-                onClick={() => setIsAddingTag(true)}
-              >
-                <Plus className="h-3 w-3 mr-1" />
-                + New
-              </Button>
-            )
+    <div className="border rounded-lg bg-card vault-result-card">
+      {/* Header with file info and badge */}
+      <div className="flex items-start justify-between pb-4 border-b border-[#E4E4E7] px-6 py-4">
+        <div className="flex items-center min-w-0 gap-3 flex-1">
+          {!fileName && (
+            <FileText className="h-4 w-4 flex-shrink-0" style={{ color: '#71717A' }} />
           )}
-        </div>
-      </div>
-      
-      {/* File Name */}
-      {!hideFileName && (
-        <p className="text-sm text-muted-foreground mb-4 font-medium">
-          {data.fileName}
-        </p>
-      )}
-
-      {/* Answer with improved interaction and expand/collapse */}
-      <div className="relative group/answer">
-        <div 
-          ref={answerRef}
-          className="text-base text-foreground leading-relaxed mb-4 cursor-pointer transition-all duration-200 hover:bg-vault-card-hover -mx-3 px-3 py-3 rounded-lg relative"
-          onClick={handleCopyAnswer}
-          onMouseEnter={handleMouseEnter}
-          onMouseMove={handleMouseMove}
-          onMouseLeave={handleMouseLeave}
-        >
-          <div className="relative">
-            {displayAnswer}
-            
-            {/* Fade gradient for collapsed long answers */}
-            {isLongAnswer && !isExpanded && (
-              <div 
-                className="absolute bottom-0 left-0 right-0 h-8 pointer-events-none"
-                style={{ background: 'var(--gradient-fade)' }}
-              />
-            )}
-          </div>
-          
-          {/* Custom cursor-following tooltip */}
-          {tooltipVisible && (
+          {!fileName && (
             <div 
-              className={`absolute pointer-events-none z-50 px-3 py-2 text-sm font-medium rounded-md shadow-lg transition-all duration-300 flex items-center gap-2 ${
-                isCopied 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'bg-foreground text-background border border-border'
-              } ${isSticky ? 'opacity-100' : 'opacity-90'}`}
-              style={{
-                left: `${tooltipPosition.x}px`,
-                top: `${tooltipPosition.y}px`,
-                transform: isSticky ? 'none' : 'translateY(-2px)',
-                transition: isSticky ? 'all 0.3s ease-out' : 'opacity 0.2s ease-out',
+              className="font-bold break-words min-w-0 text-sm"
+              style={{ 
+                wordBreak: 'break-word',
+                hyphens: 'auto',
+                fontSize: '14px', 
+                lineHeight: '1.4' 
               }}
             >
-              {isCopied ? (
-                <>
-                  <Check className="h-4 w-4" />
-                  Full answer copied!
-                </>
-              ) : (
-                'Click to copy full answer'
-              )}
-              {isSticky && !isCopied && (
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-primary rounded-full animate-pulse" />
-              )}
+              {item.documentTitle || 'Unknown Document'}
+            </div>
+          )}
+          <div className="flex items-center gap-4 text-sm" style={{ fontSize: '14px', lineHeight: '1.4' }}>
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              <Calendar className="h-4 w-4" style={{ color: '#71717A' }} />
+              <span style={{ color: '#71717A' }}>Last edited</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="inline-grid border border-t-0 border-x-0 border-b-1 border-dashed border-gray-300 cursor-help" style={{ color: '#27272A' }}>
+                    {formatRelativeTime(item.updatedAt)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="z-50 overflow-hidden rounded-md border bg-popover px-3 py-1.5 text-sm text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2">
+                    {formatFullDate(item.updatedAt)}
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              
+              <span style={{ color: '#71717A' }}>by</span>
+              <span style={{ color: '#27272A' }}>{item.updatedBy}</span>
+            </div>
+            <div className="flex items-center gap-1 whitespace-nowrap">
+              {/* Additional info can go here */}
+            </div>
+            {hasEdits && (
+              <Badge variant="outline" className="text-xs flex-shrink-0">
+                Edited
+              </Badge>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 ml-4 flex-shrink-0">
+          {displayData.isBestAnswer && showBestAnswerTag && (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#CCECB6', color: '#09090B' }}>
+              <Star className="h-3 w-3" />
+              <span className="text-xs font-semibold">Best Answer</span>
             </div>
           )}
         </div>
-        
-        {/* Expand/Collapse button for long answers */}
-        {isLongAnswer && (
-          <div className="flex justify-center -mt-2 mb-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                setIsExpanded(!isExpanded);
+      </div>
+
+      {/* Answer Section */}
+      {displayData.answer && (
+        <div className="space-y-2 px-6 py-4">
+          <h4 style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5', letterSpacing: '-0.2px' }}>Answer</h4>
+          <div className="bg-muted/50 rounded-md p-4">
+            <p 
+              className="text-sm leading-relaxed"
+              dangerouslySetInnerHTML={{ 
+                __html: highlightSearchTerms(displayAnswer, query) + (shouldTruncate && !isExpanded ? '...' : '')
               }}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 interactive"
-            >
-              {isExpanded ? (
-                <>
-                  <ChevronUp className="h-3 w-3" />
-                  Show less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-3 w-3" />
-                  Show more ({data.answer.length - 400} more characters)
-                </>
-              )}
-            </Button>
-          </div>
-        )}
-        
-        {/* Enhanced Floating action bar */}
-        <div className="absolute bottom-2 right-3 opacity-0 group-hover/answer:opacity-100 transition-all duration-200 pointer-events-none group-hover/answer:pointer-events-auto">
-          <div className="flex items-center gap-1 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg p-1">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleCopyAnswer}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                >
-                  <Copy className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Copy full answer</p>
-              </TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={handleEmailAnswer}
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0"
-                >
-                  <Mail className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Email answer</p>
-              </TooltipContent>
-            </Tooltip>
-            {onEdit && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    onClick={handleEdit}
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0"
-                  >
-                    <Edit className="h-4 w-4" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Edit question</p>
-                </TooltipContent>
-              </Tooltip>
+            />
+            {shouldTruncate && onToggleExpansion && (
+              <Button
+                variant="link"
+                size="sm"
+                className="mt-2 p-0 h-auto"
+                onClick={() => onToggleExpansion(item.id)}
+              >
+                {isExpanded ? 'Show less' : 'Show more'}
+              </Button>
             )}
           </div>
         </div>
+      )}
+
+      {/* Question Section */}
+      {displayData.question && (
+        <div className="space-y-2 px-6 pb-4" style={{ paddingInlineStart: '40px' }}>
+          <div className="flex items-start gap-2">
+            <CornerDownRight className="h-4 w-4 mt-1 flex-shrink-0" style={{ color: '#71717A' }} />
+            <div className="space-y-2">
+              <h4 style={{ fontSize: '12px', fontWeight: 'bold', lineHeight: '1.5', letterSpacing: '-0.2px' }}>Question</h4>
+              <p 
+                style={{ fontSize: '16px', lineHeight: '1.5', fontWeight: '700', letterSpacing: '-0.4px' }}
+                dangerouslySetInnerHTML={{ __html: highlightSearchTerms(displayData.question, query) }}
+              />
+             
+              {/* Tags in Question Section */}
+              <div className="flex flex-wrap items-center gap-2 mt-3">
+                {normalizeStrategies(displayData.strategy).map((strategy, index) => (
+                  <Badge 
+                    key={`${strategy}-${index}`} 
+                    variant="outline" 
+                    className="vault-tag flex items-center gap-1 cursor-pointer hover:bg-blue-50"
+                    onClick={() => {
+                      // Add click handler for editing strategies
+                      console.log('Edit strategy:', strategy);
+                    }}
+                  >
+                    <Lightbulb className="h-3 w-3" />
+                    {strategy}
+                    {onStrategyRemove && (
+                      <X 
+                        className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onStrategyRemove(item.id, strategy);
+                        }}
+                      />
+                    )}
+                  </Badge>
+                ))}
+                {onStrategyAdd && addingStrategyToItem === item.id ? (
+                  <Select 
+                    value={newStrategyValue} 
+                    onValueChange={(value) => {
+                      handleStrategyAdd(item.id, value);
+                    }}
+                    onOpenChange={(open) => {
+                      if (!open) {
+                        setAddingStrategyToItem(null);
+                        setNewStrategyValue("");
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="h-6 text-xs w-32">
+                      <SelectValue placeholder="Select strategy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STRATEGIES.filter(strategy => 
+                        !normalizeStrategies(displayData.strategy).includes(strategy)
+                      ).map(strategyOption => (
+                        <SelectItem key={strategyOption} value={strategyOption}>
+                          {strategyOption}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : onStrategyAdd ? (
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs text-muted-foreground vault-tag cursor-pointer hover:bg-muted flex items-center gap-1"
+                    style={{ backgroundColor: '#F4F4F5' }}
+                    onClick={() => setAddingStrategyToItem(item.id)}
+                  >
+                    <Lightbulb className="h-3 w-3" />
+                    + Strategy
+                  </Badge>
+                ) : null}
+                {displayData.tags.map(tag => (
+                  <Badge key={tag} variant="outline" className="text-xs vault-tag flex items-center gap-1" style={{ backgroundColor: '#F4F4F5' }}>
+                    {tag}
+                    {onTagRemove && (
+                      <X 
+                        className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                        onClick={() => onTagRemove(item.id, tag)}
+                      />
+                    )}
+                  </Badge>
+                ))}
+                {onTagAdd && addingTagToItem === item.id ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      value={newTagValue}
+                      onChange={(e) => setNewTagValue(e.target.value)}
+                      className="h-6 text-xs w-20"
+                      placeholder="Tag name"
+                      autoFocus
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleNewTagSave(item.id);
+                        if (e.key === 'Escape') handleNewTagCancel();
+                      }}
+                    />
+                    <button 
+                      className="h-6 w-6 flex items-center justify-center border border-green-200 bg-white hover:bg-green-50 rounded text-green-600 hover:text-green-700 hover:border-green-300 transition-colors" 
+                      onClick={() => handleNewTagSave(item.id)}
+                    >
+                      <Check className="h-3 w-3" />
+                    </button>
+                    <button 
+                      className="h-6 w-6 flex items-center justify-center border border-red-200 bg-white hover:bg-red-50 rounded text-red-500 hover:text-red-600 hover:border-red-300 transition-colors" 
+                      onClick={handleNewTagCancel}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : onTagAdd ? (
+                  <Badge 
+                    variant="outline" 
+                    className="text-xs text-muted-foreground vault-tag cursor-pointer hover:bg-muted"
+                    style={{ backgroundColor: '#F4F4F5' }}
+                    onClick={() => setAddingTagToItem(item.id)}
+                  >
+                    + New
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Action Footer */}
+      <div className="border-t border-[#E4E4E7] px-6 py-3 flex items-center justify-end gap-2 rounded-b-lg" style={{ backgroundColor: '#fafafa' }}>
+        {onEdit && (
+          <button 
+            className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium"
+            style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+            onClick={() => onEdit(item)}
+          >
+            <Edit className="h-4 w-4" />
+            Edit
+          </button>
+        )}
+        <button 
+          className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium"
+          style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+        >
+          <Archive className="h-4 w-4" />
+          Archive
+        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium" style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}>
+              <Mail className="h-4 w-4" />
+              Email
+              <ChevronDown className="h-4 w-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem>Open in Gmail</DropdownMenuItem>
+            <DropdownMenuItem>Open in Mail</DropdownMenuItem>
+            <DropdownMenuItem>Open in Outlook</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {onCopyAnswer && (
+          <button 
+            className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md text-sm font-medium"
+            style={{ backgroundColor: '#18181B', color: '#fafafa', boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+            onClick={() => onCopyAnswer(displayData.answer || '')}
+          >
+            <Copy className="h-4 w-4" />
+            Copy
+          </button>
+        )}
       </div>
     </div>
   );
-}
+};

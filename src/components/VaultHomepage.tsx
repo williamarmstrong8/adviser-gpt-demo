@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { VaultSidebar } from "./VaultSidebar";
+import { QuestionCard } from "./QuestionCard";
+import { VaultEditSheet } from "./VaultEditSheet";
 import { 
   Search, 
   ChevronDown, 
@@ -17,10 +19,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { useVaultState } from "@/hooks/useVaultState";
+import { useVaultState, useVaultEdits } from "@/hooks/useVaultState";
+import { useToast } from "@/hooks/use-toast";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
 import { STRATEGIES, CONTENT_TYPES, STATUS_OPTIONS, TAGS_INFO, QuestionItem } from "@/types/vault";
 import { MultiSelectFilter } from "./MultiSelectFilter";
@@ -28,6 +28,8 @@ import { MultiSelectFilter } from "./MultiSelectFilter";
 export function VaultHomepage() {
   const navigate = useNavigate();
   const { state, setQuery, setFilters, setActiveView } = useVaultState();
+  const { edits, saveEdit, getEdit } = useVaultEdits();
+  const { toast } = useToast();
   const [searchInput, setSearchInput] = useState(state.query);
   const [selectedStrategy, setSelectedStrategy] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<string[]>([]);  
@@ -35,6 +37,8 @@ export function VaultHomepage() {
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
   const [sortColumn, setSortColumn] = useState<"name" | "totalItems">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
+  const [editingItem, setEditingItem] = useState<QuestionItem | null>(null);
 
   // Flatten the nested data structure for processing
   const flattenItems = (): QuestionItem[] => {
@@ -131,6 +135,177 @@ export function VaultHomepage() {
     }).length
   })).filter(group => group.totalItems > 0);
 
+  // Get the 5 most recently edited questions
+  const recentQuestions = allItems
+    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+    .slice(0, 5);
+
+  // Utility functions for QuestionCard
+  const formatRelativeTime = (isoString: string) => {
+    const date = new Date(isoString);
+    const now = new Date();
+
+    // Guard: invalid or future dates -> "today"
+    if (isNaN(date.getTime()) || date.getTime() > now.getTime()) {
+      return "today";
+    }
+
+    // Diff in whole days using UTC to avoid DST issues
+    const msPerDay = 24 * 60 * 60 * 1000;
+    const toUtcMidnight = (d: Date) =>
+      Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    const diffInDays = Math.floor(
+      (toUtcMidnight(now) - toUtcMidnight(date)) / msPerDay
+    );
+
+    if (diffInDays === 0) return "today";
+    if (diffInDays === 1) return "1 day ago";
+    if (diffInDays < 7) return `${diffInDays} days ago`;
+
+    if (diffInDays <= 31) {
+      const weeks = Math.min(4, Math.max(1, Math.round(diffInDays / 7)));
+      return weeks === 1 ? "1 week ago" : `${weeks} weeks ago`;
+    }
+
+    // Helper: calendar diff in years & months (UTC)
+    const diffYearsMonths = (from: Date, to: Date) => {
+      let years = to.getUTCFullYear() - from.getUTCFullYear();
+      let months = to.getUTCMonth() - from.getUTCMonth();
+      let days = to.getUTCDate() - from.getUTCDate();
+
+      if (days < 0) {
+        months -= 1;
+      }
+      if (months < 0) {
+        years -= 1;
+        months += 12;
+      }
+      return { years, months };
+    };
+
+    if (diffInDays < 365) {
+      const { years, months } = diffYearsMonths(date, now);
+      const m = years * 12 + Math.max(1, months); // ensure at least 1
+      return m === 1 ? "1 month ago" : `${m} months ago`;
+    }
+
+    if (diffInDays < 380) return "1y ago";
+
+    const { years, months } = diffYearsMonths(date, now);
+    if (months > 0) {
+      return `${years}y ${months}mo ago`;
+    }
+    return `${years}y ago`;
+  };
+
+  const formatFullDate = (isoString: string) => {
+    const date = new Date(isoString);
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const highlightSearchTerms = (text: string, query: string) => {
+    if (!query.trim()) return text;
+    const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    return text.replace(regex, '<mark style="background-color: #FEF3C7; padding: 0.125rem 0.25rem; border-radius: 0.25rem;">$1</mark>');
+  };
+
+  const handleCopyAnswer = async (answer: string) => {
+    try {
+      await navigator.clipboard.writeText(answer);
+      toast({
+        title: "Copied to clipboard",
+        description: "The answer has been copied to your clipboard.",
+      });
+    } catch (err) {
+      toast({
+        title: "Failed to copy",
+        description: "Could not copy to clipboard. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Helper function to normalize strategies (convert single string to array)
+  const normalizeStrategies = (strategy: string | string[]): string[] => {
+    return Array.isArray(strategy) ? strategy : [strategy];
+  };
+
+  // Helper function to merge original item with saved edits
+  const getDisplayData = (item: QuestionItem) => {
+    const savedEdit = getEdit(item.id);
+    if (!savedEdit) return item;
+
+    return {
+      ...item,
+      question: savedEdit.question || item.question,
+      answer: savedEdit.answer || item.answer,
+      strategy: savedEdit.strategy || item.strategy,
+      tags: savedEdit.tags || item.tags,
+    };
+  };
+
+  const toggleAnswerExpansion = (itemId: string) => {
+    const newExpanded = new Set(expandedAnswers);
+    if (newExpanded.has(itemId)) {
+      newExpanded.delete(itemId);
+    } else {
+      newExpanded.add(itemId);
+    }
+    setExpandedAnswers(newExpanded);
+  };
+
+  const handleEdit = (item: QuestionItem) => {
+    setEditingItem(item);
+  };
+
+  const handleSave = (itemId: string, editData: any) => {
+    saveEdit(itemId, editData);
+    setEditingItem(null);
+  };
+
+  const handleTagAdd = (id: string, tag: string) => {
+    const currentEdit = getEdit(id) || {};
+    const originalItem = allItems.find(item => item.id === id);
+    const currentTags = currentEdit.tags || originalItem?.tags || [];
+    
+    if (!currentTags.includes(tag)) {
+      saveEdit(id, { ...currentEdit, tags: [...currentTags, tag] });
+    }
+  };
+
+  const handleTagRemove = (id: string, tag: string) => {
+    const currentEdit = getEdit(id) || {};
+    const originalItem = allItems.find(item => item.id === id);
+    const currentTags = currentEdit.tags || originalItem?.tags || [];
+    
+    saveEdit(id, { ...currentEdit, tags: currentTags.filter(t => t !== tag) });
+  };
+
+  const handleStrategyRemove = (id: string, strategyToRemove: string) => {
+    const currentEdit = getEdit(id) || {};
+    const originalItem = allItems.find(item => item.id === id);
+    const currentStrategies = normalizeStrategies(currentEdit.strategy || originalItem?.strategy || []);
+    
+    const updatedStrategies = currentStrategies.filter(s => s !== strategyToRemove);
+    saveEdit(id, { ...currentEdit, strategy: updatedStrategies });
+  };
+
+  const handleStrategyAdd = (id: string, strategy: string) => {
+    const currentEdit = getEdit(id) || {};
+    const originalItem = allItems.find(item => item.id === id);
+    const currentStrategies = normalizeStrategies(currentEdit.strategy || originalItem?.strategy || []);
+    
+    if (!currentStrategies.includes(strategy)) {
+      saveEdit(id, { ...currentEdit, strategy: [...currentStrategies, strategy] });
+    }
+  };
+
   return (
     <div className="h-screen flex">
       {/* Sidebar */}
@@ -217,164 +392,73 @@ export function VaultHomepage() {
 
       {/* Content */}
       <div className="flex-1 p-6">
-        <Tabs value={state.activeView} onValueChange={(value) => setActiveView(value as any)}>
-          {/* Tab Navigation */}
-          <div className="flex items-center justify-between mb-6">
-            <TabsList className="inline-flex w-fit bg-transparent p-0 h-auto gap-2">
-              <TabsTrigger 
-                value="files"
-                className="inline-grid grid-flow-col items-center content-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
-              >
-                <FileText className="h-4 w-4" />
-                Files
-              </TabsTrigger>
-              <TabsTrigger 
-                value="type"
-                className="inline-grid grid-flow-col items-center content-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
-              >
-                <Shapes className="h-4 w-4" />
-                Type
-              </TabsTrigger>
-              <TabsTrigger 
-                value="strategy"
-                className="inline-grid grid-flow-col items-center content-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
-              >
-                <Lightbulb className="h-4 w-4" />
-                Strategy
-              </TabsTrigger>
-              <TabsTrigger 
-                value="data"
-                className="inline-grid grid-flow-col items-center content-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
-              >
-                <Database className="h-4 w-4" />
-                Data
-              </TabsTrigger>
-            </TabsList>
-            
+        {/* Recent Questions Section */}
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-2xl font-bold">Recent Questions</h2>
+              <p className="text-muted-foreground">Most recently edited questions and answers</p>
+            </div>
             <div className="flex items-center gap-4">
               <span className="text-sm text-muted-foreground">Manage</span>
               <Badge variant="secondary" className="bg-orange-100 text-orange-800">
-                Updates 160
+                Updates {recentQuestions.length}
               </Badge>
               <Badge variant="outline">Tags</Badge>
             </div>
           </div>
 
-          {/* Files View */}
-          <TabsContent value="files">
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <Button 
-                        variant="ghost" 
-                        className="h-auto p-0 font-semibold"
-                        onClick={() => toggleSort("name")}
-                      >
-                        Name
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead className="text-right">
-                      <Button 
-                        variant="ghost" 
-                        className="h-auto p-0 font-semibold"
-                        onClick={() => toggleSort("totalItems")}
-                      >
-                        Total Items
-                        <ArrowUpDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </TableHead>
-                    <TableHead className="w-12"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {sortedFiles.map((file, index) => (
-                    <TableRow 
-                      key={index} 
-                      className="cursor-pointer hover:bg-muted/50"
-                      onClick={() => navigate(`/vault/file?fileName=${encodeURIComponent(file.name)}&count=${file.totalItems}`)}
-                    >
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          <FileText className="h-4 w-4 text-muted-foreground" />
-                          {file.name}
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right font-medium">
-                        {file.totalItems}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="sm">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem>View Details</DropdownMenuItem>
-                            <DropdownMenuItem>Edit</DropdownMenuItem>
-                            <DropdownMenuItem>Export</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </TabsContent>
-
-          {/* Type View */}
-          <TabsContent value="type">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {typeGroups.map((group) => (
-                <div key={group.name} className="border rounded-lg p-4 text-center">
-                  <h3 className="font-semibold mb-2">{group.name}</h3>
-                  <p className="text-2xl font-bold text-muted-foreground">{group.totalItems}</p>
-                  <p className="text-sm text-muted-foreground">Total Items</p>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Strategy View */}
-          <TabsContent value="strategy">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {strategyGroups.map((group) => (
-                <div key={group.name} className="border rounded-lg p-4">
-                  <h3 className="font-semibold mb-2">{group.name}</h3>
-                  <p className="text-xl font-bold text-muted-foreground">{group.totalItems}</p>
-                  <p className="text-sm text-muted-foreground">Total Items</p>
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-
-          {/* Data View */}
-          <TabsContent value="data">
-            <div className="space-y-4">
-              {allItems
-                .filter(item => item.type === "Quantitative")
-                .map((item) => (
-                  <div key={item.id} className="border rounded-lg p-4">
-                    <h3 className="font-semibold">{(item as any).documentTitle || "Unknown Document"}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      Updated by {item.updatedBy} • {new Date(item.updatedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                ))}
-              {allItems.filter(item => item.type === "Quantitative").length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-muted-foreground">No quantitative data items found.</p>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+          {/* Recent Question Cards */}
+          <div className="space-y-4">
+            {recentQuestions.map((item) => {
+              const hasEdits = !!getEdit(item.id);
+              const isExpanded = expandedAnswers.has(item.id);
+              
+              return (
+                <QuestionCard
+                  key={item.id}
+                  item={item}
+                  showBestAnswerTag={false}
+                  hasEdits={hasEdits}
+                  isExpanded={isExpanded}
+                  onToggleExpansion={toggleAnswerExpansion}
+                  onEdit={handleEdit}
+                  onCopyAnswer={handleCopyAnswer}
+                  onStrategyRemove={handleStrategyRemove}
+                  onStrategyAdd={handleStrategyAdd}
+                  onTagRemove={handleTagRemove}
+                  onTagAdd={handleTagAdd}
+                  highlightSearchTerms={highlightSearchTerms}
+                  formatRelativeTime={formatRelativeTime}
+                  formatFullDate={formatFullDate}
+                />
+              );
+            })}
+            {recentQuestions.length === 0 && (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-4">
+                  No recent questions found.
+                </p>
+                <Button variant="outline" onClick={() => navigate('/vault/search')}>
+                  Browse All Questions
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
         </div>
       </div>
+
+      {/* Edit Sheet */}
+      {editingItem && (
+        <VaultEditSheet
+          item={editingItem}
+          open={!!editingItem}
+          onClose={() => setEditingItem(null)}
+          onSave={(editData) => handleSave(editingItem.id, editData)}
+          existingEdit={getEdit(editingItem.id)}
+        />
+      )}
     </div>
   );
 }
