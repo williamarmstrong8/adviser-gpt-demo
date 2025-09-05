@@ -155,47 +155,50 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
             {/* Strategy Field */}
             <div className="space-y-2">
               <Label htmlFor="strategy">Strategies</Label>
+
+              <div className="flex items-start justify-between gap-4">
               
-              {/* Current Strategies */}
-              <div className="flex flex-wrap gap-2 mb-2">
-                {strategies.map((strategy, index) => (
-                  <Badge 
-                    key={`${strategy}-${index}`} 
-                    variant="outline" 
-                    className="flex items-center gap-1"
+                {/* Current Strategies */}
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {strategies.map((strategy, index) => (
+                    <Badge 
+                      key={`${strategy}-${index}`} 
+                      variant="outline" 
+                      className="flex items-center gap-1"
+                    >
+                      <Lightbulb className="h-3 w-3" />
+                      {strategy}
+                      <X 
+                        className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                        onClick={() => handleRemoveStrategy(strategy)}
+                      />
+                    </Badge>
+                  ))}
+                </div>
+                
+                {/* Add New Strategy */}
+                <div className="flex gap-2">
+                  <Select value={newStrategy} onValueChange={setNewStrategy}>
+                    <SelectTrigger className="flex-1 min-w-40">
+                      <SelectValue placeholder="Select a strategy" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {STRATEGIES.filter(strategy => !strategies.includes(strategy)).map(strategyOption => (
+                        <SelectItem key={strategyOption} value={strategyOption}>
+                          {strategyOption}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button 
+                    type="button" 
+                    size="sm"
+                    onClick={handleAddStrategy}
+                    disabled={!newStrategy.trim()}
                   >
-                    <Lightbulb className="h-3 w-3" />
-                    {strategy}
-                    <X 
-                      className="h-3 w-3 cursor-pointer hover:text-red-500" 
-                      onClick={() => handleRemoveStrategy(strategy)}
-                    />
-                  </Badge>
-                ))}
-              </div>
-              
-              {/* Add New Strategy */}
-              <div className="flex gap-2">
-                <Select value={newStrategy} onValueChange={setNewStrategy}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Select a strategy to add" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STRATEGIES.filter(strategy => !strategies.includes(strategy)).map(strategyOption => (
-                      <SelectItem key={strategyOption} value={strategyOption}>
-                        {strategyOption}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button 
-                  type="button" 
-                  size="sm"
-                  onClick={handleAddStrategy}
-                  disabled={!newStrategy.trim()}
-                >
-                  Add
-                </Button>
+                    Add
+                  </Button>
+                </div>
               </div>
             </div>
 
@@ -203,37 +206,39 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
             <div className="space-y-2">
               <Label>Tags</Label>
               
-              {/* Existing Tags */}
-              <div className="flex flex-wrap gap-2 mb-3">
-                {tags.map((tag) => (
-                  <Badge 
-                    key={tag} 
-                    variant="secondary" 
-                    className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                    onClick={() => handleRemoveTag(tag)}
-                  >
-                    #{tag} 
-                    <X className="h-3 w-3 ml-1" />
-                  </Badge>
-                ))}
-              </div>
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                {/* Existing Tags */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {tags.map((tag) => (
+                    <Badge 
+                      key={tag} 
+                      variant="secondary" 
+                      className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      onClick={() => handleRemoveTag(tag)}
+                    >
+                      #{tag} 
+                      <X className="h-3 w-3 ml-1" />
+                    </Badge>
+                  ))}
+                </div>
 
-              {/* Add New Tag */}
-              <div className="flex gap-2">
-                <Input
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder="Add new tag"
-                  className="flex-1"
-                />
-                <Button 
-                  onClick={handleAddTag} 
-                  disabled={!newTag.trim()}
-                  size="sm"
-                >
-                  Add
-                </Button>
+                {/* Add New Tag */}
+                <div className="flex gap-2">
+                  <Input
+                    value={newTag}
+                    onChange={(e) => setNewTag(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder="Add new tag"
+                    className="flex-1"
+                  />
+                  <Button 
+                    onClick={handleAddTag} 
+                    disabled={!newTag.trim()}
+                    size="sm"
+                  >
+                    Add
+                  </Button>
+                </div>
               </div>
             </div>
 
