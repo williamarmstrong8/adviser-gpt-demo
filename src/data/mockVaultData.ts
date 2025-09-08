@@ -8,7 +8,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
     items: [
       {
         id: "1-1",
-        type: "Policy",
+        type: "Policies",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["AI", "Policy", "Compliance"],
         question: "What specific pre-approval requirements must Granite Peak employees adhere to when using AI Systems involving proprietary information, and what roles do the Deputy CCO and Director of Operations play in the due diligence process to prevent unauthorized sharing of confidential information?",
@@ -25,7 +25,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
     items: [
       {
         id: "2-1",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Client Engagement", "Operational Efficiency", "Risk Assessment", "Regulatory Compliance"],
         question: "What guidelines should be followed to ensure data accuracy in AI-driven processes for client and regulatory disclosures? How should client inquiries be handled when using AI systems, according to best practices in client engagement?",
@@ -35,7 +35,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-2",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Data Management", "Risk Management", "Compliance", "Ethical AI", "AI Governance", "Asset Management"],
         question: "What is the role of the AI Governance Committee in ensuring compliance with policy and regulatory requirements for high-impact AI initiatives in asset management activities?",
@@ -45,7 +45,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-3",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Business Continuity", "Asset Management"],
         question: "What measures should be in place to ensure business continuity in asset management services in the event of AI-related issues?",
@@ -55,7 +55,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-4",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Business Continuity", "Ethical AI", "Asset Management"],
         question: "What mechanisms should be in place for asset management services to continue uninterrupted in case of AI failure or unavailability?",
@@ -65,7 +65,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-5",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Intellectual Property", "Risk Management", "Governance"],
         question: "What measures should be taken to protect AI innovations through patents and trademarks according to the IP Management section of the text?",
@@ -75,7 +75,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-6",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Risk Management", "Regulatory Compliance", "Transparency", "Financial Regulations", "Client Communication", "Asset Management"],
         question: "What steps should asset management professionals take to ensure AI model interpretability and maintain clear documentation on model assumptions and limitations?",
@@ -85,7 +85,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-7",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["AI Ethics", "Data Protection", "Asset Management"],
         question: "What measures are recommended to ensure compliance with data protection regulations such as GDPR and CCPA in AI training and inference processes? How can asset management professionals minimize biases in AI models to ensure fairness and integrity, especially concerning protected characteristics like gender, race, and ethnicity?",
@@ -95,7 +95,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-8",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["AI Initiatives", "Risk Assessment", "Operational Risk", "Asset Management"],
         question: "What factors should be considered in the formal risk assessment process for AI initiatives in asset management, including evaluating operational, compliance, and reputational risks? What steps are involved in model lifecycle management for AI initiatives in asset management, from development and validation to deployment and monitoring?",
@@ -105,7 +105,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-9",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["AI Ethics", "Risk Assessment", "Regulatory Compliance", "Asset Management"],
         question: "What are the procedures for engaging third-party experts for AI ethics and bias audits in asset management processes?",
@@ -115,7 +115,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-10",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Data Protection", "Intellectual Property", "Ethical AI"],
         question: "What criteria should asset management professionals use to assess potential AI vendors for compliance with data protection laws and ethical AI standards? How can they ensure contractual protections regarding data usage rights and intellectual property ownership with these vendors?",
@@ -125,7 +125,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-11",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Data Analysis", "Machine Learning", "Risk Assessment", "Portfolio Management", "Asset Management"],
         question: "What guidelines should portfolio managers follow to validate AI-generated insights in client portfolio optimization within asset management? How can AI-driven machine learning models assist in market forecasting and research in asset management, and what specific guidelines should be followed to ensure accuracy and transparency in predictive estimates?",
@@ -135,7 +135,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-12",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["AI Initiatives", "Risk Assessment", "Operational Risk", "Asset Management"],
         question: "What are the key factors that should be evaluated in the risk assessment process for AI initiatives in asset management, including operational, compliance, and reputational risks? What are the stages involved in model lifecycle management for AI in asset management, from development to monitoring, and what are the specific steps recommended for each stage?",
@@ -145,7 +145,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "2-13",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Data Management", "Risk Management", "Machine Learning", "Governance", "Senior Management", "Asset Management"],
         question: "What is the main responsibility of senior management and the board of directors in overseeing AI initiatives within asset management, including alignment with strategic objectives and risk appetite?",
@@ -161,7 +161,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
     items: [
       {
         id: "3-1",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Social Responsibility", "Corporate Governance"],
         question: "How does the fund engage with companies to improve ESG practices?",
@@ -171,7 +171,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-2",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Industry Trends", "Investment Strategy", "Financial Metrics"],
         question: "How are companies selected for the portfolio?",
@@ -181,7 +181,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-3",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Latin America", "Fund Management", "Emerging Markets"],
         question: "What is the geographic allocation of the fund?",
@@ -191,7 +191,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-4",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Risk Management", "Diversification", "Investment Strategy", "Corporate Governance"],
         question: "How does the fund manage political risk?",
@@ -201,7 +201,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-5",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Financial Analysis", "Investment Performance", "Emerging Markets"],
         question: "What is the historical performance of the Global Emerging Markets Dunk Fund?",
@@ -211,7 +211,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-6",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Portfolio Strategy", "Financial Analysis", "Investment Strategy", "Equity Investments", "Fund Management"],
         question: "What is the typical number of holdings?",
@@ -221,7 +221,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-7",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Risk Management", "Market Analysis", "Emerging Markets"],
         question: "Why focus on emerging markets?",
@@ -231,7 +231,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-8",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Portfolio Strategy", "Risk Management", "Financial Planning", "Fund Management"],
         question: "What role does liquidity management play in the fund?",
@@ -241,7 +241,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-9",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Risk Management", "Emerging Markets"],
         question: "How does the fund navigate the challenges of emerging markets?",
@@ -251,7 +251,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-10",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Social Impact", "Corporate Responsibility", "Sustainable Investing", "Emerging Markets"],
         question: "How does the fund incorporate ESG factors into emerging markets investing?",
@@ -261,7 +261,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-11",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Risk Management"],
         question: "How does the fund address currency volatility?",
@@ -271,7 +271,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-12",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Risk Management", "Portfolio Construction", "Diversification"],
         question: "What role does currency risk play in portfolio construction?",
@@ -281,7 +281,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-13",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Technology"],
         question: "What industries are prioritized in the fund?",
@@ -291,7 +291,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-14",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Portfolio Management", "Investment Strategy", "Asset Management", "Financial Growth", "Fund Management", "Emerging Markets"],
         question: "What are the long-term return expectations for the fund?",
@@ -301,7 +301,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-15",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Renewable Energy", "Latin America"],
         question: "What are examples of ESG-focused investments in the fund?",
@@ -311,7 +311,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "3-16",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Global Emerging Markets",
         tags: ["Sector Allocation", "Technology Sector", "Active Management", "Investment Strategy", "Fund Performance", "Emerging Markets"],
         question: "What factors contribute to the fund's outperformance?",
@@ -327,7 +327,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
     items: [
       {
         id: "4-1",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Active Management"],
         question: "Who is responsible for setting the long-term strategy of the firm? Please list key individuals and committees and how those decisions are made.",
@@ -337,7 +337,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "4-2",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: [],
         question: "Please provide a brief description of the organization, including history, leadership, AUM across asset and client types, office location(s), and organizational structure.",
@@ -353,7 +353,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
     items: [
       {
         id: "5-1",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: [],
         question: "For each of the last five years, provide the following information regarding the firm's number of investment professionals. Provide the roles of these individuals as well.",
@@ -373,7 +373,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "5-2",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: [],
         question: "List your firm's name, address, and year founded, as well as the name, title, telephone, email address and fax numbers for the individual(s) responsible for new business contacts.",
@@ -389,7 +389,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
     items: [
       {
         id: "6-1",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "S2 Strategy General",
         tags: ["Portfolio Management", "Financial Metrics"],
         question: "What tools are available for clients to track performance?",
@@ -399,7 +399,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "6-2",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Risk Management", "Compliance", "Portfolio Management", "Financial Services", "Asset Management", "Client Services"],
         question: "What is the firm's current size and structure?",
@@ -415,7 +415,7 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
     items: [
       {
         id: "7-1",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Operational Efficiency", "Financial Services", "Leadership", "Sustainable Investing", "Wealth Management"],
         question: "Who are the key members of your team, and what are their professional backgrounds and qualifications?",
@@ -425,13 +425,39 @@ export const MOCK_CONTENT_ITEMS: ContentItem[] = [
       },
       {
         id: "7-2",
-        type: "Questionnaire",
+        type: "Questionnaires",
         strategy: "Firm-Wide (Not Strategy-Specific)",
         tags: ["Financial Services", "Tailored Strategies", "Industry Trends", "Finance Expertise", "Independent Firm", "Quantitative Analysis", "Investment Management", "Client Solutions", "New York", "Brendan Corr"],
         question: "Provide the firm's legal name and the state in which it is incorporated.",
         answer: "Corr Investment Managers, legally incorporated in the state of New York, operates as an independently owned firm under the leadership of Brendan Corr, our CEO and founder. Since its inception in 2000, Corr Investment Managers has been committed to providing innovative and client-focused investment solutions. Our independence allows us to remain agile and responsive to the unique needs of our clients, ensuring that we deliver tailored strategies that address their specific challenges and objectives. With a team of 7 seasoned professionals, we leverage our deep expertise in finance, economics, and quantitative analysis to maximize returns and drive exceptional results. Our New York incorporation reflects our strategic positioning in one of the world's leading financial hubs, enabling us to stay at the forefront of industry trends and opportunities.",
         updatedAt: "2025-03-13T00:00:00Z",
         updatedBy: "William Wright"
+      }
+    ]
+  },
+  {
+    id: "8",
+    title: "Market Data Analysis Files",
+    items: [
+      {
+        id: "8-1",
+        type: "Data Files",
+        strategy: "Firm-Wide (Not Strategy-Specific)",
+        tags: ["Market Data", "Analytics", "Performance"],
+        question: "What market data files are available for analysis?",
+        answer: "Our market data files include historical price data, volume analysis, sector performance metrics, and economic indicators. These files are updated daily and provide comprehensive market intelligence for investment decision-making.",
+        updatedAt: "2025-01-15T00:00:00Z",
+        updatedBy: "Data Team"
+      },
+      {
+        id: "8-2",
+        type: "Data Files",
+        strategy: "Firm-Wide (Not Strategy-Specific)",
+        tags: ["Client Data", "Portfolio", "Reporting"],
+        question: "What client portfolio data files are maintained?",
+        answer: "We maintain comprehensive client portfolio data files including holdings, transactions, performance metrics, and risk assessments. All data is encrypted and stored securely in compliance with regulatory requirements.",
+        updatedAt: "2025-01-14T00:00:00Z",
+        updatedBy: "Portfolio Team"
       }
     ]
   }

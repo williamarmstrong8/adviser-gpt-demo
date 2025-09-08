@@ -13,6 +13,7 @@ interface MultiSelectFilterProps {
   onSelectionChange: (values: string[]) => void;
   placeholder?: string;
   width?: string;
+  size?: "default" | "sm" | "lg" | "icon" | "xs" | "xl";
 }
 
 export function MultiSelectFilter({
@@ -21,7 +22,8 @@ export function MultiSelectFilter({
   selectedValues,
   onSelectionChange,
   placeholder,
-  width = "w-auto"
+  width = "w-auto",
+  size = "default"
 }: MultiSelectFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -49,6 +51,7 @@ export function MultiSelectFilter({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
+          size={size}
           role="combobox"
           aria-expanded={isOpen}
           className={cn("justify-between", width)}

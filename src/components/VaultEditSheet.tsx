@@ -130,7 +130,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
           {/* Header */}
           <div className="flex items-center justify-between p-6 border-b">
             <div>
-              <h2 className="text-lg font-semibold">Editing Question/Answer</h2>
+              <h2 className="text-lg font-semibold">Edit Question/Answer</h2>
               <p className="text-sm text-muted-foreground mt-1">{(item as any).documentTitle || 'Unknown Document'}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
@@ -180,7 +180,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
                 <div className="flex gap-2">
                   <Select value={newStrategy} onValueChange={setNewStrategy}>
                     <SelectTrigger className="flex-1 min-w-40">
-                      <SelectValue placeholder="Select a strategy" />
+                      <SelectValue placeholder="Select strategy" />
                     </SelectTrigger>
                     <SelectContent>
                       {STRATEGIES.filter(strategy => !strategies.includes(strategy)).map(strategyOption => (

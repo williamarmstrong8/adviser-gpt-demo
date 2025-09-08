@@ -46,6 +46,7 @@ export interface TagInfo {
 
 // Available options
 export const STRATEGIES = [
+  "Firm-Wide (Not Strategy-Specific)",
   "Emerging Markets",
   "ESG", 
   "ESG Investments",
@@ -54,25 +55,24 @@ export const STRATEGIES = [
   "Global Equity",
   "Large Cap Equity",
   "Large Cap Growth",
-  "Firm-Wide (Not Strategy-Specific)",
   "S2 Strategy General",
   "Small Cap Value", 
   "Tech Sector"
 ];
 
-export const CONTENT_TYPES = ["Commentary", "Policy", "Quantitative", "Questionnaire"];
+export const CONTENT_TYPES = ["Data Files", "Policies", "Questionnaires"];
 
 export const STATUS_OPTIONS = ["Active", "Archived", "Draft", "Under Review"];
 
 export const TAGS_INFO: TagInfo[] = [
-  { name: "Risk Management", status: "Approved", usage: 280 },
-  { name: "Investment Strategy", status: "Approved", usage: 265 },
-  { name: "Portfolio Management", status: "Approved", usage: 244 },
-  { name: "Asset Management", status: "Approved", usage: 210 },
-  { name: "Financial Services", status: "Approved", usage: 198 },
-  { name: "Financial Analysis", status: "Approved", usage: 176 },
-  { name: "Investment Management", status: "Approved", usage: 154 },
-  { name: "Market Analysis", status: "Candidate", usage: 96 },
-  { name: "Client Communication", status: "Approved", usage: 84 },
   { name: "Asset Allocation", status: "Deactivated", usage: 22 },
+  { name: "Asset Management", status: "Approved", usage: 210 },
+  { name: "Client Communication", status: "Approved", usage: 84 },
+  { name: "Financial Analysis", status: "Approved", usage: 176 },
+  { name: "Financial Services", status: "Approved", usage: 198 },
+  { name: "Investment Management", status: "Approved", usage: 154 },
+  { name: "Investment Strategy", status: "Approved", usage: 265 },
+  { name: "Market Analysis", status: "Candidate", usage: 96 },
+  { name: "Portfolio Management", status: "Approved", usage: 244 },
+  { name: "Risk Management", status: "Approved", usage: 280 },
 ];
