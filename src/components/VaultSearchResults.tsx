@@ -188,23 +188,26 @@ export function VaultSearchResults() {
     setSelectedStatuses([]);
     setSelectedTags([]);
     
-    const params = new URLSearchParams();
-    if (query) params.set('query', query);
-    
-    // Preserve file context if in file mode
-    if (isFileMode && fileName) {
-      params.set('fileName', fileName);
-      params.set('count', fileCount.toString());
-      navigate(`/vault/file?${params.toString()}`);
-    } else {
-      navigate(`/vault/search?${params.toString()}`);
+    // Only update URL if there's a query to preserve
+    if (query) {
+      const params = new URLSearchParams();
+      params.set('query', query);
+      
+      // Preserve file context if in file mode
+      if (isFileMode && fileName) {
+        params.set('fileName', fileName);
+        params.set('count', fileCount.toString());
+        navigate(`/vault/file?${params.toString()}`);
+      } else {
+        navigate(`/vault/search?${params.toString()}`);
+      }
     }
   };
 
   const removeTag = (tagToRemove: string) => {
     const newTags = selectedTags.filter(tag => tag !== tagToRemove);
     setSelectedTags(newTags);
-    updateFiltersInUrl(query, selectedStrategies, selectedTypes, newTags, selectedStatuses);
+    // No URL update needed - filters work locally
   };
 
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
@@ -260,6 +263,7 @@ export function VaultSearchResults() {
   const handleSearch = () => {
     setQuery(searchInput);
     setQueryState(searchInput);
+    // Update URL when user explicitly searches
     updateFiltersInUrl(searchInput, selectedStrategies, selectedTypes, selectedTags, selectedStatuses);
   };
 
@@ -592,7 +596,7 @@ const formatRelativeTime = (isoString: string) => {
                 selectedValues={selectedStrategies}
                 onSelectionChange={(values) => {
                   setSelectedStrategies(values);
-                  updateFiltersInUrl(query, values, selectedTypes, selectedTags, selectedStatuses);
+                  // No URL update needed - filters work locally
                 }}
               />
 
@@ -603,7 +607,7 @@ const formatRelativeTime = (isoString: string) => {
                 selectedValues={selectedTypes}
                 onSelectionChange={(values) => {
                   setSelectedTypes(values);
-                  updateFiltersInUrl(query, selectedStrategies, values, selectedTags, selectedStatuses);
+                  // No URL update needed - filters work locally
                 }}
               />
 
@@ -614,7 +618,7 @@ const formatRelativeTime = (isoString: string) => {
                 selectedValues={selectedTags}
                 onSelectionChange={(values) => {
                   setSelectedTags(values);
-                  updateFiltersInUrl(query, selectedStrategies, selectedTypes, values, selectedStatuses);
+                  // No URL update needed - filters work locally
                 }}
                 placeholder="Tags"
               />
@@ -664,7 +668,7 @@ const formatRelativeTime = (isoString: string) => {
                     onClick={() => {
                       const newStrategies = selectedStrategies.filter(s => s !== strategy);
                       setSelectedStrategies(newStrategies);
-                      updateFiltersInUrl(query, newStrategies, selectedTypes, selectedTags, selectedStatuses);
+                      // No URL update needed - filters work locally
                     }}
                   />
                 </Badge>
@@ -677,7 +681,7 @@ const formatRelativeTime = (isoString: string) => {
                     onClick={() => {
                       const newTypes = selectedTypes.filter(t => t !== type);
                       setSelectedTypes(newTypes);
-                      updateFiltersInUrl(query, selectedStrategies, newTypes, selectedTags, selectedStatuses);
+                      // No URL update needed - filters work locally
                     }}
                   />
                 </Badge>
@@ -690,7 +694,7 @@ const formatRelativeTime = (isoString: string) => {
                     onClick={() => {
                       const newStatuses = selectedStatuses.filter(s => s !== status);
                       setSelectedStatuses(newStatuses);
-                      updateFiltersInUrl(query, selectedStrategies, selectedTypes, selectedTags, newStatuses);
+                      // No URL update needed - filters work locally
                     }}
                   />
                 </Badge>

@@ -42,9 +42,7 @@ export function MultiSelectFilter({
 
   const displayText = selectedValues.length === 0 
     ? (placeholder || title)
-    : selectedValues.length === 1 
-      ? selectedValues[0]
-      : `${selectedValues.length} selected`;
+    : title;
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -56,7 +54,14 @@ export function MultiSelectFilter({
           aria-expanded={isOpen}
           className={cn("justify-between", width)}
         >
-          <span className="truncate">{displayText}</span>
+          <div className="flex items-center gap-2">
+            <span className="truncate">{displayText}</span>
+            <span className={`inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-primary rounded-full transition-all ease-bounce ${
+              selectedValues.length > 0 ? 'opacity-100 duration-180 scale-100' : 'opacity-0 duration-0 scale-50'
+            }`}>
+              {selectedValues.length}
+            </span>
+          </div>
           <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
