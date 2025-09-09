@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, Clock, CheckCircle, AlertCircle, Eye, X, ChevronRight, Home } from "lucide-react";
+import { ArrowLeft, Clock, CheckCircle, AlertCircle, Eye, X, ChevronRight, Home, Copy, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VaultSidebar } from "@/components/VaultSidebar";
+import { FindDuplicatesModal } from "@/components/FindDuplicatesModal";
+import { FirmUpdatesModal } from "@/components/FirmUpdatesModal";
 
 interface ActionItem {
   id: string;
@@ -20,12 +22,22 @@ interface ActionItem {
 export function SuggestedUpdates() {
   const navigate = useNavigate();
   const [actions, setActions] = useState<ActionItem[]>([]);
+  const [showFindDuplicatesModal, setShowFindDuplicatesModal] = useState(false);
+  const [showFirmUpdatesModal, setShowFirmUpdatesModal] = useState(false);
 
   // Load actions from localStorage on component mount
   useEffect(() => {
     const savedActions = JSON.parse(localStorage.getItem('ai-actions') || '[]');
     setActions(savedActions);
   }, []);
+
+  // Reload actions when modals close (in case new actions were created)
+  useEffect(() => {
+    if (!showFindDuplicatesModal && !showFirmUpdatesModal) {
+      const savedActions = JSON.parse(localStorage.getItem('ai-actions') || '[]');
+      setActions(savedActions);
+    }
+  }, [showFindDuplicatesModal, showFirmUpdatesModal]);
 
   const getStatusIcon = (status: string) => {
     switch (status) {
@@ -140,7 +152,25 @@ export function SuggestedUpdates() {
                   <CheckCircle className="h-8 w-8 text-gray-400" />
                 </div>
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No suggested updates</h3>
-                <p className="text-gray-500">All actions have been reviewed and processed.</p>
+                <p className="text-gray-500 mb-8">All actions have been reviewed and processed.<br />Start a new AI action to continue.</p>
+                
+                {/* Action Buttons */}
+                <div className="flex items-center justify-center gap-4">
+                  <Button 
+                    onClick={() => setShowFindDuplicatesModal(true)}
+                    className="flex h-10 px-4 py-2 pl-3 justify-center items-center rounded-md border border-[#E4E4E7] bg-white text-[#18181B] text-sm font-medium leading-tight tracking-tight hover:border-[#D4D4D8] hover:bg-[#FAFAFA] transition-colors capitalize"
+                  >
+                    <Copy className="h-4 w-4 mr-2" />
+                    Find duplicates
+                  </Button>
+                  <Button 
+                    onClick={() => setShowFirmUpdatesModal(true)}
+                    className="flex h-10 px-4 py-2 pl-3 justify-center items-center rounded-md border border-[#E4E4E7] bg-white text-[#18181B] text-sm font-medium leading-tight tracking-tight hover:border-[#D4D4D8] hover:bg-[#FAFAFA] transition-colors capitalize"
+                  >
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Firm updates
+                  </Button>
+                </div>
               </div>
             ) : (
               actions.map((action) => (
@@ -208,6 +238,17 @@ export function SuggestedUpdates() {
           </div>
         </div>
       </div>
+
+      {/* Modals */}
+      <FindDuplicatesModal
+        open={showFindDuplicatesModal}
+        onClose={() => setShowFindDuplicatesModal(false)}
+      />
+      
+      <FirmUpdatesModal
+        open={showFirmUpdatesModal}
+        onClose={() => setShowFirmUpdatesModal(false)}
+      />
     </div>
   );
 }
