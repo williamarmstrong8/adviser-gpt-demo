@@ -536,7 +536,7 @@ const formatRelativeTime = (isoString: string) => {
         {/* Header with Breadcrumbs */}
       <div className="border-b bg-background">
         {/* Breadcrumbs */}
-        <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6">
+        <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6 max-w-[100rem] mx-auto">
           <Link to="/" className="text-muted-foreground hover:text-foreground">
             <Home className="h-4 w-4" />
           </Link>
@@ -560,105 +560,106 @@ const formatRelativeTime = (isoString: string) => {
         </div>
 
         {/* Main Title and Search */}
-        <div className="mb-2 bg-gray-50 flex items-center gap-3 p-6">
-          <div className="flex flex-1 items-center gap-2 text-xl">
-            <div className="inline-flex flex-0 items-center gap-1">
-              {fileName ? (
-              <span className="text-foreground">
-                {query ? `${filteredItems.length}` : `${fileCount}`} {query && filteredItems.length === 1 ? "Question" : "Questions"}
-              </span>
-              ) : (
+        <div className="mb-2 bg-gray-50">
+          <div className="flex items-center gap-3 max-w-[100rem] mx-auto p-6">
+            <div className="flex flex-1 items-center gap-2 text-xl">
+              <div className="inline-flex flex-0 items-center gap-1">
+                {fileName ? (
                 <span className="text-foreground">
-                  {filteredItems.length} {filteredItems.length === 1 ? "Result" : "Results"} {query ? `for` : ""}
+                  {query ? `${filteredItems.length}` : `${fileCount}`} {query && filteredItems.length === 1 ? "Question" : "Questions"}
                 </span>
-              )}
-            </div>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                type="text"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                onKeyDown={handleKeyPress}
-                placeholder="filter results"
-                className="pl-10 h-12"
-              />
-            </div>
-          </div>
-
-          {/* Filters and Export */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <MultiSelectFilter
-                title="Strategies"
-                size="xl"
-                options={STRATEGIES}
-                selectedValues={selectedStrategies}
-                onSelectionChange={(values) => {
-                  setSelectedStrategies(values);
-                  // No URL update needed - filters work locally
-                }}
-              />
-
-              <MultiSelectFilter
-                title="Types"
-                size="xl"
-                options={CONTENT_TYPES}
-                selectedValues={selectedTypes}
-                onSelectionChange={(values) => {
-                  setSelectedTypes(values);
-                  // No URL update needed - filters work locally
-                }}
-              />
-
-              <MultiSelectFilter
-                title="Tags"
-                size="xl"
-                options={TAGS_INFO.map(tag => tag.name)}
-                selectedValues={selectedTags}
-                onSelectionChange={(values) => {
-                  setSelectedTags(values);
-                  // No URL update needed - filters work locally
-                }}
-                placeholder="Tags"
-              />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="xl">
-                    <ArrowUpDown className="mr-2 h-4 w-4" />
-                    Sort: {currentSort === 'relevance' ? 'Relevance' : currentSort === 'lastEdited' ? 'Last edited' : 'Last editor'}
-                    <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleSortChange('relevance')}>
-                    {currentSort === 'relevance' && <Check className="mr-2 h-4 w-4" />}
-                    {currentSort !== 'relevance' && <div className="mr-6" />}
-                    Relevance
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSortChange('lastEdited')}>
-                    {currentSort === 'lastEdited' && <Check className="mr-2 h-4 w-4" />}
-                    {currentSort !== 'lastEdited' && <div className="mr-6" />}
-                    Last edited
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleSortChange('lastEditor')}>
-                    {currentSort === 'lastEditor' && <Check className="mr-2 h-4 w-4" />}
-                    {currentSort !== 'lastEditor' && <div className="mr-6" />}
-                    Last editor
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                ) : (
+                  <span className="text-foreground">
+                    {filteredItems.length} {filteredItems.length === 1 ? "Result" : "Results"} {query ? `for` : ""}
+                  </span>
+                )}
+              </div>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
+                  onKeyDown={handleKeyPress}
+                  placeholder="filter results"
+                  className="pl-10 h-12"
+                />
+              </div>
             </div>
 
-            
+            {/* Filters and Export */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <MultiSelectFilter
+                  title="Strategies"
+                  size="xl"
+                  options={STRATEGIES}
+                  selectedValues={selectedStrategies}
+                  onSelectionChange={(values) => {
+                    setSelectedStrategies(values);
+                    // No URL update needed - filters work locally
+                  }}
+                />
+
+                <MultiSelectFilter
+                  title="Types"
+                  size="xl"
+                  options={CONTENT_TYPES}
+                  selectedValues={selectedTypes}
+                  onSelectionChange={(values) => {
+                    setSelectedTypes(values);
+                    // No URL update needed - filters work locally
+                  }}
+                />
+
+                <MultiSelectFilter
+                  title="Tags"
+                  size="xl"
+                  options={TAGS_INFO.map(tag => tag.name)}
+                  selectedValues={selectedTags}
+                  onSelectionChange={(values) => {
+                    setSelectedTags(values);
+                    // No URL update needed - filters work locally
+                  }}
+                  placeholder="Tags"
+                />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="xl">
+                      <ArrowUpDown className="mr-2 h-4 w-4" />
+                      Sort: {currentSort === 'relevance' ? 'Relevance' : currentSort === 'lastEdited' ? 'Last edited' : 'Last editor'}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleSortChange('relevance')}>
+                      {currentSort === 'relevance' && <Check className="mr-2 h-4 w-4" />}
+                      {currentSort !== 'relevance' && <div className="mr-6" />}
+                      Relevance
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSortChange('lastEdited')}>
+                      {currentSort === 'lastEdited' && <Check className="mr-2 h-4 w-4" />}
+                      {currentSort !== 'lastEdited' && <div className="mr-6" />}
+                      Last edited
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSortChange('lastEditor')}>
+                      {currentSort === 'lastEditor' && <Check className="mr-2 h-4 w-4" />}
+                      {currentSort !== 'lastEditor' && <div className="mr-6" />}
+                      Last editor
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              
+            </div>
           </div>
         </div>
         
-        <div className="px-6 mb-2 flex items-center justify-between">
+        <div className="px-6 mb-2 flex items-center justify-between max-w-[100rem] mx-auto">
           
           {/* Active Filters */}
           {hasActiveFilters && (
-            <div className="flex items-center gap-2 px-6 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm text-muted-foreground">Active filters:</span>
               {selectedStrategies.map(strategy => (
                 <Badge key={strategy} variant="secondary" className="gap-1">
@@ -755,7 +756,7 @@ const formatRelativeTime = (isoString: string) => {
       </div>
 
       {/* Results */}
-      <div className="flex-1 p-6 space-y-6">
+      <div className="flex-1 p-6 space-y-6 max-w-[100rem] mx-auto">
         {sortedAndFilteredItems.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-lg text-muted-foreground mb-4">

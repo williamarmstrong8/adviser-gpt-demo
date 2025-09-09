@@ -117,7 +117,7 @@ export function SuggestedUpdates() {
         {/* Header with Breadcrumbs */}
         <div className="border-b bg-background">
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6">
+          <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6 max-w-[100rem] mx-auto">
             <Link to="/" className="text-muted-foreground hover:text-foreground">
               <Home className="h-4 w-4" />
             </Link>
@@ -135,7 +135,7 @@ export function SuggestedUpdates() {
           </div>
 
           {/* Main Title */}
-          <div className="flex items-center justify-between px-6 pb-6">
+          <div className="flex items-center justify-between px-6 pb-6 max-w-[100rem] mx-auto">
             <div>
               <h1 className="text-2xl font-semibold">AI Actions</h1>
               <p className="text-muted-foreground">Review and manage automated actions</p>
@@ -144,8 +144,8 @@ export function SuggestedUpdates() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 p-6">
-          <div className="max-w-4xl mx-auto space-y-4">
+        <div className="flex-1">
+          <div className="space-y-4 p-6 max-w-4xl mx-auto">
             {actions.length === 0 ? (
               <div className="text-center py-12">
                 <div className="p-4 bg-gray-100 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">

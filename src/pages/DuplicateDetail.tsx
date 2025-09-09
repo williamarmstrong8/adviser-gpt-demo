@@ -367,7 +367,7 @@ export function DuplicateDetail() {
         {/* Header with Breadcrumbs */}
         <div className="border-b bg-background">
           {/* Breadcrumbs */}
-          <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6">
+          <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6 max-w-[100rem] mx-auto">
             <Link to="/" className="text-muted-foreground hover:text-foreground">
               <Home className="h-4 w-4" />
             </Link>
@@ -395,7 +395,7 @@ export function DuplicateDetail() {
           </div>
 
           {/* Main Title */}
-          <div className="flex items-center justify-between px-6 pb-6">
+          <div className="flex items-center justify-between px-6 pb-6 max-w-[100rem] mx-auto">
             <div>
               <h1 className="text-2xl font-semibold">
                 {actionType === "duplicates" 
@@ -414,8 +414,8 @@ export function DuplicateDetail() {
         </div>
 
         {/* Progress Header */}
-        <div className="border-b bg-gray-50/50 px-6 py-4">
-          <div className="flex items-center justify-between">
+        <div className="border-b bg-gray-50/50 py-4">
+          <div className="flex items-center justify-between max-w-[100rem] mx-auto px-6">
             <div className="flex items-center gap-6">
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium">{reviewedGroups.size} Reviewed</span>

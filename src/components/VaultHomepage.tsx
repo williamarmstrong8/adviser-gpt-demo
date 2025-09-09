@@ -371,7 +371,7 @@ export function VaultHomepage() {
       <div className="flex-1 h-full flex flex-col ml-64">
         {/* Header */}
       <div className="border-b bg-background">
-        <div className="flex items-center justify-between px-6 py-6">
+        <div className="flex items-center justify-between px-6 py-6 max-w-[100rem] mx-auto">
           <h1 className="text-2xl font-semibold">Vault</h1>
           
           <div className="flex items-center gap-3">
@@ -407,8 +407,8 @@ export function VaultHomepage() {
         </div>
 
         {/* Search Section */}
-        <div className="p-6 bg-gray-50">
-          <div className="flex items-center gap-3">
+        <div className="bg-gray-50">
+          <div className="p-6 flex items-center gap-3 max-w-[100rem] mx-auto">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -458,8 +458,8 @@ export function VaultHomepage() {
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-6">
-        <div className="h-full">
+      <div className="flex-1">
+        <div className="h-full p-6 max-w-[100rem] mx-auto">
           {/* Main Tabs - Custom Styling */}
           <div className="flex items-center gap-8 mb-6 border-b">
             <button
