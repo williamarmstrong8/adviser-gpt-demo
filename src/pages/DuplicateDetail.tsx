@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, ChevronLeft, ChevronRight, Info, Check, CornerDownRight, Lightbulb, Calendar, FileText, X, Save, Archive } from "lucide-react";
+import { useNavigate, useParams, Link } from "react-router-dom";
+import { ArrowLeft, ChevronLeft, ChevronRight, Info, Check, CornerDownRight, Lightbulb, Calendar, FileText, X, Save, Archive, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
+import { VaultSidebar } from "@/components/VaultSidebar";
 
 interface DuplicateQuestion {
   id: string;
@@ -357,36 +358,57 @@ export function DuplicateDetail() {
   };
 
   return (
-    <div className="h-screen flex">
+    <div className="h-screen flex ml-64">
+      {/* Sidebar */}
+      <VaultSidebar />
+      
       {/* Main Content */}
       <div className="flex-1 h-full flex flex-col">
-        {/* Header */}
+        {/* Header with Breadcrumbs */}
         <div className="border-b bg-background">
-          <div className="flex items-center justify-between px-6 py-6">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate('/vault/suggested-updates')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Actions
-              </Button>
-                <div>
-                  <h1 className="text-2xl font-semibold">
-                    {actionType === "duplicates" 
-                      ? `Review Duplicates (${currentGroupIndex + 1} / ${totalGroups})`
-                      : `Review Suggestions (${currentGroupIndex + 1} / ${totalGroups})`
-                    }
-                  </h1>
-                  <p className="text-muted-foreground">
-                    {actionType === "duplicates" 
-                      ? "Review and select questions to keep. Unselected questions will be archived."
-                      : "Review impacted content and make changes as needed."
-                    }
-                  </p>
-                </div>
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6">
+            <Link to="/" className="text-muted-foreground hover:text-foreground">
+              <Home className="h-4 w-4" />
+            </Link>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <Link 
+              to="/vault" 
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Vault
+            </Link>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <Link 
+              to="/vault/suggested-updates" 
+              className="text-muted-foreground hover:text-foreground"
+            >
+              AI Actions
+            </Link>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="text-foreground font-medium">
+              {actionType === "duplicates" 
+                ? `Review Duplicates (${currentGroupIndex + 1} / ${totalGroups})`
+                : `Review Suggestions (${currentGroupIndex + 1} / ${totalGroups})`
+              }
+            </span>
+          </div>
+
+          {/* Main Title */}
+          <div className="flex items-center justify-between px-6 pb-6">
+            <div>
+              <h1 className="text-2xl font-semibold">
+                {actionType === "duplicates" 
+                  ? `Review Duplicates (${currentGroupIndex + 1} / ${totalGroups})`
+                  : `Review Suggestions (${currentGroupIndex + 1} / ${totalGroups})`
+                }
+              </h1>
+              <p className="text-muted-foreground">
+                {actionType === "duplicates" 
+                  ? "Review and select questions to keep. Unselected questions will be archived."
+                  : "Review impacted content and make changes as needed."
+                }
+              </p>
             </div>
           </div>
         </div>

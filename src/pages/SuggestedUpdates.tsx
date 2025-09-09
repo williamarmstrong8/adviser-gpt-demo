@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, CheckCircle, AlertCircle, Eye, X } from "lucide-react";
+import { useNavigate, Link } from "react-router-dom";
+import { ArrowLeft, Clock, CheckCircle, AlertCircle, Eye, X, ChevronRight, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { VaultSidebar } from "@/components/VaultSidebar";
 
 interface ActionItem {
   id: string;
@@ -95,26 +96,37 @@ export function SuggestedUpdates() {
   };
 
   return (
-    <div className="h-screen flex">
+    <div className="h-screen flex ml-64">
+      {/* Sidebar */}
+      <VaultSidebar />
+      
       {/* Main Content */}
       <div className="flex-1 h-full flex flex-col">
-        {/* Header */}
+        {/* Header with Breadcrumbs */}
         <div className="border-b bg-background">
-          <div className="flex items-center justify-between px-6 py-6">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => navigate('/vault')}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Vault
-              </Button>
-              <div>
-                <h1 className="text-2xl font-semibold">AI Actions</h1>
-                <p className="text-muted-foreground">Review and manage automated actions</p>
-              </div>
+          {/* Breadcrumbs */}
+          <div className="flex items-center gap-2 text-sm mb-6 px-6 pt-6">
+            <Link to="/" className="text-muted-foreground hover:text-foreground">
+              <Home className="h-4 w-4" />
+            </Link>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <Link 
+              to="/vault" 
+              className="text-muted-foreground hover:text-foreground"
+            >
+              Vault
+            </Link>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            <span className="text-foreground font-medium">
+              AI Actions
+            </span>
+          </div>
+
+          {/* Main Title */}
+          <div className="flex items-center justify-between px-6 pb-6">
+            <div>
+              <h1 className="text-2xl font-semibold">AI Actions</h1>
+              <p className="text-muted-foreground">Review and manage automated actions</p>
             </div>
           </div>
         </div>
