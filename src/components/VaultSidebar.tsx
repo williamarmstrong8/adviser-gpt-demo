@@ -15,20 +15,25 @@ import {
   Users,
   LogOut,
   Bookmark,
-  Search
+  Search,
+  Clock
 } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useSavedSearches } from "@/contexts/SavedSearchesContext";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 
 export function VaultSidebar() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isSavedSearchesOpen, setIsSavedSearchesOpen] = useState(true);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const { savedSearches } = useSavedSearches();
+  const { recentSearches: searchHistory } = useSearchHistory();
   
-  const recentSearches = savedSearches.slice(0, 5);
+  const recentSavedSearches = savedSearches.slice(0, 5);
 
   // Helper function to generate clean search URLs
   const generateSearchUrl = (search: any) => {
@@ -54,7 +59,34 @@ export function VaultSidebar() {
     if (search.sort && search.sort !== 'relevance') params.set('sort', search.sort);
     
     const queryString = params.toString();
-    return queryString ? `/vault/search?${queryString}` : '/vault/search';
+    return queryString ? `/vault?${queryString}` : '/vault';
+  };
+
+  // Helper function to generate history URLs
+  const generateHistoryUrl = (historyItem: any) => {
+    const params = new URLSearchParams();
+    
+    if (historyItem.query && historyItem.query.trim()) params.set('query', historyItem.query.trim());
+    if (historyItem.filters.strategies?.length > 0) {
+      const strategies = historyItem.filters.strategies.filter((s: string) => s && s.trim());
+      if (strategies.length > 0) params.set('strategy', strategies.join(','));
+    }
+    if (historyItem.filters.types?.length > 0) {
+      const types = historyItem.filters.types.filter((t: string) => t && t.trim());
+      if (types.length > 0) params.set('type', types.join(','));
+    }
+    if (historyItem.filters.tags?.length > 0) {
+      const tags = historyItem.filters.tags.filter((t: string) => t && t.trim());
+      if (tags.length > 0) params.set('tags', tags.join(','));
+    }
+    if (historyItem.filters.statuses?.length > 0) {
+      const statuses = historyItem.filters.statuses.filter((s: string) => s && s.trim());
+      if (statuses.length > 0) params.set('status', statuses.join(','));
+    }
+    if (historyItem.sort && historyItem.sort !== 'relevance') params.set('sort', historyItem.sort);
+    
+    const queryString = params.toString();
+    return queryString ? `/vault?${queryString}` : '/vault';
   };
 
   const isActiveRoute = (path: string) => {
@@ -206,7 +238,7 @@ export function VaultSidebar() {
           </li>
           
           {/* Saved Searches Sub-menu */}
-          {recentSearches.length > 0 && (
+          {recentSavedSearches.length > 0 && (
             <li>
               <div className="ml-2">
                 <button
@@ -232,11 +264,14 @@ export function VaultSidebar() {
                 
                 {isSavedSearchesOpen && (
                   <ul className="ml-4 mt-1 space-y-1">
-                    {recentSearches.map((search) => (
+                    {recentSavedSearches.map((search) => (
                       <li key={search.id}>
-                        <Link
-                          to={generateSearchUrl(search)}
-                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors"
+                        <button
+                          onClick={() => {
+                            const url = generateSearchUrl(search);
+                            navigate(url);
+                          }}
+                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors w-full text-left"
                         >
                           <Bookmark className="w-3 h-3" />
                           <span 
@@ -250,11 +285,11 @@ export function VaultSidebar() {
                           >
                             {search.name}
                           </span>
-                        </Link>
+                        </button>
                       </li>
                     ))}
                     
-                    {recentSearches.length >= 5 && (
+                    {recentSavedSearches.length >= 5 && (
                       <li>
                         <Link
                           to="/vault/saved-searches"
@@ -270,6 +305,84 @@ export function VaultSidebar() {
                             }}
                           >
                             View all
+                          </span>
+                        </Link>
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </li>
+          )}
+
+          {/* History Sub-menu */}
+          {searchHistory.length > 0 && (
+            <li>
+              <div className="ml-2">
+                <button
+                  onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+                  className="h-6 px-2 rounded-md flex items-center gap-1 text-[#71717A] hover:bg-gray-100 transition-colors w-full"
+                >
+                  {isHistoryOpen ? (
+                    <ChevronDown className="w-3 h-3" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3" />
+                  )}
+                  <span 
+                    style={{
+                      fontSize: "12px",
+                      fontWeight: "500",
+                      lineHeight: "1.4",
+                      letterSpacing: "-0.2px"
+                    }}
+                  >
+                    History
+                  </span>
+                </button>
+                
+                {isHistoryOpen && (
+                  <ul className="ml-4 mt-1 space-y-1">
+                    {searchHistory.map((historyItem) => (
+                      <li key={historyItem.id}>
+                        <button
+                          onClick={() => {
+                            const url = generateHistoryUrl(historyItem);
+                            navigate(url);
+                          }}
+                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors w-full text-left"
+                        >
+                          <Clock className="w-3 h-3" />
+                          <span 
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "400",
+                              lineHeight: "1.4",
+                              letterSpacing: "-0.1px"
+                            }}
+                            className="truncate"
+                          >
+                            {historyItem.displayName}
+                          </span>
+                        </button>
+                      </li>
+                    ))}
+                    
+                    {searchHistory.length >= 5 && (
+                      <li>
+                        <Link
+                          to="/vault/history"
+                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors"
+                        >
+                          <Search className="w-3 h-3" />
+                          <span 
+                            style={{
+                              fontSize: "11px",
+                              fontWeight: "400",
+                              lineHeight: "1.4",
+                              letterSpacing: "-0.1px"
+                            }}
+                          >
+                            See all
                           </span>
                         </Link>
                       </li>

@@ -15,6 +15,9 @@ export interface QuestionItem {
   updatedAt: string; // ISO string
   updatedBy: string;
   isBestAnswer?: boolean; // Mark high-quality answers for badge display
+  archived?: boolean; // Track if item is archived
+  documentTitle?: string; // Title of the document this item belongs to
+  documentId?: string; // ID of the document this item belongs to
 }
 
 export interface ContentItem {
@@ -35,6 +38,7 @@ export interface VaultState {
   filters: VaultFilters;
   activeView: "files" | "type" | "strategy" | "data";
   sort: string;
+  showArchived: boolean;
 }
 
 // Tag management types

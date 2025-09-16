@@ -251,6 +251,7 @@ export function smartSearch(items: QuestionItem[], query: string): QuestionItem[
     .map(({ item }) => item);
   
   // If no results found with strict criteria, try with lower threshold for very specific queries
+  const keyTerms = extractKeyTerms(query);
   if (relevantItems.length === 0 && keyTerms.length >= 2) {
     relevantItems = itemsWithScores
       .filter(({ score }) => score > 0.2)

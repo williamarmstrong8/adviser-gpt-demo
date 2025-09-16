@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { VaultSidebar } from "./VaultSidebar";
 import { QuestionCard } from "./QuestionCard";
 import { VaultEditSheet } from "./VaultEditSheet";
 import { FirmUpdatesModal } from "./FirmUpdatesModal";
 import { FindDuplicatesModal } from "./FindDuplicatesModal";
 import { SmartUploadSheet } from "./SmartUploadSheet";
+import { SaveSearchPrompt } from "./SaveSearchPrompt";
 import { 
   Search, 
   ChevronDown, 
@@ -15,6 +16,7 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
   Copy,
   Building2,
   Upload,
@@ -22,30 +24,78 @@ import {
   Lightbulb,
   Database,
   Clock,
-  FolderOpen
+  FolderOpen,
+  X,
+  Check,
+  Archive
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useVaultState, useVaultEdits } from "@/hooks/useVaultState";
+import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useToast } from "@/hooks/use-toast";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
 import { STRATEGIES, CONTENT_TYPES, STATUS_OPTIONS, TAGS_INFO, QuestionItem } from "@/types/vault";
 import { MultiSelectFilter } from "./MultiSelectFilter";
+import { smartSearch, getSemanticVariations, getSearchSuggestions } from "@/utils/smartSearch";
 
 export function VaultHomepage() {
   const navigate = useNavigate();
-  const { state, setQuery, setFilters, setActiveView } = useVaultState();
-  const { edits, saveEdit, getEdit } = useVaultEdits();
+  const [searchParams] = useSearchParams();
+  const { state, setQuery, setFilters, setActiveView, setSort, setShowArchived } = useVaultState();
+  const { edits, saveEdit, getEdit, saveManyEdits,clearAllEdits } = useVaultEdits();
+  const { addToHistory } = useSearchHistory();
   const { toast } = useToast();
-  const [searchInput, setSearchInput] = useState(state.query);
+  
+  // Extract URL parameters
+  const urlQuery = searchParams.get('query') || '';
+  const fileName = searchParams.get('fileName');
+  const fileCount = parseInt(searchParams.get('count') || '0');
+  const isFileMode = fileName && !urlQuery;
+
+  // Search and filter state
+  const [searchInput, setSearchInput] = useState(urlQuery || state.query);
+  
+  // Sync state.query with URL query parameter
+  useEffect(() => {
+    if (urlQuery !== state.query) {
+      setQuery(urlQuery);
+    }
+  }, [urlQuery, setQuery]);
+
+  // Sync filter states with URL parameters
+  useEffect(() => {
+    const urlStrategy = searchParams.get('strategy')?.split(',').filter(Boolean) || [];
+    const urlType = searchParams.get('type')?.split(',').filter(Boolean) || [];
+    const urlTags = searchParams.get('tags')?.split(',').filter(Boolean) || [];
+    const urlStatus = searchParams.get('status')?.split(',').filter(Boolean) || [];
+    const urlShowArchived = searchParams.get('showArchived') === 'true';
+    
+    setSelectedStrategy(urlStrategy);
+    setSelectedType(urlType);
+    setSelectedTags(urlTags);
+    setSelectedStatus(urlStatus);
+    setSearchInput(urlQuery);
+    
+    // Sync showArchived with URL parameter
+    if (urlShowArchived !== state.showArchived) {
+      setShowArchived(urlShowArchived);
+    }
+  }, [searchParams, urlQuery]);
   const [selectedStrategy, setSelectedStrategy] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<string[]>([]);  
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<string[]>([]);
+  
+  // Sorting and view state
   const [sortColumn, setSortColumn] = useState<"name" | "totalItems" | "lastEdited" | "lastEditor">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const currentSort = searchParams.get('sort') || state.sort || 'relevance';
+  
+  // UI state
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<QuestionItem | null>(null);
   const [activeTab, setActiveTab] = useState<"recent" | "documents">("recent");
@@ -67,6 +117,15 @@ export function VaultHomepage() {
     }
   }, []);
 
+  // Initialize state from URL parameters
+  useEffect(() => {
+    setSearchInput(urlQuery);
+    setSelectedStrategy(searchParams.get('strategy')?.split(',').filter(Boolean) || []);
+    setSelectedType(searchParams.get('type')?.split(',').filter(Boolean) || []);
+    setSelectedStatus(searchParams.get('status')?.split(',').filter(Boolean) || []);
+    setSelectedTags(searchParams.get('tags')?.split(',').filter(Boolean) || []);
+  }, [urlQuery, searchParams]);
+
   // Save tab state to localStorage when it changes
   const handleTabChange = (tab: "recent" | "documents") => {
     setActiveTab(tab);
@@ -87,8 +146,46 @@ export function VaultHomepage() {
     return <ArrowUpDown className="h-4 w-4" />;
   };
 
+  // Helper function to get the sort label
+  const getSortLabel = (column: "name" | "totalItems" | "lastEdited" | "lastEditor") => {
+    switch (column) {
+      case "name": return "Name";
+      case "totalItems": return "Number of Items";
+      case "lastEdited": return "Date Last Edited";
+      case "lastEditor": return "Last Editor";
+      default: return "Name";
+    }
+  };
+
+  // Handle sort change from files dropdown
+  const handleFilesSortChange = (column: "name" | "totalItems" | "lastEdited" | "lastEditor") => {
+    if (sortColumn === column) {
+      // Toggle direction if same column
+      const newDirection = sortDirection === "asc" ? "desc" : "asc";
+      setSortDirection(newDirection);
+    } else {
+      // Set new column with ascending direction
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+
   // Flatten the nested data structure for processing
   const flattenItems = (): QuestionItem[] => {
+    if (isFileMode && fileName) {
+      // In file mode, only show items from the specific file
+      const targetDoc = MOCK_CONTENT_ITEMS.find(doc => doc.title === fileName);
+      if (targetDoc) {
+        return targetDoc.items.map(item => ({
+          ...item,
+          documentTitle: targetDoc.title,
+          documentId: targetDoc.id
+        }));
+      }
+      return []; // File not found
+    }
+    
+    // In search mode, show all items
     return MOCK_CONTENT_ITEMS.flatMap(doc => 
       doc.items.map(item => ({
         ...item,
@@ -99,6 +196,160 @@ export function VaultHomepage() {
   };
 
   const allItems = flattenItems();
+
+  // Helper function to normalize strategies (convert single string to array)
+  const normalizeStrategies = (strategy: string | string[]): string[] => {
+    return Array.isArray(strategy) ? strategy : [strategy];
+  };
+
+  // Helper function to merge original item with saved edits
+  const getDisplayData = (item: QuestionItem) => {
+    const savedEdit = getEdit(item.id);
+    if (!savedEdit) return item;
+
+    const result = {
+      ...item,
+      question: savedEdit.question || item.question,
+      answer: savedEdit.answer || item.answer,
+      strategy: savedEdit.strategy || item.strategy,
+      tags: savedEdit.tags || item.tags,
+      archived: savedEdit.archived !== undefined ? savedEdit.archived : (item.archived || false),
+    };
+
+    return result;
+  };
+
+  // Helper function to check if all items in a file are archived
+  const isFileArchived = (fileName: string) => {
+    const fileItems = allItems.filter(item => item.documentTitle === fileName);
+    if (fileItems.length === 0) return false;
+    
+    return fileItems.every(item => {
+      const displayData = getDisplayData(item);
+      return displayData.archived;
+    });
+  };
+
+  // Simple function to archive/restore all items in a file
+  const toggleFileArchive = (fileName: string) => {
+    const fileItems = allItems.filter(item => item.documentTitle === fileName);
+    const isCurrentlyArchived = isFileArchived(fileName);
+    
+    // Create a batch of edits
+    saveManyEdits(
+      fileItems.map(item => [item.id, { archived: !isCurrentlyArchived } ])
+    );
+    
+    // Show toast
+    toast({
+      title: isCurrentlyArchived ? "File restored" : "File archived",
+      description: `${fileItems.length} items in "${fileName}" have been ${isCurrentlyArchived ? 'restored' : 'archived'}.`,
+      duration: 3000,
+    });
+  };
+
+  // Helper function to check if all items of a type are archived
+  const isTypeArchived = (typeName: string) => {
+    const typeItems = allItems.filter(item => item.type === typeName);
+    if (typeItems.length === 0) return false;
+    
+    return typeItems.every(item => {
+      const displayData = getDisplayData(item);
+      return displayData.archived;
+    });
+  };
+
+  // Simple function to archive/restore all items of a type
+  const toggleTypeArchive = (typeName: string) => {
+    const typeItems = allItems.filter(item => item.type === typeName);
+    const isCurrentlyArchived = isTypeArchived(typeName);
+    
+    // // Apply all edits at once
+    saveManyEdits(typeItems.map(item => [item.id, { archived: !isCurrentlyArchived }]));
+    
+    // Show toast
+    toast({
+      title: isCurrentlyArchived ? "Type restored" : "Type archived",
+      description: `${typeItems.length} items of type "${typeName}" have been ${isCurrentlyArchived ? 'restored' : 'archived'}.`,
+      duration: 3000,
+    });
+  };
+
+  // Helper function to check if all items of a strategy are archived
+  const isStrategyArchived = (strategyName: string) => {
+    const strategyItems = allItems.filter(item => {
+      const itemStrategy = Array.isArray(item.strategy) ? item.strategy : [item.strategy];
+      return itemStrategy.includes(strategyName);
+    });
+    if (strategyItems.length === 0) return false;
+    
+    return strategyItems.every(item => {
+      const displayData = getDisplayData(item);
+      return displayData.archived;
+    });
+  };
+
+  // Simple function to archive/restore all items of a strategy
+  const toggleStrategyArchive = (strategyName: string) => {
+    const strategyItems = allItems.filter(item => {
+      const itemStrategy = Array.isArray(item.strategy) ? item.strategy : [item.strategy];
+      return itemStrategy.includes(strategyName);
+    });
+    const isCurrentlyArchived = isStrategyArchived(strategyName);
+    
+    // Apply all edits at once
+    saveManyEdits(strategyItems.map(item => [item.id, { archived: !isCurrentlyArchived }]));
+    
+    // Show toast
+    toast({
+      title: isCurrentlyArchived ? "Strategy restored" : "Strategy archived",
+      description: `${strategyItems.length} items of strategy "${strategyName}" have been ${isCurrentlyArchived ? 'restored' : 'archived'}.`,
+      duration: 3000,
+    });
+  };
+
+  // Only perform search when explicitly triggered (not on every keystroke)
+  const smartSearchResults = state.query ? smartSearch(allItems, state.query) : allItems;
+  
+  // Apply additional filters to smart search results
+  const filteredItems = smartSearchResults.filter(item => {
+    const displayData = getDisplayData(item);
+    
+    // Filter out archived items unless showArchived is true
+    if (!state.showArchived && displayData.archived) {
+      return false;
+    }
+    
+    const itemStrategies = normalizeStrategies(displayData.strategy);
+    const matchesStrategy = selectedStrategy.length === 0 || 
+      selectedStrategy.some(selectedStrategy => itemStrategies.includes(selectedStrategy));
+    const matchesType = selectedType.length === 0 || 
+      selectedType.includes(displayData.type);
+    const matchesTags = selectedTags.length === 0 || 
+      selectedTags.some(tag => displayData.tags.includes(tag));
+    const matchesStatus = selectedStatus.length === 0 || 
+      selectedStatus.includes(displayData.type); // Using type as status for mock data
+    
+    return matchesStrategy && matchesType && matchesTags && matchesStatus;
+  });
+
+  // Sort filtered items
+  const sortItems = (items: QuestionItem[], sortBy: string) => {
+    switch (sortBy) {
+      case 'lastEdited':
+        return [...items].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      case 'lastEditor':
+        return [...items].sort((a, b) => a.updatedBy.localeCompare(b.updatedBy));
+      case 'relevance':
+      default:
+        return items; // Original order
+    }
+  };
+
+  const sortedAndFilteredItems = sortItems(filteredItems, currentSort);
+
+  const hasActiveFilters = selectedStrategy.length > 0 || selectedType.length > 0 || selectedTags.length > 0 || selectedStatus.length > 0;
+  const hasActiveSearch = (state.query && state.query.trim()) || hasActiveFilters;
 
   const handleSearch = () => {
     // Check if there's search text or any filters selected
@@ -114,6 +365,15 @@ export function VaultHomepage() {
         status: selectedStatus.length > 0 ? selectedStatus[0] : undefined
       });
       
+      // Add to search history
+      addToHistory(searchInput, {
+        strategies: selectedStrategy,
+        types: selectedType,
+        tags: selectedTags,
+        statuses: selectedStatus
+      }, currentSort);
+      
+      // Update URL parameters without navigating away from homepage
       const params = new URLSearchParams();
       // Only set query param if there's actual search text
       if (hasSearchText) {
@@ -124,7 +384,9 @@ export function VaultHomepage() {
       if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
       if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
       
-      navigate(`/vault/search?${params.toString()}`);
+      // Update URL using React Router navigation
+      const newUrl = `/vault?${params.toString()}`;
+      navigate(newUrl);
     }
   };
 
@@ -134,17 +396,135 @@ export function VaultHomepage() {
     }
   };
 
+  const clearFilters = () => {
+    setSelectedStrategy([]);
+    setSelectedType([]);
+    setSelectedStatus([]);
+    setSelectedTags([]);
+    
+    // Update URL parameters using React Router navigation
+    const params = new URLSearchParams();
+    if (state.query) {
+      params.set('query', state.query);
+    }
+    const newUrl = `/vault?${params.toString()}`;
+    navigate(newUrl);
+  };
+
+  const handleArchive = (itemId: string) => {
+    const currentEdit = getEdit(itemId) || {};
+    const originalItem = allItems.find(item => item.id === itemId);
+    const isCurrentlyArchived = currentEdit.archived !== undefined ? currentEdit.archived : originalItem?.archived || false;
+    
+    saveEdit(itemId, { ...currentEdit, archived: !isCurrentlyArchived });
+    
+    toast({
+      title: isCurrentlyArchived ? "Item unarchived" : "Item archived",
+      description: isCurrentlyArchived ? "The item has been restored from archive." : "The item has been archived and will be hidden from search results.",
+    });
+  };
+
+  const handleSortChange = (sortValue: string) => {
+    setSort(sortValue);
+    
+    const params = new URLSearchParams(searchParams);
+    if (sortValue !== 'relevance') {
+      params.set('sort', sortValue);
+    } else {
+      params.delete('sort');
+    }
+    
+    // Preserve existing parameters
+    if (state.query) params.set('query', state.query);
+    if (selectedStrategy.length > 0) params.set('strategy', selectedStrategy.join(','));
+    if (selectedType.length > 0) params.set('type', selectedType.join(','));
+    if (selectedTags.length > 0) params.set('tags', selectedTags.join(','));
+    if (selectedStatus.length > 0) params.set('status', selectedStatus.join(','));
+    
+    // Update URL using React Router navigation
+    const newUrl = `/vault?${params.toString()}`;
+    navigate(newUrl);
+  };
+
+  // Export functionality
+  const exportData = async (format: 'pdf' | 'csv' | 'docx') => {
+    try {
+      toast({
+        title: "Preparing export...",
+        description: "Please wait while we prepare your data.",
+        duration: 2000,
+      });
+
+      const { exportToPDF, exportToCSV, exportToDocx, getExportFilename } = await import('@/utils/exportUtils');
+      
+      const exportItems = filteredItems.map(item => ({
+        id: item.id,
+        title: (item as any).documentTitle || 'Unknown Document',
+        answer: item.answer || '',
+        question: item.question || '',
+        fileName: (item as any).documentTitle || 'Unknown Document',
+        lastEdited: formatFullDate(item.updatedAt),
+        lastEditor: item.updatedBy,
+        tags: getDisplayData(item).tags,
+        strategy: getDisplayData(item).strategy,
+        type: item.type
+      }));
+
+      const isFileView = fileName && !searchInput;
+      const contextTitle = isFileView 
+        ? `${filteredItems.length} Questions in ${fileName}`
+        : `Search Results for "${searchInput}"`;
+      
+      const contextName = isFileView ? fileName || 'file' : `Search_${searchInput}`;
+      const filename = getExportFilename(format, contextName);
+
+      switch (format) {
+        case 'pdf':
+          await exportToPDF(exportItems, contextTitle, filename);
+          break;
+        case 'csv':
+          exportToCSV(exportItems, filename);
+          break;
+        case 'docx':
+          await exportToDocx(exportItems, contextTitle, filename);
+          break;
+      }
+
+      toast({
+        title: "Export successful!",
+        description: `Your ${format.toUpperCase()} file has been downloaded.`,
+        duration: 3000,
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export failed",
+        description: "There was an error exporting your data. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    }
+  };
+
   // Group items by file for Files view
-  const fileGroups = MOCK_CONTENT_ITEMS.map(doc => ({
-    name: doc.title,
-    totalItems: doc.items.length,
-    type: doc.items[0]?.type || "Questionnaire",
-    strategy: doc.items[0]?.strategy || "Firm-Wide (Not Strategy-Specific)",
-    tags: doc.items.flatMap(item => item.tags),
-    updatedAt: doc.items[0]?.updatedAt || new Date().toISOString(),
-    updatedBy: doc.items[0]?.updatedBy || "Unknown",
-    documentId: doc.id
-  }));
+  const fileGroups = MOCK_CONTENT_ITEMS.map(doc => {
+    // Filter out archived items unless showArchived is true
+    const visibleItems = doc.items.filter(item => {
+      const displayData = getDisplayData(item);
+      return state.showArchived || !displayData.archived;
+    });
+    
+    return {
+      name: doc.title,
+      totalItems: visibleItems.length,
+      type: visibleItems[0]?.type || "Questionnaire",
+      strategy: visibleItems[0]?.strategy || "Firm-Wide (Not Strategy-Specific)",
+      tags: visibleItems.flatMap(item => item.tags),
+      updatedAt: visibleItems[0]?.updatedAt || new Date().toISOString(),
+      updatedBy: visibleItems[0]?.updatedBy || "Unknown",
+      documentId: doc.id
+    };
+  }).filter(file => file.totalItems > 0); // Only show files with visible items
 
   const sortedFiles = fileGroups.sort((a, b) => {
     if (sortColumn === "name") {
@@ -167,27 +547,23 @@ export function VaultHomepage() {
     return 0;
   });
 
-  const toggleSort = (column: "name" | "totalItems" | "lastEdited" | "lastEditor") => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortColumn(column);
-      setSortDirection("asc");
-    }
-  };
 
   // Group by type for Type view
   const typeGroups = CONTENT_TYPES.map(type => ({
     name: type,
-    totalItems: allItems.filter(item => item.type === type).length
+    totalItems: allItems.filter(item => {
+      const displayData = getDisplayData(item);
+      return item.type === type && (state.showArchived || !displayData.archived);
+    }).length
   })).filter(group => group.totalItems > 0);
 
   // Group by strategy for Strategy view
   const strategyGroups = STRATEGIES.map(strategy => ({
     name: strategy,
     totalItems: allItems.filter(item => {
+      const displayData = getDisplayData(item);
       const itemStrategy = Array.isArray(item.strategy) ? item.strategy : [item.strategy];
-      return itemStrategy.includes(strategy);
+      return itemStrategy.includes(strategy) && (state.showArchived || !displayData.archived);
     }).length
   })).filter(group => group.totalItems > 0);
 
@@ -287,25 +663,6 @@ export function VaultHomepage() {
     }
   };
 
-  // Helper function to normalize strategies (convert single string to array)
-  const normalizeStrategies = (strategy: string | string[]): string[] => {
-    return Array.isArray(strategy) ? strategy : [strategy];
-  };
-
-  // Helper function to merge original item with saved edits
-  const getDisplayData = (item: QuestionItem) => {
-    const savedEdit = getEdit(item.id);
-    if (!savedEdit) return item;
-
-    return {
-      ...item,
-      question: savedEdit.question || item.question,
-      answer: savedEdit.answer || item.answer,
-      strategy: savedEdit.strategy || item.strategy,
-      tags: savedEdit.tags || item.tags,
-    };
-  };
-
   const toggleAnswerExpansion = (itemId: string) => {
     const newExpanded = new Set(expandedAnswers);
     if (newExpanded.has(itemId)) {
@@ -370,11 +727,24 @@ export function VaultHomepage() {
       {/* Main Content */}
       <div className="flex-1 h-full flex flex-col ml-64">
         {/* Header */}
-      <div className="border-b bg-background">
-        <div className="flex items-center justify-between px-6 py-6 max-w-[100rem] mx-auto">
-          <h1 className="text-2xl font-semibold">Vault</h1>
-          
-          <div className="flex items-center gap-3">
+        <div className="border-b bg-background">
+          <div className="flex items-center justify-between px-6 py-6 max-w-[100rem] mx-auto">
+            <h1 className="text-2xl font-semibold">Vault</h1>
+            
+            <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                clearAllEdits();
+                toast({
+                  title: "All edits cleared",
+                  description: "All archive/edit states have been reset to original values.",
+                });
+              }}
+            >
+              Reset All
+            </Button>
             <Button
               variant="ghost"
               onClick={() => navigate('/vault/suggested-updates')}
@@ -407,7 +777,7 @@ export function VaultHomepage() {
         </div>
 
         {/* Search Section */}
-        <div className="bg-gray-50">
+        <div id="search-section" className="bg-gray-50">
           <div className="p-6 flex items-center gap-3 max-w-[100rem] mx-auto">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -416,8 +786,20 @@ export function VaultHomepage() {
                 onChange={(e) => setSearchInput(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Search or filter my Vault..."
-                className="pl-10 h-12"
+                className="pl-10 pr-10 h-12"
               />
+              {searchInput && (
+                <button
+                  onClick={() => {
+                    setSearchInput('');
+                    setQuery('');
+                    navigate('/vault');
+                  }}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
             </div>
             
             <MultiSelectFilter
@@ -454,12 +836,245 @@ export function VaultHomepage() {
               Find
             </Button>
           </div>
+
+          {/* Active Filters and Controls - Only show when there's an active search */}
+          {hasActiveSearch && (
+            <div className="px-6 pb-4 flex items-center justify-between max-w-[100rem] mx-auto">
+              {/* Active Filters */}
+              {hasActiveFilters && (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm text-muted-foreground">Active filters:</span>
+                  {selectedStrategy.map(strategy => (
+                    <Badge key={strategy} variant="secondary" className="gap-1">
+                      Strategy: {strategy}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => {
+                          const newStrategies = selectedStrategy.filter(s => s !== strategy);
+                          setSelectedStrategy(newStrategies);
+                        }}
+                      />
+                    </Badge>
+                  ))}
+                  {selectedType.map(type => (
+                    <Badge key={type} variant="secondary" className="gap-1">
+                      Type: {type}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => {
+                          const newTypes = selectedType.filter(t => t !== type);
+                          setSelectedType(newTypes);
+                        }}
+                      />
+                    </Badge>
+                  ))}
+                  {selectedStatus.map(status => (
+                    <Badge key={status} variant="secondary" className="gap-1">
+                      Status: {status}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => {
+                          const newStatuses = selectedStatus.filter(s => s !== status);
+                          setSelectedStatus(newStatuses);
+                        }}
+                      />
+                    </Badge>
+                  ))}
+                  {selectedTags.map(tag => (
+                    <Badge key={tag} variant="secondary" className="gap-1">
+                      Tag: {tag}
+                      <X 
+                        className="h-3 w-3 cursor-pointer" 
+                        onClick={() => {
+                          const newTags = selectedTags.filter(t => t !== tag);
+                          setSelectedTags(newTags);
+                        }}
+                      />
+                    </Badge>
+                  ))}
+                  <Button variant="link" size="sm" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                </div>
+              )}
+
+              <div className="flex flex-1 items-center justify-end gap-4">
+                {/* Sort and Show Archived Controls */}
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <ArrowUpDown className="mr-2 h-4 w-4" />
+                        Sort: {currentSort === 'relevance' ? 'Relevance' : currentSort === 'lastEdited' ? 'Last edited' : 'Last editor'}
+                        <ChevronDown className="ml-2 h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleSortChange('relevance')}>
+                        {currentSort === 'relevance' && <Check className="mr-2 h-4 w-4" />}
+                        {currentSort !== 'relevance' && <div className="mr-6" />}
+                        Relevance
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSortChange('lastEdited')}>
+                        {currentSort === 'lastEdited' && <Check className="mr-2 h-4 w-4" />}
+                        {currentSort !== 'lastEdited' && <div className="mr-6" />}
+                        Last edited
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleSortChange('lastEditor')}>
+                        {currentSort === 'lastEditor' && <Check className="mr-2 h-4 w-4" />}
+                        {currentSort !== 'lastEditor' && <div className="mr-6" />}
+                        Last editor
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Button
+                    variant={state.showArchived ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => {
+                      const newShowArchived = !state.showArchived;
+                      setShowArchived(newShowArchived);
+                      // Update URL parameters
+                      const newParams = new URLSearchParams(searchParams);
+                      if (newShowArchived) {
+                        newParams.set('showArchived', 'true');
+                      } else {
+                        newParams.delete('showArchived');
+                      }
+                      navigate(`/vault?${newParams.toString()}`, { replace: true });
+                    }}
+                  >
+                    <Archive className="h-4 w-4" />
+                    {state.showArchived ? "Hide archived" : "Show archived"}
+                  </Button>
+                </div>
+
+                {/* Export and Save Controls */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      Export View
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => exportData('pdf')}>
+                      PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('csv')}>
+                      XLS/CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('docx')}>
+                      Word (.docx)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                {/* Save Search Prompt */}
+                <SaveSearchPrompt
+                  query={searchInput}
+                  filters={{
+                    strategies: selectedStrategy,
+                    types: selectedType,
+                    tags: selectedTags,
+                    statuses: selectedStatus,
+                  }}
+                  sort={currentSort}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Content */}
-      <div className="flex-1">
-        <div className="h-full p-6 max-w-[100rem] mx-auto">
+      <div id="page-content" className="flex-1">
+        {hasActiveSearch || isFileMode ? (
+          /* Search Results */
+          <div className="h-full p-6 space-y-6 max-w-[100rem] mx-auto">
+            {/* Back Button */}
+            <div className="flex items-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  // Clear the file mode and navigate back to documents tab
+                  navigate('/vault');
+                }}
+                className="flex items-center gap-2 text-muted-foreground hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to Documents
+              </Button>
+            </div>
+            
+            {/* Results Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-bold">
+                  {sortedAndFilteredItems.length} {sortedAndFilteredItems.length === 1 ? 'Result' : 'Results'}
+                  {isFileMode && fileName && ` from "${fileName}"`}
+                  {state.query && !isFileMode && ` for "${state.query}"`}
+                </h2>
+                {hasActiveFilters && (
+                  <p className="text-muted-foreground mt-1">
+                    Filtered by {selectedStrategy.length + selectedType.length + selectedTags.length + selectedStatus.length} criteria
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {sortedAndFilteredItems.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-lg text-muted-foreground mb-4">
+                  No results match your search and filters.
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <Button variant="outline" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                  <Button variant="outline" onClick={() => {
+                    setSearchInput('');
+                    setQuery('');
+                    navigate('/vault');
+                  }}>
+                    Clear search
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              sortedAndFilteredItems.map((item, index) => {
+                const hasEdits = !!getEdit(item.id);
+                const isExpanded = expandedAnswers.has(item.id);
+                
+                return (
+                  <QuestionCard
+                    key={item.id}
+                    item={item}
+                    query={searchInput}
+                    fileName={fileName}
+                    hasEdits={hasEdits}
+                    isExpanded={isExpanded}
+                    showBestAnswerTag={true}
+                    onToggleExpansion={toggleAnswerExpansion}
+                    onEdit={handleEdit}
+                    onCopyAnswer={handleCopyAnswer}
+                    onStrategyRemove={handleStrategyRemove}
+                    onStrategyAdd={handleStrategyAdd}
+                    onTagRemove={handleTagRemove}
+                    onTagAdd={handleTagAdd}
+                    onArchive={handleArchive}
+                    highlightSearchTerms={highlightSearchTerms}
+                    formatRelativeTime={formatRelativeTime}
+                    formatFullDate={formatFullDate}
+                  />
+                );
+              })
+            )}
+          </div>
+        ) : (
+          /* Main Tabs */
+          <div id="documents-recent-tabs" className="h-full p-6 max-w-[100rem] mx-auto">
           {/* Main Tabs - Custom Styling */}
           <div className="flex items-center gap-8 mb-6 border-b">
             <button
@@ -516,6 +1131,7 @@ export function VaultHomepage() {
                       onStrategyAdd={handleStrategyAdd}
                       onTagRemove={handleTagRemove}
                       onTagAdd={handleTagAdd}
+                      onArchive={handleArchive}
                       highlightSearchTerms={highlightSearchTerms}
                       formatRelativeTime={formatRelativeTime}
                       formatFullDate={formatFullDate}
@@ -527,7 +1143,15 @@ export function VaultHomepage() {
                     <p className="text-lg text-muted-foreground mb-4">
                       No recent questions found.
                     </p>
-                    <Button variant="outline" onClick={() => navigate('/vault/search')}>
+                    <Button variant="outline" onClick={() => {
+                      setSearchInput('');
+                      setQuery('');
+                      setSelectedStrategy([]);
+                      setSelectedType([]);
+                      setSelectedTags([]);
+                      setSelectedStatus([]);
+                      navigate('/vault');
+                    }}>
                       Browse All Questions
                     </Button>
                   </div>
@@ -576,42 +1200,61 @@ export function VaultHomepage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">Files</h3>
-                    <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="flex items-center gap-2">
+                          Sort by: {getSortLabel(sortColumn)}
+                          {getSortIcon(sortColumn)}
+                          <ChevronDown className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => handleFilesSortChange("name")}>
+                          <div className="flex items-center gap-2">
+                            Name
+                            {sortColumn === "name" && getSortIcon("name")}
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilesSortChange("totalItems")}>
+                          <div className="flex items-center gap-2">
+                            Number of Items
+                            {sortColumn === "totalItems" && getSortIcon("totalItems")}
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilesSortChange("lastEdited")}>
+                          <div className="flex items-center gap-2">
+                            Date Last Edited
+                            {sortColumn === "lastEdited" && getSortIcon("lastEdited")}
+                          </div>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleFilesSortChange("lastEditor")}>
+                          <div className="flex items-center gap-2">
+                            Last Editor
+                            {sortColumn === "lastEditor" && getSortIcon("lastEditor")}
+                          </div>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                       <Button
-                        variant="outline"
+                        variant={state.showArchived ? "default" : "outline"}
                         size="sm"
-                        onClick={() => toggleSort("name")}
+                        onClick={() => {
+                          const newShowArchived = !state.showArchived;
+                          setShowArchived(newShowArchived);
+                          // Update URL parameters
+                          const newParams = new URLSearchParams(searchParams);
+                          if (newShowArchived) {
+                            newParams.set('showArchived', 'true');
+                          } else {
+                            newParams.delete('showArchived');
+                          }
+                          navigate(`/vault?${newParams.toString()}`, { replace: true });
+                        }}
                         className="flex items-center gap-2"
                       >
-                        Name
-                        {getSortIcon("name")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleSort("totalItems")}
-                        className="flex items-center gap-2"
-                      >
-                        Items
-                        {getSortIcon("totalItems")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleSort("lastEdited")}
-                        className="flex items-center gap-2"
-                      >
-                        Last Edited
-                        {getSortIcon("lastEdited")}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => toggleSort("lastEditor")}
-                        className="flex items-center gap-2"
-                      >
-                        Last Editor
-                        {getSortIcon("lastEditor")}
+                        <Archive className="h-4 w-4" />
+                        {state.showArchived ? "Hide archived" : "Show archived"}
                       </Button>
                     </div>
                   </div>
@@ -620,13 +1263,35 @@ export function VaultHomepage() {
                     {sortedFiles.map((file) => (
                       <div
                         key={file.documentId}
-                        className="flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                        onClick={() => navigate(`/vault/file?fileName=${encodeURIComponent(file.name)}&count=${file.totalItems}`)}
+                        className="group flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                        onClick={() => {
+                          // Set the file mode state
+                          setSearchInput('');
+                          setQuery('');
+                          setSelectedStrategy([]);
+                          setSelectedType([]);
+                          setSelectedTags([]);
+                          setSelectedStatus([]);
+                          
+                          // Update URL to show file mode
+                          const params = new URLSearchParams();
+                          params.set('fileName', file.name);
+                          params.set('count', file.totalItems.toString());
+                          navigate(`/vault?${params.toString()}`);
+                        }}
                       >
                         <div className="flex items-center gap-3">
                           <FileText className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <h4 className="font-medium">{file.name}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium">{file.name}</h4>
+                              {isFileArchived(file.name) && (
+                                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                  <Archive className="h-3 w-3" />
+                                  <span className="text-xs font-semibold">Archived</span>
+                                </div>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-2">
                               <div className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
                                 {file.totalItems} {file.totalItems === 1 ? "item" : "items"}
@@ -637,10 +1302,23 @@ export function VaultHomepage() {
                               <div className="inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
                                 <span style={{ color: '#71717A' }}>Last edited</span> {formatRelativeTime(file.updatedAt)} <span style={{ color: '#71717A' }}>by</span> {file.updatedBy}
                               </div>
-                          </div>
+                            </div>
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFileArchive(file.name);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-200 text-muted-foreground hover:text-foreground text-sm"
+                            title={isFileArchived(file.name) ? "Restore all items in this file" : "Archive all items in this file"}
+                          >
+                            <Archive className="h-4 w-4" />
+                            {isFileArchived(file.name) ? "Restore" : "Archive All"}
+                          </button>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -654,22 +1332,50 @@ export function VaultHomepage() {
                     {typeGroups.map((type) => (
                       <div
                         key={type.name}
-                        className="flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                        className="group flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
                         onClick={() => {
                           setSelectedType([type.name]);
-                          navigate(`/vault/search?type=${type.name}`);
+                          setSearchInput('');
+                          setQuery('');
+                          setSelectedStrategy([]);
+                          setSelectedTags([]);
+                          setSelectedStatus([]);
+                          const params = new URLSearchParams();
+                          params.set('type', type.name);
+                          navigate(`/vault?${params.toString()}`);
                         }}
                       >
                         <div className="flex items-center gap-3">
                           <Shapes className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <h4 className="font-medium">{type.name}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium">{type.name}</h4>
+                              {isTypeArchived(type.name) && (
+                                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                  <Archive className="h-3 w-3" />
+                                  <span className="text-xs font-semibold">Archived</span>
+                                </div>
+                              )}
+                            </div>
                             <div className="mt-1 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
                               {type.totalItems} {type.totalItems === 1 ? "item" : "items"}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleTypeArchive(type.name);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-200 text-muted-foreground hover:text-foreground text-sm"
+                            title={isTypeArchived(type.name) ? "Restore all items of this type" : "Archive all items of this type"}
+                          >
+                            <Archive className="h-4 w-4" />
+                            {isTypeArchived(type.name) ? "Restore" : "Archive All"}
+                          </button>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -683,22 +1389,50 @@ export function VaultHomepage() {
                     {strategyGroups.map((group) => (
                       <div
                         key={group.name}
-                        className="flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                        className="group flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
                         onClick={() => {
                           setSelectedStrategy([group.name]);
-                          navigate(`/vault/search?strategy=${group.name}`);
+                          setSearchInput('');
+                          setQuery('');
+                          setSelectedType([]);
+                          setSelectedTags([]);
+                          setSelectedStatus([]);
+                          const params = new URLSearchParams();
+                          params.set('strategy', group.name);
+                          navigate(`/vault?${params.toString()}`);
                         }}
                       >
                         <div className="flex items-center gap-3">
                           <Lightbulb className="h-5 w-5 text-muted-foreground" />
                           <div>
-                            <h4 className="font-medium">{group.name}</h4>
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-medium">{group.name}</h4>
+                              {isStrategyArchived(group.name) && (
+                                <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                  <Archive className="h-3 w-3" />
+                                  <span className="text-xs font-semibold">Archived</span>
+                                </div>
+                              )}
+                            </div>
                             <div className="mt-1 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
                               {group.totalItems} {group.totalItems === 1 ? "item" : "items"}
                             </div>
                           </div>
                         </div>
-                        <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        <div className="flex items-center gap-4">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleStrategyArchive(group.name);
+                            }}
+                            className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-200 text-muted-foreground hover:text-foreground text-sm"
+                            title={isStrategyArchived(group.name) ? "Restore all items of this strategy" : "Archive all items of this strategy"}
+                          >
+                            <Archive className="h-4 w-4" />
+                            {isStrategyArchived(group.name) ? "Restore" : "Archive All"}
+                          </button>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -736,8 +1470,8 @@ export function VaultHomepage() {
             </Tabs>
             </div>
           )}
-        </div>
-      </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Sheet */}
@@ -766,6 +1500,7 @@ export function VaultHomepage() {
         open={showSmartUploadSheet}
         onClose={() => setShowSmartUploadSheet(false)}
       />
+      </div>
     </div>
   );
 }

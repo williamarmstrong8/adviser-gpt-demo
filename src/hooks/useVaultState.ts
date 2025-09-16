@@ -7,7 +7,8 @@ const STORAGE_KEYS = {
   filters: 'ag_vault_filters', 
   activeView: 'ag_vault_activeView',
   edits: 'ag_vault_edits',
-  sort: 'ag_vault_sort'
+  sort: 'ag_vault_sort',
+  showArchived: 'ag_vault_showArchived'
 };
 
 export function useVaultState() {
@@ -15,7 +16,8 @@ export function useVaultState() {
     query: '',
     filters: {},
     activeView: 'files',
-    sort: 'name'
+    sort: 'name',
+    showArchived: false
   });
 
   // Load state from localStorage on mount
@@ -25,12 +27,14 @@ export function useVaultState() {
       const savedFilters = localStorage.getItem(STORAGE_KEYS.filters);
       const savedView = localStorage.getItem(STORAGE_KEYS.activeView) as VaultState['activeView'] || 'files';
       const savedSort = localStorage.getItem(STORAGE_KEYS.sort) || 'name';
+      const savedShowArchived = localStorage.getItem(STORAGE_KEYS.showArchived) === 'true';
 
       setState({
         query: savedQuery,
         filters: savedFilters ? JSON.parse(savedFilters) : {},
         activeView: savedView,
-        sort: savedSort
+        sort: savedSort,
+        showArchived: savedShowArchived
       });
     } catch (error) {
       console.warn('Failed to load vault state from localStorage:', error);
@@ -61,13 +65,20 @@ export function useVaultState() {
     localStorage.setItem(STORAGE_KEYS.sort, sort);
   };
 
+  // Update show archived
+  const setShowArchived = (showArchived: boolean) => {
+    setState(prev => ({ ...prev, showArchived }));
+    localStorage.setItem(STORAGE_KEYS.showArchived, showArchived.toString());
+  };
+
   // Clear all state
   const clearState = () => {
     const clearedState: VaultState = {
       query: '',
       filters: {},
       activeView: 'files',
-      sort: 'name'
+      sort: 'name',
+      showArchived: false
     };
     setState(clearedState);
     Object.values(STORAGE_KEYS).forEach(key => {
@@ -83,6 +94,7 @@ export function useVaultState() {
     setFilters,
     setActiveView, 
     setSort,
+    setShowArchived,
     clearState
   };
 }
@@ -102,10 +114,31 @@ export function useVaultEdits() {
     }
   }, []);
 
-  const saveEdit = (itemId: string, editData: any) => {
-    const newEdits = { ...edits, [itemId]: editData };
-    setEdits(newEdits);
-    localStorage.setItem(STORAGE_KEYS.edits, JSON.stringify(newEdits));
+  // const saveEdit = (itemId: string, editData: any) => {
+  //   const currentEdit = edits[itemId] || {};
+  //   const newEdit = { ...currentEdit, ...editData };
+  //   const newEdits = { ...edits, [itemId]: newEdit };
+  //   setEdits(newEdits);
+  //   localStorage.setItem(STORAGE_KEYS.edits, JSON.stringify(newEdits));
+  // };
+
+  // already existing single-item saver — keep but make it functional
+  const saveEdit = (id: string, data: any) => {
+    setEdits(prev => ({
+      ...prev,
+      [id]: { ...(prev[id] ?? {}), ...data },
+    }));
+  };
+
+  // NEW: commit many edits in one state update
+  const saveManyEdits = (entries: Array<[string, any]>) => {
+    setEdits(prev => {
+      const next = { ...prev };
+      for (const [id, data] of entries) {
+        next[id] = { ...(next[id] ?? {}), ...data };
+      }
+      return next;
+    });
   };
 
   const getEdit = (itemId: string) => {
@@ -119,5 +152,10 @@ export function useVaultEdits() {
     localStorage.setItem(STORAGE_KEYS.edits, JSON.stringify(newEdits));
   };
 
-  return { edits, saveEdit, getEdit, clearEdit };
+  const clearAllEdits = () => {
+    setEdits({});
+    localStorage.removeItem(STORAGE_KEYS.edits);
+  };
+
+  return { edits, saveEdit, getEdit, clearEdit, saveManyEdits, clearAllEdits };
 }

@@ -36,6 +36,7 @@ interface QuestionCardProps {
   onStrategyAdd?: (itemId: string, strategy: string) => void;
   onTagRemove?: (itemId: string, tag: string) => void;
   onTagAdd?: (itemId: string, tag: string) => void;
+  onArchive?: (itemId: string) => void;
   highlightSearchTerms?: (text: string, query: string) => string;
   formatRelativeTime?: (isoString: string) => string;
   formatFullDate?: (isoString: string) => string;
@@ -55,6 +56,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onStrategyAdd,
   onTagRemove,
   onTagAdd,
+  onArchive,
   highlightSearchTerms = (text) => text,
   formatRelativeTime = (date) => date,
   formatFullDate = (date) => date,
@@ -85,6 +87,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     strategy: item.strategy || [],
     tags: item.tags || [],
     isBestAnswer: item.isBestAnswer || false,
+    archived: item.archived || false,
   });
 
   const displayData = getDisplayData(item);
@@ -174,6 +177,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#CCECB6', color: '#09090B' }}>
               <Star className="h-3 w-3" />
               <span className="text-xs font-semibold">Best Answer</span>
+            </div>
+          )}
+          {displayData.archived && (
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+              <Archive className="h-3 w-3" />
+              <span className="text-xs font-semibold">Archived</span>
             </div>
           )}
         </div>
@@ -343,12 +352,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             Edit
           </button>
         )}
-        <button 
+        <button
           className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-white text-sm font-medium"
           style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+          onClick={() => onArchive && onArchive(item.id)}
         >
           <Archive className="h-4 w-4" />
-          Archive
+          {displayData.archived ? 'Restore' : 'Archive'}
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
