@@ -1022,6 +1022,56 @@ export function VaultHomepage() {
                   </p>
                 )}
               </div>
+              
+              {/* Sort and Show Archived Controls for Content Well */}
+              <div className="flex items-center gap-2">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">
+                      <ArrowUpDown className="mr-2 h-4 w-4" />
+                      Sort: {currentSort === 'relevance' ? 'Relevance' : currentSort === 'lastEdited' ? 'Last edited' : 'Last editor'}
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => handleSortChange('relevance')}>
+                      {currentSort === 'relevance' && <Check className="mr-2 h-4 w-4" />}
+                      {currentSort !== 'relevance' && <div className="mr-6" />}
+                      Relevance
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSortChange('lastEdited')}>
+                      {currentSort === 'lastEdited' && <Check className="mr-2 h-4 w-4" />}
+                      {currentSort !== 'lastEdited' && <div className="mr-6" />}
+                      Last edited
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => handleSortChange('lastEditor')}>
+                      {currentSort === 'lastEditor' && <Check className="mr-2 h-4 w-4" />}
+                      {currentSort !== 'lastEditor' && <div className="mr-6" />}
+                      Last editor
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <Button
+                  variant={state.showArchived ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => {
+                    const newShowArchived = !state.showArchived;
+                    setShowArchived(newShowArchived);
+                    // Update URL parameters
+                    const newParams = new URLSearchParams(searchParams);
+                    if (newShowArchived) {
+                      newParams.set('showArchived', 'true');
+                    } else {
+                      newParams.delete('showArchived');
+                    }
+                    navigate(`/vault?${newParams.toString()}`, { replace: true });
+                  }}
+                >
+                  <Archive className="h-4 w-4" />
+                  {state.showArchived ? "Hide archived" : "Show archived"}
+                </Button>
+              </div>
             </div>
 
             {sortedAndFilteredItems.length === 0 ? (
@@ -1046,11 +1096,12 @@ export function VaultHomepage() {
               sortedAndFilteredItems.map((item, index) => {
                 const hasEdits = !!getEdit(item.id);
                 const isExpanded = expandedAnswers.has(item.id);
+                const displayData = getDisplayData(item);
                 
                 return (
                   <QuestionCard
                     key={item.id}
-                    item={item}
+                    item={{...item, ...displayData}}
                     query={searchInput}
                     fileName={fileName}
                     hasEdits={hasEdits}
@@ -1116,11 +1167,12 @@ export function VaultHomepage() {
                 {recentQuestions.map((item) => {
                   const hasEdits = !!getEdit(item.id);
                   const isExpanded = expandedAnswers.has(item.id);
+                  const displayData = getDisplayData(item);
                   
                   return (
                     <QuestionCard
                       key={item.id}
-                      item={item}
+                      item={{...item, ...displayData}}
                       showBestAnswerTag={false}
                       hasEdits={hasEdits}
                       isExpanded={isExpanded}

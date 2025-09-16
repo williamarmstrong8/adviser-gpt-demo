@@ -96,6 +96,8 @@ export function VaultSidebar() {
     return location.pathname === path;
   };
 
+  const fallbackLabel = (h: any) => h.query?.trim() || 'All items';
+
   return (
     <div 
       className="fixed left-0 top-0 bottom-0 w-64 h-screen bg-[#FAFAFA] border-r border-[#E4E4E7] grid z-30"
@@ -237,7 +239,7 @@ export function VaultSidebar() {
             </Link>
           </li>
           
-          {/* Saved Searches Sub-menu */}
+          {/* Saved Searches Sub-menu
           {recentSavedSearches.length > 0 && (
             <li>
               <div className="ml-2">
@@ -313,7 +315,7 @@ export function VaultSidebar() {
                 )}
               </div>
             </li>
-          )}
+          )} */}
 
           {/* History Sub-menu */}
           {searchHistory.length > 0 && (
@@ -341,7 +343,7 @@ export function VaultSidebar() {
                 </button>
                 
                 {isHistoryOpen && (
-                  <ul className="ml-4 mt-1 space-y-1">
+                  <ul className="ml-4 mt-1 space-y-2">
                     {searchHistory.map((historyItem) => (
                       <li key={historyItem.id}>
                         <button
@@ -349,19 +351,19 @@ export function VaultSidebar() {
                             const url = generateHistoryUrl(historyItem);
                             navigate(url);
                           }}
-                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors w-full text-left"
+                          className="h-6 px-2 rounded-md flex items-center gap-2 text-[#71717A] hover:bg-gray-100 transition-colors w-full text-left min-w-0"
                         >
-                          <Clock className="w-3 h-3" />
+                          <Clock className="w-3 h-3 flex-shrink-0" />
                           <span 
                             style={{
                               fontSize: "11px",
                               fontWeight: "400",
-                              lineHeight: "1.4",
+                              lineHeight: "1.1",
                               letterSpacing: "-0.1px"
                             }}
-                            className="truncate"
+                            className="min-w-0 flex-1"
                           >
-                            {historyItem.displayName}
+                            {historyItem.displayName ?? fallbackLabel(historyItem)}
                           </span>
                         </button>
                       </li>
