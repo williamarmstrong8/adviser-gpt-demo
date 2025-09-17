@@ -45,7 +45,7 @@ export function VaultHomepage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { state, setQuery, setFilters, setActiveView, setSort, setShowArchived } = useVaultState();
-  const { edits, saveEdit, getEdit, saveManyEdits,clearAllEdits } = useVaultEdits();
+  const { edits, saveEdit, getEdit, saveManyEdits } = useVaultEdits();
   const { addToHistory } = useSearchHistory();
   const { toast } = useToast();
   
@@ -757,19 +757,6 @@ export function VaultHomepage() {
             <h1 className="text-2xl font-semibold">Vault</h1>
             
             <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                clearAllEdits();
-                toast({
-                  title: "All edits cleared",
-                  description: "All archive/edit states have been reset to original values.",
-                });
-              }}
-            >
-              Reset All
-            </Button>
             <Button
               variant="ghost"
               onClick={() => navigate('/vault/suggested-updates')}

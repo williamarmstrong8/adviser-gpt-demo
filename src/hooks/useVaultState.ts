@@ -152,10 +152,5 @@ export function useVaultEdits() {
     localStorage.setItem(STORAGE_KEYS.edits, JSON.stringify(newEdits));
   };
 
-  const clearAllEdits = () => {
-    setEdits({});
-    localStorage.removeItem(STORAGE_KEYS.edits);
-  };
-
-  return { edits, saveEdit, getEdit, clearEdit, saveManyEdits, clearAllEdits };
+  return { edits, saveEdit, getEdit, clearEdit, saveManyEdits };
 }
