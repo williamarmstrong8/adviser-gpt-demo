@@ -19,6 +19,7 @@ import {
   Copy,
   Building2,
   Upload,
+  MessagesSquare,
   Shapes,
   Lightbulb,
   Database,
@@ -782,8 +783,8 @@ export function VaultHomepage() {
               onClick={() => setShowSmartUploadSheet(true)}
               className="flex h-10 px-4 py-2 pl-3 justify-center items-center rounded-md bg-[#F4F4F5] shadow-[0_0_0_1px_rgba(3,7,18,0.12),0_1px_3px_-1px_rgba(3,7,18,0.11),0_2px_5px_0_rgba(3,7,18,0.06)] text-[#18181B] text-sm font-medium leading-tight tracking-tight hover:bg-[#F1F1F1] hover:shadow-[0_0_0_1px_rgba(3,7,18,0.15),0_1px_4px_-1px_rgba(3,7,18,0.13),0_3px_6px_0_rgba(3,7,18,0.08)] transition-all capitalize"
             >
-              <Upload className="h-4 w-4 mr-2" />
-              Add Content
+              <MessagesSquare className="h-4 w-4 mr-2" />
+              Add QA Pair
             </Button>
           </div>
         </div>
@@ -911,7 +912,7 @@ export function VaultHomepage() {
               )}
 
               <div className="flex flex-1 items-center justify-end gap-4">
-                {/* Sort and Show Archived Controls */}
+                {/* Sort and Show Archived Controls
                 <div className="flex items-center gap-2">
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -959,7 +960,7 @@ export function VaultHomepage() {
                     <Archive className="h-4 w-4" />
                     {state.showArchived ? "Hide archived" : "Show archived"}
                   </Button>
-                </div>
+                </div> */}
 
                 {/* Export and Save Controls */}
                 <DropdownMenu>
@@ -982,7 +983,7 @@ export function VaultHomepage() {
                   </DropdownMenuContent>
                 </DropdownMenu>
 
-                {/* Save Search Prompt */}
+                {/* Save Search Prompt
                 <SaveSearchPrompt
                   query={searchInput}
                   filters={{
@@ -992,7 +993,7 @@ export function VaultHomepage() {
                     statuses: selectedStatus,
                   }}
                   sort={currentSort}
-                />
+                /> */}
               </div>
             </div>
           )}

@@ -354,18 +354,6 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
                         Supports: DOC, DOCX, XLSX, XLS
                       </p>
                     </div>
-                    
-                    <div className="flex justify-center gap-8 text-sm text-gray-500">
-                      <div className="flex items-center gap-2">
-                        Documents
-                      </div>
-                      <div className="flex items-center gap-2">
-                        Data Files
-                      </div>
-                      <div className="flex items-center gap-2">
-                        All Types
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
