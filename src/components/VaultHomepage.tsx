@@ -1312,10 +1312,13 @@ export function VaultHomepage() {
                   </div>
 
                   <div className="grid gap-2">
-                    {sortedFiles.map((file) => (
+                    {sortedFiles.map((file, index) => (
                       <div
                         key={file.documentId}
-                        className="group flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                        className={`group flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-100/50 cursor-pointer ${
+                          index % 2 === 0 ? 'bg-white' : 'bg-gray-50/80'
+                        }`}
+                        
                         onClick={() => {
                           // Set the file mode state
                           setSearchInput('');
