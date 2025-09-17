@@ -1239,13 +1239,13 @@ export function VaultHomepage() {
                   <Lightbulb className="h-4 w-4" />
                   Strategy
                 </TabsTrigger>
-                <TabsTrigger 
+                {/* <TabsTrigger 
                   value="data"
                   className="inline-grid grid-flow-col items-center content-center gap-2 px-2 py-2 h-8 rounded-lg text-[#71717A] bg-transparent hover:bg-[#F4F4F5] hover:text-[#09090B] data-[state=active]:bg-[#F4F4F5] data-[state=active]:text-[#09090B] data-[state=active]:shadow-none transition-colors"
                 >
                   <Database className="h-4 w-4" />
                   Data
-                </TabsTrigger>
+                </TabsTrigger> */}
               </TabsList>
 
               <TabsContent value="files" className="mt-6">

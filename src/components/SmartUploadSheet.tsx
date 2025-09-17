@@ -287,7 +287,7 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
           {/* Header with enhanced styling */}
           <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-white/80 to-gray-50/80 backdrop-blur-sm rounded-t-xl">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-green-500 to-emerald-600 rounded-lg shadow-lg">
+              <div className="p-2 bg-gradient-to-br from-gray-600 to-gray-800 rounded-lg shadow-lg">
                 <Upload className="h-5 w-5 text-white" />
               </div>
               <div>
