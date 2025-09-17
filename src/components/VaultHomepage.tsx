@@ -852,7 +852,7 @@ export function VaultHomepage() {
 
           {/* Active Filters and Controls - Only show when there's an active search */}
           {hasActiveSearch && (
-            <div className="px-6 pb-4 flex items-center justify-between max-w-[100rem] mx-auto">
+            <div className="px-6 pb-2 flex items-center justify-between max-w-[100rem] mx-auto">
               {/* Active Filters */}
               {hasActiveFilters && (
                 <div className="flex items-center gap-2 flex-wrap">
@@ -910,91 +910,6 @@ export function VaultHomepage() {
                   </Button>
                 </div>
               )}
-
-              <div className="flex flex-1 items-center justify-end gap-4">
-                {/* Sort and Show Archived Controls
-                <div className="flex items-center gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        <ArrowUpDown className="mr-2 h-4 w-4" />
-                        Sort: {currentSort === 'relevance' ? 'Relevance' : currentSort === 'lastEdited' ? 'Last edited' : 'Last editor'}
-                        <ChevronDown className="ml-2 h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => handleSortChange('relevance')}>
-                        {currentSort === 'relevance' && <Check className="mr-2 h-4 w-4" />}
-                        {currentSort !== 'relevance' && <div className="mr-6" />}
-                        Relevance
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSortChange('lastEdited')}>
-                        {currentSort === 'lastEdited' && <Check className="mr-2 h-4 w-4" />}
-                        {currentSort !== 'lastEdited' && <div className="mr-6" />}
-                        Last edited
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleSortChange('lastEditor')}>
-                        {currentSort === 'lastEditor' && <Check className="mr-2 h-4 w-4" />}
-                        {currentSort !== 'lastEditor' && <div className="mr-6" />}
-                        Last editor
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-
-                  <Button
-                    variant={state.showArchived ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => {
-                      const newShowArchived = !state.showArchived;
-                      setShowArchived(newShowArchived);
-                      // Update URL parameters
-                      const newParams = new URLSearchParams(searchParams);
-                      if (newShowArchived) {
-                        newParams.set('showArchived', 'true');
-                      } else {
-                        newParams.delete('showArchived');
-                      }
-                      navigate(`/vault?${newParams.toString()}`, { replace: true });
-                    }}
-                  >
-                    <Archive className="h-4 w-4" />
-                    {state.showArchived ? "Hide archived" : "Show archived"}
-                  </Button>
-                </div> */}
-
-                {/* Export and Save Controls */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="outline">
-                      Export View
-                      <ChevronDown className="ml-2 h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => exportData('pdf')}>
-                      PDF
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportData('csv')}>
-                      XLS/CSV
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => exportData('docx')}>
-                      Word (.docx)
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Save Search Prompt
-                <SaveSearchPrompt
-                  query={searchInput}
-                  filters={{
-                    strategies: selectedStrategy,
-                    types: selectedType,
-                    tags: selectedTags,
-                    statuses: selectedStatus,
-                  }}
-                  sort={currentSort}
-                /> */}
-              </div>
             </div>
           )}
         </div>
@@ -1084,6 +999,26 @@ export function VaultHomepage() {
                   <Archive className="h-4 w-4" />
                   {state.showArchived ? "Hide archived" : "Show archived"}
                 </Button>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline">
+                      Export Results
+                      <ChevronDown className="ml-2 h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => exportData('pdf')}>
+                      PDF
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('csv')}>
+                      XLS/CSV
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => exportData('docx')}>
+                      Word (.docx)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
             </div>
 
