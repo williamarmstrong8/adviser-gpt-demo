@@ -1,0 +1,339 @@
+import React, { useState } from 'react';
+import { 
+  X, 
+  Search, 
+  FileText, 
+  Plus, 
+  Minus,
+  ExternalLink,
+  Filter,
+  RefreshCw,
+  Check,
+  AlertCircle
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { HIGHLIGHT_COLORS } from '@/lib/colors';
+
+interface Source {
+  id: string;
+  name: string;
+  type: string;
+  similarity: number;
+  snippet: string;
+  strategy?: string;
+  isUsed: boolean;
+  lastModified: Date;
+}
+
+interface SourceManagementPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  query: string;
+  usedSources: Source[];
+  availableSources: Source[];
+  onSourceAdd: (sourceId: string) => void;
+  onSourceRemove: (sourceId: string) => void;
+  onRebuild: () => void;
+}
+
+export function SourceManagementPanel({
+  isOpen,
+  onClose,
+  query,
+  usedSources,
+  availableSources,
+  onSourceAdd,
+  onSourceRemove,
+  onRebuild
+}: SourceManagementPanelProps) {
+  const [searchFilter, setSearchFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [similarityFilter, setSimilarityFilter] = useState<string>('all');
+
+  if (!isOpen) return null;
+
+  const filteredAvailableSources = availableSources.filter(source => {
+    const matchesSearch = source.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
+                         source.snippet.toLowerCase().includes(searchFilter.toLowerCase());
+    const matchesType = typeFilter === 'all' || source.type === typeFilter;
+    const matchesSimilarity = similarityFilter === 'all' || 
+      (similarityFilter === 'high' && source.similarity >= 90) ||
+      (similarityFilter === 'medium' && source.similarity >= 70 && source.similarity < 90) ||
+      (similarityFilter === 'low' && source.similarity < 70);
+    
+    return matchesSearch && matchesType && matchesSimilarity;
+  });
+
+  const getSimilarityColor = (similarity: number) => {
+    if (similarity >= 90) return 'bg-green-50 text-green-700 border-green-200';
+    if (similarity >= 70) return 'bg-yellow-50 text-yellow-700 border-yellow-200';
+    return 'bg-red-50 text-red-700 border-red-200';
+  };
+
+  const getSimilarityIcon = (similarity: number) => {
+    if (similarity >= 90) return <Check className="h-3 w-3" />;
+    if (similarity >= 70) return <AlertCircle className="h-3 w-3" />;
+    return <AlertCircle className="h-3 w-3" />;
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50" onClick={onClose}>
+      <div 
+        className="fixed right-0 top-0 h-full w-120 bg-white shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b">
+          <div>
+            <h2 className="text-lg font-semibold">Vault Sources</h2>
+            {query ? (
+              <p className="text-sm text-muted-foreground">for: "{query}"</p>
+            ) : (
+              <p className="text-sm text-muted-foreground">Browse and manage your vault sources</p>
+            )}
+          </div>
+          <Button variant="ghost" size="sm" onClick={onClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+
+        {/* Filters */}
+        <div className="p-4 border-b space-y-3">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search sources..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+          
+          <div className="flex gap-2">
+            <Select value={typeFilter} onValueChange={setTypeFilter}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="document">Documents</SelectItem>
+                <SelectItem value="policy">Policies</SelectItem>
+                <SelectItem value="memo">Memos</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={similarityFilter} onValueChange={setSimilarityFilter}>
+              <SelectTrigger className="flex-1">
+                <SelectValue placeholder="Similarity" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Similarity</SelectItem>
+                <SelectItem value="high">High (90%+)</SelectItem>
+                <SelectItem value="medium">Medium (70-89%)</SelectItem>
+                <SelectItem value="low">Low (&lt;70%)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        <ScrollArea className="flex-1 h-[calc(100vh-200px)]">
+          <div className="p-4 space-y-4">
+            {/* Used Sources */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="font-medium text-sm">
+                  {query ? `Sources in Answer (${usedSources.length})` : 'Recent Sources (0)'}
+                </h3>
+                {usedSources.length > 0 && (
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={onRebuild}
+                    className="flex items-center gap-1.5"
+                  >
+                    <RefreshCw className="h-3 w-3" />
+                    Rebuild
+                  </Button>
+                )}
+              </div>
+              
+              {usedSources.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <FileText className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    {query ? 'No sources selected' : 'Ask a question to see relevant sources'}
+                  </p>
+                  {!query && (
+                    <p className="text-xs mt-1 text-gray-400">
+                      Sources will appear here when you ask a question
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {usedSources.map((source) => (
+                    <div key={source.id} className={`border rounded-lg p-3 ${HIGHLIGHT_COLORS.vault.background} ${HIGHLIGHT_COLORS.vault.border}`}>
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className={`h-4 w-4 ${HIGHLIGHT_COLORS.vault.accent}`} />
+                          <span className={`font-medium text-sm ${HIGHLIGHT_COLORS.vault.text}`}>{source.name}</span>
+                          {query && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${getSimilarityColor(source.similarity)}`}
+                            >
+                              {getSimilarityIcon(source.similarity)}
+                              <span className="ml-1">{source.similarity}%</span>
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onSourceRemove(source.id)}
+                                className={`h-6 w-6 p-0 ${HIGHLIGHT_COLORS.vault.accent} hover:text-red-500`}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Remove from answer</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                      <p className={`text-xs ${HIGHLIGHT_COLORS.vault.text} leading-relaxed`}>
+                        {source.snippet}
+                      </p>
+                      {source.strategy && (
+                        <Badge variant="secondary" className="text-xs mt-2">
+                          {source.strategy}
+                        </Badge>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Available Sources */}
+            <div>
+              <h3 className="font-medium text-sm mb-3">
+                {query ? `Available Sources (${filteredAvailableSources.length})` : `All Vault Sources (${filteredAvailableSources.length})`}
+              </h3>
+              
+              {filteredAvailableSources.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">
+                    {query ? 'No sources found' : 'No sources available'}
+                  </p>
+                  {!query && (
+                    <p className="text-xs mt-1 text-gray-400">
+                      Browse and search through your vault sources
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredAvailableSources.map((source) => (
+                    <div key={source.id} className="border rounded-lg p-3 bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-gray-500" />
+                          <span className="font-medium text-sm">{source.name}</span>
+                          {query && (
+                            <Badge 
+                              variant="outline" 
+                              className={`text-xs ${getSimilarityColor(source.similarity)}`}
+                            >
+                              {getSimilarityIcon(source.similarity)}
+                              <span className="ml-1">{source.similarity}%</span>
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => onSourceAdd(source.id)}
+                                className={`h-6 w-6 p-0 text-gray-600 hover:${HIGHLIGHT_COLORS.vault.accent}`}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>{query ? 'Add to answer' : 'Add for context'}</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0 text-gray-600 hover:text-gray-800"
+                              >
+                                <ExternalLink className="h-3 w-3" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>View document</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      </div>
+                      <p className="text-xs text-gray-600 leading-relaxed">
+                        {source.snippet}
+                      </p>
+                      <div className="flex items-center justify-between mt-2">
+                        {source.strategy && (
+                          <Badge variant="secondary" className="text-xs">
+                            {source.strategy}
+                          </Badge>
+                        )}
+                        <span className="text-xs text-muted-foreground">
+                          {source.lastModified.toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </ScrollArea>
+
+        {/* Footer */}
+        <div className="p-4 border-t bg-gray-50">
+          <div className="flex items-center justify-between">
+            <div className="text-xs text-muted-foreground">
+              {query ? (
+                `${usedSources.length} of ${usedSources.length + availableSources.length} sources used`
+              ) : (
+                `${availableSources.length} total sources in vault`
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={onClose}>
+                Close
+              </Button>
+              {query && (
+                <Button 
+                  size="sm" 
+                  onClick={onRebuild}
+                  disabled={usedSources.length === 0}
+                >
+                  Rebuild Answer
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
