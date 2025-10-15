@@ -398,7 +398,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
         {onCopyAnswer && (
           <button 
-            className="flex h-8 px-2 pl-3 min-w-24 justify-center items-center gap-2 rounded-md text-sm font-medium bg-foreground hover:bg-foreground/80 border-foreground text-background"
+            className="flex h-8 px-2 pl-3 min-w-24 justify-center items-center gap-2 rounded-md text-sm font-medium bg-sidebar-primary hover:bg-sidebar-primary/80 border-sidebar-primary text-sidebar-primary-foreground"
             style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
             onClick={handleCopyAnswer}
           >

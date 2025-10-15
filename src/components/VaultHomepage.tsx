@@ -877,7 +877,7 @@ export function VaultHomepage() {
 
                     <Button 
                       onClick={handleSearch}
-                      className="bg-foreground text-background hover:bg-foreground/80 px-6 h-12 min-w-32"
+                      className="bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/80 px-6 h-12 min-w-32"
                     >
                       Find
                     </Button>
@@ -1367,7 +1367,7 @@ export function VaultHomepage() {
                             {typeGroups.map((type) => (
                               <div
                                 key={type.name}
-                                className="group flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                                className="group flex items-center justify-between px-4 py-3 border border-foreground/10 rounded-lg hover:bg-foreground/5 transition cursor-pointer"
                                 onClick={() => {
                                   setSelectedType([type.name]);
                                   setSearchInput('');
@@ -1386,13 +1386,13 @@ export function VaultHomepage() {
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-medium">{type.name}</h4>
                                       {isTypeArchived(type.name) && (
-                                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-background text-foreground">
                                           <Archive className="h-3 w-3" />
                                           <span className="text-xs font-semibold">Archived</span>
                                         </div>
                                       )}
                                     </div>
-                                    <div className="mt-1 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
+                                    <div className="mt-1 inline-flex items-center rounded-full border border-foreground/20 px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
                                       {type.totalItems} {type.totalItems === 1 ? "item" : "items"}
                                     </div>
                                   </div>
@@ -1403,7 +1403,7 @@ export function VaultHomepage() {
                                       e.stopPropagation();
                                       toggleTypeArchive(type.name);
                                     }}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-200 text-foreground/70 hover:text-foreground text-sm"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 px-2 py-1 rounded hover:bg-background transition text-foreground/70 hover:text-foreground text-sm"
                                     title={isTypeArchived(type.name) ? "Restore all items of this type" : "Archive all items of this type"}
                                   >
                                     <Archive className="h-4 w-4" />
@@ -1424,7 +1424,7 @@ export function VaultHomepage() {
                             {strategyGroups.map((group) => (
                               <div
                                 key={group.name}
-                                className="group flex items-center justify-between px-4 py-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                                className="group flex items-center justify-between px-4 py-3 border border-foreground/10 rounded-lg hover:bg-foreground/5 transition cursor-pointer"
                                 onClick={() => {
                                   setSelectedStrategy([group.name]);
                                   setSearchInput('');
@@ -1443,13 +1443,13 @@ export function VaultHomepage() {
                                     <div className="flex items-center gap-2">
                                       <h4 className="font-medium">{group.name}</h4>
                                       {isStrategyArchived(group.name) && (
-                                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full" style={{ backgroundColor: '#FEF3C7', color: '#92400E' }}>
+                                        <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-background text-foreground">
                                           <Archive className="h-3 w-3" />
                                           <span className="text-xs font-semibold">Archived</span>
                                         </div>
                                       )}
                                     </div>
-                                    <div className="mt-1 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
+                                    <div className="mt-1 inline-flex items-center rounded-full border border-foreground/20 px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 text-foreground">
                                       {group.totalItems} {group.totalItems === 1 ? "item" : "items"}
                                     </div>
                                   </div>
@@ -1460,7 +1460,7 @@ export function VaultHomepage() {
                                       e.stopPropagation();
                                       toggleStrategyArchive(group.name);
                                     }}
-                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 px-2 py-1 rounded hover:bg-gray-200 text-foreground/70 hover:text-foreground text-sm"
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center gap-1 px-2 py-1 rounded hover:bg-background transition text-foreground/70 hover:text-foreground text-sm"
                                     title={isStrategyArchived(group.name) ? "Restore all items of this strategy" : "Archive all items of this strategy"}
                                   >
                                     <Archive className="h-4 w-4" />
