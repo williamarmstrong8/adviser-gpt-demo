@@ -793,7 +793,7 @@ Client relationships are built on transparency, communication, and alignment of 
                       </div>
 
                       {/* Main Input */}
-                      <div className="relative flex flex-col bg-white/80 border border-foreground/30 transition focus:border-sidebar-accent focus-within:border-sidebar-accent focus-within:shadow-[0_5px_15px_hsla(18deg,89%,29%,0.30)] rounded-lg shadow-[0_3px_9px_hsla(0deg,0%,0%,0.09)]">
+                      <div className="relative flex flex-col bg-white/80 border border-foreground/30 transition focus:border-sidebar-primary focus-within:border-sidebar-primary focus-within:shadow-[0_5px_15px_hsla(60deg,21%,29%,0.30)] rounded-lg shadow-[0_3px_9px_hsla(0deg,0%,0%,0.09)]">
                         <div className="flex items-stretch">
                           <Textarea
                             placeholder="e.g. What is our investment research process?"
@@ -824,9 +824,9 @@ Client relationships are built on transparency, communication, and alignment of 
                             <Button 
                               onClick={handleSubmit}
                               disabled={!inputValue.trim() || isGenerating}
-                              className="h-9 w-9 bg-sidebar-accent hover:text-foreground"
+                              className="h-9 w-9 bg-sidebar-primary hover:text-foreground"
                             >
-                              <Send className="h-5 w-5 text-background" />
+                              <Send className="h-5 w-5 text-sidebar-primary-foreground" />
                             </Button>
                           </div>
                         </div>
