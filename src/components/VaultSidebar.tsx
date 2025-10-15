@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import Logo from '@/assets/AdviserGPT-logo.svg?react';
 import { 
   Building, 
   ChevronsUpDown, 
@@ -298,9 +299,9 @@ export function VaultSidebar() {
         <div className="flex-1 p-2 gap-2 min-w-0 flex flex-col" style={{ alignContent: "start" }}>
           {/* Subheader */}
           <div className="px-2">
-            <div className="text-sidebar-foreground font-semibold text-sm">
-              <img src="/AdviserGPT-logo.svg" alt="AdviserGPT" width="69" height="10" className="max-h-2.5" loading="eager" decoding="async" fetchPriority="high" />
-            </div>
+          <div className="text-sidebar-foreground font-semibold text-sm">
+            <Logo aria-label="AdviserGPT" className="h-2.5 w-auto" />
+          </div>
           </div>
 
           {/* Top Navigation Links */}
