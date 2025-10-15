@@ -145,10 +145,10 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center justify-between p-6 border-b border-foreground/10">
             <div>
               <h2 className="text-lg font-semibold">Edit Question/Answer</h2>
-              <p className="text-sm text-muted-foreground mt-1">{(item as any).documentTitle || 'Unknown Document'}</p>
+              <p className="text-sm text-foreground/70 mt-1">{(item as any).documentTitle || 'Unknown Document'}</p>
             </div>
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-4 w-4" />
@@ -186,7 +186,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
                       <Lightbulb className="h-3 w-3" />
                       {strategy}
                       <X 
-                        className="h-3 w-3 cursor-pointer hover:text-red-500" 
+                        className="h-3 w-3 cursor-pointer hover:text-sidebar-accent" 
                         onClick={() => handleRemoveStrategy(strategy)}
                       />
                     </Badge>
@@ -196,7 +196,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
                 {/* Add New Strategy */}
                 <div className="flex gap-2">
                   <Select value={newStrategy} onValueChange={setNewStrategy}>
-                    <SelectTrigger className="flex-1 min-w-40">
+                    <SelectTrigger className="flex-1 min-w-40 h-9">
                       <SelectValue placeholder="Select strategy" />
                     </SelectTrigger>
                     <SelectContent>
@@ -230,7 +230,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
                     <Badge 
                       key={tag} 
                       variant="secondary" 
-                      className="cursor-pointer hover:bg-destructive hover:text-destructive-foreground transition-colors"
+                      className="cursor-pointer hover:bg-sidebar-accent/5 hover:text-sidebar-accent transition-colors"
                       onClick={() => handleRemoveTag(tag)}
                     >
                       #{tag} 
@@ -246,7 +246,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
                     onChange={(e) => setNewTag(e.target.value)}
                     onKeyPress={handleKeyPress}
                     placeholder="Add new tag"
-                    className="flex-1"
+                    className="flex-1 h-9"
                   />
                   <Button 
                     onClick={handleAddTag} 
@@ -273,7 +273,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-end gap-3 p-6 border-t">
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-foreground/10">
             <Button variant="outline" onClick={onClose}>
               Cancel
             </Button>

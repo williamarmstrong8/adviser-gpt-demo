@@ -191,7 +191,7 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
       >
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
+          <div className="flex items-center justify-between p-6 border-b border-foreground/10">
             <div>
               <h2 className="text-lg font-semibold">Add QA Pair</h2>
               <p className="text-sm text-foreground/70 mt-1">Create a new question and answer pair</p>
@@ -412,7 +412,7 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between gap-3 p-6 border-t border-foreground/20">
+          <div className="flex items-center justify-between gap-3 p-6 border-t border-foreground/10">
             {/* Add Another Checkbox */}
             <div className="flex items-center space-x-2">
               <Checkbox 

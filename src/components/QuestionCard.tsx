@@ -325,7 +325,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                     <Input
                       value={newTagValue}
                       onChange={(e) => setNewTagValue(e.target.value)}
-                      className="h-6 text-xs w-24 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 border-foreground/20"
+                      className="h-6 text-xs w-24 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-foreground/60 transition border-foreground/20"
                       placeholder="Tag name"
                       autoFocus
                       onKeyDown={(e) => {
@@ -334,13 +334,13 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                       }}
                     />
                     <button 
-                      className="h-6 w-6 flex items-center justify-center border border-sidebar-primary bg-background hover:bg-sidebar-background rounded text-sidebar-primary hover:text-sidebar-primary/70 hover:border-sidebar-primary/70 transition-colors" 
+                      className="h-6 w-6 flex items-center justify-center border border-sidebar-primary bg-background hover:bg-sidebar-primary rounded text-sidebar-primary hover:text-sidebar-primary-foreground hover:border-sidebar-primary/70 transition-colors" 
                       onClick={() => handleNewTagSave(item.id)}
                     >
                       <Check className="h-3 w-3" />
                     </button>
                     <button 
-                      className="h-6 w-6 flex items-center justify-center border border-sidebar-accent bg-background hover:bg-sidebar-background rounded text-sidebar-accent hover:text-sidebar-accent/70 hover:border-sidebar-accent/70 transition-colors" 
+                      className="h-6 w-6 flex items-center justify-center border border-sidebar-accent bg-background hover:bg-sidebar-accent rounded text-sidebar-accent hover:text-sidebar-accent-foreground hover:border-sidebar-accent/70 transition-colors" 
                       onClick={handleNewTagCancel}
                     >
                       <X className="h-3 w-3" />
@@ -365,7 +365,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
       <div className="border-t border-foreground/20 px-6 py-3 flex items-center justify-end gap-2 rounded-b-lg bg-sidebar-background">
         {onEdit && (
           <button 
-            className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium"
+            className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium hover:bg-sidebar-background/5 transition active:scale-[0.96]"
             style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
             onClick={() => onEdit(item)}
           >
@@ -374,7 +374,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           </button>
         )}
         <button
-          className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium"
+          className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium hover:bg-sidebar-background/5 transition active:scale-[0.96]"
           style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
           onClick={() => onArchive && onArchive(item.id)}
         >
@@ -383,7 +383,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
         </button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium" style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}>
+            <button className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium hover:bg-sidebar-background/5 transition active:scale-[0.96]" style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}>
               <Mail className="h-4 w-4" />
               Email
               <ChevronDown className="h-4 w-4" />
@@ -398,7 +398,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
 
         {onCopyAnswer && (
           <button 
-            className="flex h-8 px-2 pl-3 min-w-24 justify-center items-center gap-2 rounded-md text-sm font-medium bg-sidebar-primary hover:bg-sidebar-primary/80 border-sidebar-primary text-sidebar-primary-foreground"
+            className="flex h-8 px-2 pl-3 min-w-24 justify-center items-center gap-2 rounded-md text-sm font-medium bg-sidebar-primary hover:bg-sidebar-primary/80 border-sidebar-primary text-sidebar-primary-foreground transition active:scale-[0.96]"
             style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
             onClick={handleCopyAnswer}
           >
