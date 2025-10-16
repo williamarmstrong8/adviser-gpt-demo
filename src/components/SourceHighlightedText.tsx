@@ -263,7 +263,7 @@ export function SourceHighlightedText({ text, sources, aiRatio }: SourceHighligh
           return (
             <Tooltip key={index}>
               <TooltipTrigger asChild>
-                <span className={`underline ${HIGHLIGHT_COLORS.ai.underline} ${HIGHLIGHT_COLORS.ai.underlineHover} decoration-[1.5px] cursor-help mr-2 transition-colors ${
+                <span className={`underline ${HIGHLIGHT_COLORS.ai.underline} ${HIGHLIGHT_COLORS.ai.underlineHover} decoration-[1.5px] cursor-help mr-2 transition-colors leading-6 ${
                   isPreviousAISegment ? 'ml-0.5' : ''
                 } ${isNextAISegment ? 'mr-0.5' : ''}`}>{segment.text}</span>
               </TooltipTrigger>
@@ -292,7 +292,7 @@ export function SourceHighlightedText({ text, sources, aiRatio }: SourceHighligh
             <Tooltip key={index}>
               <TooltipTrigger asChild>
                 <span>
-                  <span className={`underline ${HIGHLIGHT_COLORS.vault.underline} decoration-[1.5px] decoration-dotted hover:decoration-solid mr-1 cursor-help ${HIGHLIGHT_COLORS.vault.underlineHover} transition-colors`}>{segment.text}</span>
+                  <span className={`underline ${HIGHLIGHT_COLORS.vault.underline} decoration-[1.5px] decoration-dotted hover:decoration-solid mr-1 leading-6 cursor-help ${HIGHLIGHT_COLORS.vault.underlineHover} transition-colors`}>{segment.text}</span>
                   <span className={`inline-flex items-center justify-center w-4 h-4 mr-2 text-xs font-bold text-white rounded-sm ${getSourceNumberColor(segment.sourceIndex)}`}>
                     {segment.sourceIndex + 1}
                   </span>

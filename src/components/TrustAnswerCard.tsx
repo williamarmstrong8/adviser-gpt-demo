@@ -318,7 +318,7 @@ export function TrustAnswerCard({
                 onInput={handleContentChange}
                 onKeyDown={handleKeyDown}
                 onBlur={handleBlur}
-                className="text-foreground text-sm p-3 border border-foreground/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[100px]"
+                className="text-foreground text-sm leading-6 p-3 border border-foreground/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent min-h-[100px]"
                 dangerouslySetInnerHTML={{ __html: editedContent }}
               />
             ) : (
