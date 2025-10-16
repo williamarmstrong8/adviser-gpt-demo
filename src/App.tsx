@@ -12,6 +12,7 @@ import { SavedSearchesProvider } from "./contexts/SavedSearchesContext";
 import { SuggestedUpdates } from "./pages/SuggestedUpdates";
 import { DuplicateDetail } from "./pages/DuplicateDetail";
 import { ProfilePage } from "./components/ProfilePage";
+import { FirmSettings } from "./pages/FirmSettings";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/vault/suggested-updates" element={<SuggestedUpdates />} />
             <Route path="/vault/duplicates/:actionId" element={<DuplicateDetail />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/firm-settings" element={<FirmSettings />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

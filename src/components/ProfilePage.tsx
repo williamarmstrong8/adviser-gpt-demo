@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ChevronRight, Home,UserRound, Upload, Settings, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,15 +6,32 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useNavigate, Link } from 'react-router-dom';
 import { VaultSidebar } from './VaultSidebar';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 
 export function ProfilePage() {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [avatar, setAvatar] = useState<string | null>(() => {
-    return localStorage.getItem('user-avatar');
-  });
+  const { profile, updateProfile, updateAvatar } = useUserProfile();
   const [isUploading, setIsUploading] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: profile.firstName,
+    lastName: profile.lastName,
+    email: profile.email,
+    role: profile.role,
+    companyName: profile.companyName,
+  });
+
+  // Update form data when profile changes
+  useEffect(() => {
+    setFormData({
+      firstName: profile.firstName,
+      lastName: profile.lastName,
+      email: profile.email,
+      role: profile.role,
+      companyName: profile.companyName,
+    });
+  }, [profile]);
 
   const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -37,9 +54,12 @@ export function ProfilePage() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      setAvatar(result);
-      localStorage.setItem('user-avatar', result);
+      updateAvatar(result);
       setIsUploading(false);
+      // Clear the file input so the same file can be selected again
+      if (event.target) {
+        event.target.value = '';
+      }
     };
     reader.onerror = () => {
       alert('Error reading file');
@@ -49,8 +69,24 @@ export function ProfilePage() {
   };
 
   const handleRemoveAvatar = () => {
-    setAvatar(null);
-    localStorage.removeItem('user-avatar');
+    updateAvatar(null);
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    updateProfile(formData);
+    // Force a small delay to ensure the update is processed
+    setTimeout(() => {
+      alert('Profile saved successfully!');
+    }, 100);
+  };
+
+  const handleSaveFirmSettings = () => {
+    updateProfile({ companyName: formData.companyName });
+    alert('Firm settings saved successfully!');
   };
 
   const handleUploadClick = () => {
@@ -102,48 +138,49 @@ export function ProfilePage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-6">
-                    {/* Avatar Section */}
-                    <div className="flex items-center gap-6">
-                      <div className="relative">
-                        {avatar ? (
-                          <div className="relative group">
-                            <img
-                              src={avatar}
-                              alt="Profile"
-                              className="w-20 h-20 rounded-full object-cover border-2 border-foreground/10"
-                            />
-                            <button
-                              onClick={handleRemoveAvatar}
-                              className="absolute -top-2 -right-2 w-6 h-6 bg-sidebar-accent/10 text-sidebar-accent rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 hover:bg-sidebar-accent/20 transition-opacity"
-                            >
-                              ×
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-foreground/10">
-                            <UserRound className="w-8 h-8 text-foreground/70" />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <div>
-                          <Button
-                            onClick={handleUploadClick}
-                            disabled={isUploading}
-                            variant="outline"
-                            size="sm"
-                            className="flex items-center gap-2"
-                          >
-                            <Upload className="w-4 h-4" />
-                            {isUploading ? 'Uploading...' : avatar ? 'Change Photo' : 'Upload Photo'}
-                          </Button>
-                        </div>
-                        <p className="text-sm text-foreground/70">
-                          JPG, PNG or GIF. Max size 5MB.
-                        </p>
-                      </div>
-                    </div>
+                     {/* Avatar Section */}
+                     <div className="flex items-center gap-6">
+                       <div className="relative">
+                         {profile.avatar ? (
+                           <div className="relative group">
+                             <img
+                               key={profile.avatar.substring(0, 50)} // Force re-render when avatar changes
+                               src={profile.avatar}
+                               alt="Profile"
+                               className="w-20 h-20 rounded-full object-cover border-2 border-foreground/10"
+                             />
+                             <button
+                               onClick={handleRemoveAvatar}
+                               className="absolute -top-2 -right-2 w-6 h-6 bg-sidebar-accent/10 text-sidebar-accent rounded-full flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 hover:bg-sidebar-accent/20 transition-opacity"
+                             >
+                               ×
+                             </button>
+                           </div>
+                         ) : (
+                           <div className="w-20 h-20 rounded-full bg-foreground/5 flex items-center justify-center border-2 border-foreground/10">
+                             <UserRound className="w-8 h-8 text-foreground" />
+                           </div>
+                         )}
+                       </div>
+                       
+                       <div className="space-y-2">
+                         <div>
+                           <Button
+                             onClick={handleUploadClick}
+                             disabled={isUploading}
+                             variant="outline"
+                             size="sm"
+                             className="flex items-center gap-2"
+                           >
+                             <Upload className="w-4 h-4" />
+                             {isUploading ? 'Uploading...' : profile.avatar ? 'Change Photo' : 'Upload Photo'}
+                           </Button>
+                         </div>
+                         <p className="text-sm text-foreground/70">
+                           JPG, PNG or GIF. Max size 5MB.
+                         </p>
+                       </div>
+                     </div>
 
                     <input
                       ref={fileInputRef}
@@ -153,82 +190,60 @@ export function ProfilePage() {
                       className="hidden"
                     />
 
-                    {/* Profile Form */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name</Label>
+                     {/* Profile Form */}
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                       <div className="space-y-2">
+                         <Label htmlFor="firstName">First Name</Label>
+                         <Input
+                           id="firstName"
+                           placeholder="Enter your first name"
+                           value={formData.firstName}
+                           onChange={(e) => handleInputChange('firstName', e.target.value)}
+                         />
+                       </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="lastName">Last Name</Label>
+                         <Input
+                           id="lastName"
+                           placeholder="Enter your last name"
+                           value={formData.lastName}
+                           onChange={(e) => handleInputChange('lastName', e.target.value)}
+                         />
+                       </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="email">Email</Label>
+                         <Input
+                           id="email"
+                           type="email"
+                           placeholder="Enter your email"
+                           value={formData.email}
+                           onChange={(e) => handleInputChange('email', e.target.value)}
+                         />
+                       </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="role">Role</Label>
+                         <Input
+                           id="role"
+                           placeholder="Enter your role"
+                           value={formData.role}
+                           onChange={(e) => handleInputChange('role', e.target.value)}
+                         />
+                       </div>
+                       <div className="space-y-2">
+                        <Label htmlFor="companyName">Company Name</Label>
                         <Input
-                          id="firstName"
-                          placeholder="Enter your first name"
-                          defaultValue="Alex"
+                          id="companyName"
+                          placeholder="Enter company name"
+                          value={formData.companyName}
+                          onChange={(e) => handleInputChange('companyName', e.target.value)}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input
-                          id="lastName"
-                          placeholder="Enter your last name"
-                          defaultValue="Wright"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="Enter your email"
-                          defaultValue="alex.wright@s2strategy.com"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="role">Role</Label>
-                        <Input
-                          id="role"
-                          placeholder="Enter your role"
-                          defaultValue="Senior Advisor"
-                        />
-                      </div>
-                    </div>
+                     </div>
 
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline">Cancel</Button>
-                      <Button>Save Changes</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Firm Settings Card */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <Settings className="w-5 h-5" />
-                      Firm settings
-                    </CardTitle>
-                    <CardDescription>
-                      Manage your firm's settings and preferences
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="firmName">Firm Name</Label>
-                      <Input
-                        id="firmName"
-                        placeholder="Enter firm name"
-                        defaultValue="S2 Strategy"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="firmType">Firm Type</Label>
-                      <Input
-                        id="firmType"
-                        placeholder="Enter firm type"
-                        defaultValue="Registered Investment Advisor"
-                      />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="outline">Cancel</Button>
-                      <Button>Save Settings</Button>
-                    </div>
+                     <div className="flex justify-end gap-2">
+                       <Button variant="outline">Cancel</Button>
+                       <Button onClick={handleSaveProfile}>Save Changes</Button>
+                     </div>
                   </CardContent>
                 </Card>
               </div>

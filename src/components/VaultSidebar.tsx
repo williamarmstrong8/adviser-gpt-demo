@@ -11,7 +11,7 @@ import {
   ChevronUp,
   ChevronDown,
   SquarePen,
-  User,
+  UserRound,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -22,6 +22,7 @@ import { useSavedSearches } from "@/contexts/SavedSearchesContext";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useRecentSearches } from "@/hooks/useRecentSearches";
 import { useChatResults } from "@/hooks/useChatResults";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import ChatSidebar from "./ChatSidebar";
 
 interface Conversation {
@@ -56,13 +57,7 @@ export function VaultSidebar() {
   const { recentSearches: searchHistory } = useSearchHistory();
   const { recentSearchesForSidebar, removeRecentSearch } = useRecentSearches();
   const { getChatResultByQuery } = useChatResults();
-  const [avatar, setAvatar] = useState<string | null>(null);
-
-  // Load avatar from localStorage on component mount
-  useEffect(() => {
-      const savedAvatar = localStorage.getItem('user-avatar');
-      setAvatar(savedAvatar);
-  }, []);
+  const { profile } = useUserProfile();
 
   const handleLogout = () => {
       // Add logout logic here
@@ -77,7 +72,7 @@ export function VaultSidebar() {
 
   const handleFirmSettingsClick = () => {
       // Add firm settings navigation here
-      console.log('Opening firm settings...');
+      navigate('/firm-settings');
       setIsAccountOpen(false);
   };
   
@@ -462,13 +457,16 @@ export function VaultSidebar() {
             <Popover open={isAccountOpen} onOpenChange={setIsAccountOpen}>
               <PopoverTrigger asChild>
                 <div className="p-2 gap-2 rounded-lg flex items-center cursor-pointer hover:bg-background/90 transition active:scale-[0.98]">
-                  {/* Account Icon */}
-                  <div 
-                    className="bg-sidebar-foreground rounded-lg inline-grid place-items-center"
-                    style={{ width: "32px", height: "32px" }}
-                  >
-                    <Building className="w-4 h-4 text-sidebar-background" />
-                  </div>
+                  {profile.avatar ? (
+                    <img
+                      key={profile.avatar.substring(0, 50)} // Force re-render when avatar changes
+                      src={profile.avatar}
+                      alt="Profile picture"
+                      className="w-8 h-8 rounded-full object-cover border-2 border-foreground/10"
+                    />
+                  ) : (
+                    <UserRound className="w-6 h-6 text-foreground/70" />
+                  )}
                   
                   {/* Account Info */}
                   <div className="flex-1 grid gap-[-2px]">
@@ -479,29 +477,19 @@ export function VaultSidebar() {
                         lineHeight: "1.4" 
                       }}
                     >
-                      [DEMO] S2 Strategy
+                      {profile.fullName}
                     </div>
                     <div 
-                      className="font-medium text-sidebar-foreground/70"
+                      className="font-medium text-xs text-sidebar-foreground/70"
                       style={{ 
-                        fontSize: "12px", 
-                        fontWeight: "500",
                         lineHeight: "1.5", 
                         letterSpacing: "-0.2px" 
                       }}
                     >
-                      Preview
+                      {profile.companyName}
                     </div>
                   </div>
-                  {avatar ? (
-                    <img
-                      src={avatar}
-                      alt="Profile picture"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-foreground/10"
-                    />
-                  ) : (
-                    <User className="w-8 h-8 text-foreground/70" />
-                  )}
+                  
                   {/* Dropdown Icon */}
                   <ChevronsUpDown className="w-4 h-4 text-foreground/70" />
                 </div>
@@ -512,7 +500,7 @@ export function VaultSidebar() {
                       className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer"
                       onClick={handleProfileClick}
                   >
-                      <User className="w-4 h-4 text-foreground/70" />
+                      <UserRound className="w-4 h-4 text-foreground/70" />
                       <span className="text-sm">Profile</span>
                   </div>
                   <div 
