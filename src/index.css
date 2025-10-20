@@ -8,8 +8,19 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 40 69% 98%;
-    --foreground: 45 12 11%;
+    --new-palette-background: 40 49% 99%;
+    --new-palette-foreground: 45 40% 11%;
+    --new-palette-background-darker: 40 19% 95%;
+    --new-palette-foreground-darker: 45 50% 12%;
+    --new-palette-primary: 60 21% 32%;
+    --new-palette-primary-foreground: 45 10% 98%;
+    --new-palette-secondary: 321 23% 49%;
+    --new-palette-secondary-foreground: 321 40% 98%;
+    --new-palette-accent: 18 89% 53%;
+    --new-palette-accent-foreground: 18 89% 98%;
+
+    --background: var(--new-palette-background);
+    --foreground: var(--new-palette-foreground);
 
     --card: 0 0% 100%;
     --card-foreground: 45 12 11%;
@@ -17,8 +28,8 @@ All colors MUST be HSL.
     --popover: 40 69% 97%;
     --popover-foreground: 45 12 11%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: var(--new-palette-primary);
+    --primary-foreground: var(--new-palette-primary-foreground);
 
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -61,12 +72,12 @@ All colors MUST be HSL.
     --shadow-dropdown: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
 
     /* Sidebar tokens */
-    --sidebar-background: 39 36% 93%;
-    --sidebar-foreground: 45 10% 16%;
-    --sidebar-primary: 60 21% 32%;
-    --sidebar-primary-foreground: 45 10% 98%;
-    --sidebar-accent: 18 89% 53%;
-    --sidebar-accent-foreground: 18 89% 98%;
+    --sidebar-background: var(--new-palette-background-darker);
+    --sidebar-foreground: var(--new-palette-foreground-darker);
+    --sidebar-primary: var(--new-palette-primary);
+    --sidebar-primary-foreground: var(--new-palette-primary-foreground);
+    --sidebar-accent: var(--new-palette-accent);
+    --sidebar-accent-foreground: var(--new-palette-accent-foreground);
     --sidebar-border: 220 13% 91%;
     --sidebar-ring: 217.2 91.2% 59.8%;
 
