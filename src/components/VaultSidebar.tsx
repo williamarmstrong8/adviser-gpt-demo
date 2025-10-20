@@ -10,7 +10,7 @@ import {
   FileText,  
   ChevronUp,
   ChevronDown,
-  SquarePen,
+  MessageCircle,
   UserRound,
   Settings,
   LogOut,
@@ -281,23 +281,100 @@ export function VaultSidebar() {
           {/* Top Navigation Links */}
           <ul className="space-y-1 flex-1">
             <li>
-              <button
-                onClick={handleNewConversation}
-                className={`h-10 px-2 rounded-md flex items-center gap-2 w-full transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
-                  ${isActiveRoute('/') ? 'bg-sidebar-primary/10' : ''}
-                `}
-              >
-                <SquarePen className="w-4 h-4" />
-                <span 
-                  className="text-md font-medium" 
-                  style={{
-                    lineHeight: "1.5",
-                    letterSpacing: "-0.3px"
-                  }}
+              <div className="space-y-1">
+                <button
+                  onClick={handleNewConversation}
+                  className={`h-10 px-2 rounded-md flex items-center gap-2 w-full transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
+                    ${isActiveRoute('/') ? 'bg-sidebar-primary/10' : ''}
+                  `}
                 >
-                  New chat
-                </span>
-              </button>
+                  <MessageCircle className="w-4 h-4" />
+                  <span 
+                    className="text-md font-medium" 
+                    style={{
+                      lineHeight: "1.5",
+                      letterSpacing: "-0.3px"
+                    }}
+                  >
+                    Answers
+                  </span>
+                </button>
+           
+                {/* Chats Section */}
+                {recentConversations.length > 0 && (
+                  <div className="pl-5">
+                    <div 
+                      className="h-10 px-2 rounded-md flex items-center gap-2 w-full transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent cursor-pointer"
+                      onClick={() => setIsChatsExpanded(!isChatsExpanded)}
+                      onMouseEnter={() => setIsChatsIconHovered(true)}
+                      onMouseLeave={() => setIsChatsIconHovered(false)}
+                    >
+                      <div className="flex items-center justify-center w-4 h-4 relative">
+                        <ChevronDown 
+                          className={`w-4 h-4 absolute transition-all duration-300 ${
+                            !isChatsExpanded 
+                              ? 'opacity-100 scale-100' 
+                              : 'opacity-0 scale-75'
+                          }`} 
+                        />
+                        <ChevronUp 
+                          className={`w-4 h-4 absolute transition-all duration-300 ${
+                            isChatsExpanded 
+                              ? 'opacity-100 scale-100' 
+                              : 'opacity-0 scale-75'
+                          }`} 
+                        />
+                      </div>
+                      <span 
+                        className="text-sm font-medium" 
+                        style={{
+                          lineHeight: "1.5",
+                          letterSpacing: "-0.3px"
+                        }}
+                      >
+                        Recent
+                      </span>
+                    </div>
+                    
+                    {/* Recent Conversations */}
+                    {isChatsExpanded && (
+                      <div className="mt-1 min-w-0">
+                        <ChatSidebar
+                          items={recentConversations.map(conv => ({
+                            id: conv.id,
+                            title: conv.title,
+                            preview: conv.lastMessage,
+                            updatedAt: conv.timestamp.toISOString(),
+                            unread: conv.unread,
+                            pinned: conv.pinned,
+                            archived: conv.archived
+                          }))}
+                          activeId={getActiveChatId()}
+                          onOpenChat={handleOpenConversation}
+                          onShare={handleShareConversation}
+                          onRename={handleRenameConversation}
+                          onArchive={handleArchiveConversation}
+                          onDelete={handleDeleteConversation}
+                          title="Recent Chats"
+                          className=""
+                        />
+                        
+                        {/* See More Link */}
+                        {recentSearchesForSidebar.length > 7 && (
+                          <div className="px-2 py-1">
+                            <button
+                              onClick={() => navigate('/history')}
+                              className="text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
+                            >
+                              See more ({recentSearchesForSidebar.length - 7} more)
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
             </li>
             
             <li>
@@ -319,209 +396,137 @@ export function VaultSidebar() {
                 </span>
               </Link>
             </li>
-
-            <li>
-              <Link
-                to="#"
-                className={`h-10 px-2 rounded-md flex items-center gap-2 transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
-                  ${isActiveRoute('/upload') ? 'bg-sidebar-primary/10' : ''}
-                `}
-              >
-                <CloudUpload className="w-4 h-4" />
-                <span 
-                  className="text-md font-medium"
-                  style={{
-                    lineHeight: "1.5",
-                    letterSpacing: "-0.3px"
-                  }}
-                >
-                  File Upload
-                </span>
-              </Link>
-            </li>
-            
-            <li>
-              <Link
-                to="#"
-                className={`h-10 px-2 rounded-md flex items-center gap-2 transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
-                  ${isActiveRoute('/resources') ? 'bg-sidebar-primary/10' : ''}
-                `}
-              >
-                <FileText className="w-4 h-4" />
-                <span 
-                  className="text-md font-medium"
-                  style={{
-                    lineHeight: "1.5",
-                    letterSpacing: "-0.3px"
-                  }}
-                >
-                  Resources
-                </span>
-              </Link>
-            </li>
           </ul>
-
-          {/* Chats Section */}
-          {recentConversations.length > 0 && (
-            <div className="mt-4">
-              <div 
-                className="h-10 px-2 rounded-md flex items-center gap-2 w-full transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent cursor-pointer"
-                onClick={() => setIsChatsExpanded(!isChatsExpanded)}
-                onMouseEnter={() => setIsChatsIconHovered(true)}
-                onMouseLeave={() => setIsChatsIconHovered(false)}
-              >
-                <div className="flex items-center justify-center w-4 h-4 relative">
-                  <ChevronDown 
-                    className={`w-4 h-4 absolute transition-all duration-300 ${
-                      !isChatsExpanded 
-                        ? 'opacity-100 scale-100' 
-                        : 'opacity-0 scale-75'
-                    }`} 
-                  />
-                  <ChevronUp 
-                    className={`w-4 h-4 absolute transition-all duration-300 ${
-                      isChatsExpanded 
-                        ? 'opacity-100 scale-100' 
-                        : 'opacity-0 scale-75'
-                    }`} 
-                  />
-                </div>
-                <span 
-                  className="text-md font-medium" 
-                  style={{
-                    lineHeight: "1.5",
-                    letterSpacing: "-0.3px"
-                  }}
-                >
-                  Chats
-                </span>
-              </div>
-              
-              {/* Recent Conversations */}
-              {isChatsExpanded && (
-                <div className="mt-1 min-w-0">
-                  <ChatSidebar
-                    items={recentConversations.map(conv => ({
-                      id: conv.id,
-                      title: conv.title,
-                      preview: conv.lastMessage,
-                      updatedAt: conv.timestamp.toISOString(),
-                      unread: conv.unread,
-                      pinned: conv.pinned,
-                      archived: conv.archived
-                    }))}
-                    activeId={getActiveChatId()}
-                    onOpenChat={handleOpenConversation}
-                    onShare={handleShareConversation}
-                    onRename={handleRenameConversation}
-                    onArchive={handleArchiveConversation}
-                    onDelete={handleDeleteConversation}
-                    title="Recent Chats"
-                    className=""
-                  />
-                  
-                  {/* See More Link */}
-                  {recentSearchesForSidebar.length > 7 && (
-                    <div className="px-2 py-1">
-                      <button
-                        onClick={() => navigate('/history')}
-                        className="text-xs text-sidebar-foreground/70 hover:text-sidebar-foreground transition-colors"
-                      >
-                        See more ({recentSearchesForSidebar.length - 7} more)
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* List Wrapper */}
         <div className="p-2">
           <div className="border-t border-sidebar-foreground/10 pt-4 space-y-2">
-            <div className="h-10 px-2 group rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 cursor-pointer transition active:scale-[0.98]">
-              <Rocket className="w-4 h-4 text-foreground group-hover:text-current transition-color" />
-              <span 
-                className="text-foreground text-md font-medium group-hover:text-current transition-color"
-                style={{
-                  lineHeight: "1.5",
-                  letterSpacing: "-0.3px"
-                }}
-              >
-                Subscribe
-              </span>
-            </div>
-            
-            {/* Account Wrapper */}
-            <Popover open={isAccountOpen} onOpenChange={setIsAccountOpen}>
-              <PopoverTrigger asChild>
-                <div className="p-2 gap-2 rounded-lg flex items-center cursor-pointer hover:bg-background/90 transition active:scale-[0.98]">
-                  {profile.avatar ? (
-                    <img
-                      key={profile.avatar.substring(0, 50)} // Force re-render when avatar changes
-                      src={profile.avatar}
-                      alt="Profile picture"
-                      className="w-8 h-8 rounded-full object-cover border-2 border-foreground/10"
-                    />
-                  ) : (
-                    <UserRound className="w-6 h-6 text-foreground/70" />
-                  )}
-                  
-                  {/* Account Info */}
-                  <div className="flex-1 grid gap-[-2px]">
-                    <div 
-                      className="font-semibold text-sidebar-foreground"
-                      style={{ 
-                        fontSize: "14px", 
-                        lineHeight: "1.4" 
-                      }}
-                    >
-                      {profile.fullName}
-                    </div>
-                    <div 
-                      className="font-medium text-xs text-sidebar-foreground/70"
-                      style={{ 
-                        lineHeight: "1.5", 
-                        letterSpacing: "-0.2px" 
-                      }}
-                    >
-                      {profile.companyName}
-                    </div>
-                  </div>
-                  
-                  {/* Dropdown Icon */}
-                  <ChevronsUpDown className="w-4 h-4 text-foreground/70" />
+            <ul className="space-y-1 flex-1">
+             <li>
+                <div className="h-10 px-2 group rounded-md hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-2 cursor-pointer transition active:scale-[0.98]">
+                  <Rocket className="w-4 h-4 text-foreground group-hover:text-current transition-color" />
+                  <span 
+                    className="text-foreground text-md font-medium group-hover:text-current transition-color"
+                    style={{
+                      lineHeight: "1.5",
+                      letterSpacing: "-0.3px"
+                    }}
+                  >
+                    Subscribe
+                  </span>
                 </div>
-              </PopoverTrigger>
-              <PopoverContent className="w-56 p-1" align="end">
-              <div className="space-y-1">
-                  <div 
-                      className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer"
-                      onClick={handleProfileClick}
+              </li>
+              <li>
+                  <Link
+                    to="#"
+                    className={`h-10 px-2 rounded-md flex items-center gap-2 transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
+                      ${isActiveRoute('/upload') ? 'bg-sidebar-primary/10' : ''}
+                    `}
                   >
-                      <UserRound className="w-4 h-4 text-foreground/70" />
-                      <span className="text-sm">Profile</span>
-                  </div>
-                  <div 
-                      className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer"
-                      onClick={handleFirmSettingsClick}
+                    <CloudUpload className="w-4 h-4" />
+                    <span 
+                      className="text-md font-medium"
+                      style={{
+                        lineHeight: "1.5",
+                        letterSpacing: "-0.3px"
+                      }}
+                    >
+                      File Upload
+                    </span>
+                  </Link>
+                </li>
+                
+                <li>
+                  <Link
+                    to="#"
+                    className={`h-10 px-2 rounded-md flex items-center gap-2 transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
+                      ${isActiveRoute('/resources') ? 'bg-sidebar-primary/10' : ''}
+                    `}
                   >
-                      <Settings className="w-4 h-4 text-foreground/70" />
-                      <span className="text-sm">Firm Settings</span>
+                    <FileText className="w-4 h-4" />
+                    <span 
+                      className="text-md font-medium"
+                      style={{
+                        lineHeight: "1.5",
+                        letterSpacing: "-0.3px"
+                      }}
+                    >
+                      Resources
+                    </span>
+                  </Link>
+                </li>
+              <li>
+                {/* Account Wrapper */}
+                <Popover open={isAccountOpen} onOpenChange={setIsAccountOpen}>
+                  <PopoverTrigger asChild>
+                    <div className="p-2 gap-2 rounded-lg flex items-center cursor-pointer hover:bg-background/90 transition active:scale-[0.98]">
+                      {profile.avatar ? (
+                        <img
+                          key={profile.avatar.substring(0, 50)} // Force re-render when avatar changes
+                          src={profile.avatar}
+                          alt="Profile picture"
+                          className="w-8 h-8 rounded-full object-cover border-2 border-foreground/10"
+                        />
+                      ) : (
+                        <UserRound className="w-6 h-6 text-foreground/70" />
+                      )}
+                      
+                      {/* Account Info */}
+                      <div className="flex-1 grid gap-[-2px]">
+                        <div 
+                          className="font-semibold text-sidebar-foreground"
+                          style={{ 
+                            fontSize: "14px", 
+                            lineHeight: "1.4" 
+                          }}
+                        >
+                          {profile.fullName}
+                        </div>
+                        <div 
+                          className="font-medium text-xs text-sidebar-foreground/70"
+                          style={{ 
+                            lineHeight: "1.5", 
+                            letterSpacing: "-0.2px" 
+                          }}
+                        >
+                          {profile.companyName}
+                        </div>
+                      </div>
+                      
+                      {/* Dropdown Icon */}
+                      <ChevronsUpDown className="w-4 h-4 text-foreground/70" />
+                    </div>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-56 p-1" align="end">
+                  <div className="space-y-1">
+                      <div 
+                          className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer"
+                          onClick={handleProfileClick}
+                      >
+                          <UserRound className="w-4 h-4 text-foreground/70" />
+                          <span className="text-sm">Profile</span>
+                      </div>
+                      <div 
+                          className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer"
+                          onClick={handleFirmSettingsClick}
+                      >
+                          <Settings className="w-4 h-4 text-foreground/70" />
+                          <span className="text-sm">Firm Settings</span>
+                      </div>
+                      <div className="border-t border-foreground/10 my-1"></div>
+                      <div 
+                          className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer text-sidebar-accent"
+                          onClick={handleLogout}
+                      >
+                          <LogOut className="w-4 h-4 text-sidebar-accent/70" />
+                          <span className="text-sm">Logout</span>
+                      </div>
                   </div>
-                  <div className="border-t border-foreground/10 my-1"></div>
-                  <div 
-                      className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer text-sidebar-accent"
-                      onClick={handleLogout}
-                  >
-                      <LogOut className="w-4 h-4 text-sidebar-accent/70" />
-                      <span className="text-sm">Logout</span>
-                  </div>
-              </div>
-              </PopoverContent>
-            </Popover>
-            
+                  </PopoverContent>
+                </Popover>
+              </li>
+            </ul>
           </div>
         </div>
     </div>
