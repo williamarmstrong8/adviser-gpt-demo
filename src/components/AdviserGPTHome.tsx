@@ -200,13 +200,15 @@ export function AdviserGPTHome() {
     }
   };
 
-  // Function to simulate streaming answer text
+  // Function to simulate streaming answer text with dynamic progress
   const streamAnswerText = (fullAnswer: string, onComplete: () => void) => {
     setStreamingAnswer('');
+    setLoadingProgress(0);
     let currentIndex = 0;
     // Remove line breaks and normalize whitespace for inline display
     const normalizedAnswer = fullAnswer.replace(/\n\s*\n/g, ' ').replace(/\s+/g, ' ').trim();
     const words = normalizedAnswer.split(' ');
+    const totalWords = words.length;
     
     const streamInterval = setInterval(() => {
       if (currentIndex < words.length) {
@@ -215,8 +217,14 @@ export function AdviserGPTHome() {
         const newText = words.slice(0, currentIndex + wordsToAdd).join(' ');
         setStreamingAnswer(newText);
         currentIndex += wordsToAdd;
+        
+        // Update progress based on text completion (0-95%)
+        const textProgress = Math.min((currentIndex / totalWords) * 95, 95);
+        setLoadingProgress(textProgress);
       } else {
         clearInterval(streamInterval);
+        // Set progress to 100% when streaming completes
+        setLoadingProgress(100);
         onComplete();
       }
     }, 50 + Math.random() * 100); // Random delay between 50-150ms for realistic typing
@@ -321,7 +329,7 @@ export function AdviserGPTHome() {
       
       processedStoredResult.current = storedResult.id;
       
-      // Load the stored chat result immediately
+      // Load the stored chat result directly in completed state
       setInputValue(storedResult.query);
       setSelectedMode(storedResult.mode);
       setCurrentAnswer({
@@ -340,10 +348,11 @@ export function AdviserGPTHome() {
       });
       setIsGenerating(false);
       setShowSources(false);
-      setLoadingProgress(0);
+      setLoadingProgress(100); // Set to 100% to show completed state
       setLoadingStep('search');
-      setSourcesFound(0);
+      setSourcesFound(8);
       setShowSourcePanel(false);
+      setStreamingAnswer(''); // Clear any streaming text
       
       // Clear the navigation state to prevent re-loading
       window.history.replaceState({}, document.title);
@@ -498,9 +507,6 @@ export function AdviserGPTHome() {
     
     // Start streaming the answer text
     streamAnswerText(mockAnswer.answer, () => {
-      // Ensure progress bar is at 100% when streaming completes
-      setLoadingProgress(100);
-      
       // Set the answer immediately so the component can transition
       const answerWithFiles = {
         ...mockAnswer,
@@ -529,17 +535,6 @@ export function AdviserGPTHome() {
         }, 0);
       }, 500); // 500ms delay to allow animation to complete
     });
-    
-    // Simulate progress bar completion - slower to match streaming
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += Math.random() * 8 + 2; // Slower progress
-      if (progress >= 95) { // Stop at 95%, let streaming completion set it to 100%
-        progress = 95;
-        clearInterval(progressInterval);
-      }
-      setLoadingProgress(progress);
-    }, 150); // Slower interval
   };
 
   const handleExampleClick = (question: string) => {
@@ -657,9 +652,6 @@ Client relationships are built on transparency, communication, and alignment of 
     
     // Start streaming the answer text
     streamAnswerText(mockAnswer.answer, () => {
-      // Ensure progress bar is at 100% when streaming completes
-      setLoadingProgress(100);
-      
       // Set the answer immediately so the component can transition
       const answerWithFiles = {
         ...mockAnswer,
@@ -688,17 +680,6 @@ Client relationships are built on transparency, communication, and alignment of 
         }, 0);
       }, 500); // 500ms delay to allow animation to complete
     });
-    
-    // Simulate progress bar completion - slower to match streaming
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += Math.random() * 8 + 2; // Slower progress
-      if (progress >= 95) { // Stop at 95%, let streaming completion set it to 100%
-        progress = 95;
-        clearInterval(progressInterval);
-      }
-      setLoadingProgress(progress);
-    }, 150); // Slower interval
   };
 
   const handleCopy = () => {

@@ -182,7 +182,7 @@ export function AnswerLoadingState({
           
           <div className={`space-y-2 transition-all duration-500 ease-out ${
             isComplete
-              ? 'opacity-0 -translate-y-2 h-0 p-0 m-0' 
+              ? 'opacity-0 -translate-y-2 max-h-0 p-0 m-0' 
               : 'opacity-100 translate-y-0'
             }`}>
             <div className="flex items-center justify-between text-xs text-foreground/70">
