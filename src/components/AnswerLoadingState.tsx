@@ -140,44 +140,42 @@ export function AnswerLoadingState({
               </Badge>
             </div>
 
-            {/* Action Buttons - Only show for Answer Mode */}
-            {mode === 'answer' && (
-              <div className={`flex items-center gap-2 ${
+            {/* Action Buttons */}
+            <div className={`flex items-center gap-2 ${
               isComplete
                 ? 'opacity-100 translate-y-0' 
                 : 'opacity-0 -translate-y-2 m-0'
               }`}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleCopy}
-                      className={isCopied ? "text-accent" : ""}
-                    >
-                      {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Copy</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={handleSave}>
-                      <Save className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>{isEditing ? "Save Changes" : "Save to Vault"}</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={handleEmail}>
-                      <Mail className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Send as Email</TooltipContent>
-                </Tooltip>
-              </div>
-            )}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={handleCopy}
+                    className={isCopied ? "text-accent" : ""}
+                  >
+                    {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleSave}>
+                    <Save className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>{isEditing ? "Save Changes" : "Save to Vault"}</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="outline" size="sm" onClick={handleEmail}>
+                    <Mail className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Send as Email</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
           
           <div className={`space-y-2 transition-all duration-500 ease-out ${

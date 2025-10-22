@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Home, Building, CreditCard, Users, User, Settings, Bot, Plus, Mail, MoreHorizontal } from 'lucide-react';
+import { ChevronRight, Home, Building, CreditCard, Users, User, Settings, Bot, Plus, Mail, MoreHorizontal, Trash2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Slider } from '@/components/ui/slider';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VaultSidebar } from '@/components/VaultSidebar';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
@@ -49,10 +50,20 @@ export function FirmSettings() {
   const { profile } = useUserProfile();
   const [activeTab, setActiveTab] = useState('general');
   const [isBuildingProfile, setIsBuildingProfile] = useState(false);
+  const [isProfileBuilt, setIsProfileBuilt] = useState(false);
   const [firmWebsite, setFirmWebsite] = useState('');
   const [firmCrd, setFirmCrd] = useState('');
   const [autoCompleteValue, setAutoCompleteValue] = useState([0.5]);
   const [smartAssistantValue, setSmartAssistantValue] = useState([0.7]);
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
+
+  const handleResetProfile = async () => {
+    setIsBuildingProfile(false);
+    setFirmWebsite('');
+    setFirmCrd('');
+    setIsProfileBuilt(false);
+    alert('Profile reset successfully!');
+  }
 
   const handleBuildProfile = async () => {
     setIsBuildingProfile(true);
@@ -60,6 +71,7 @@ export function FirmSettings() {
     setTimeout(() => {
       setIsBuildingProfile(false);
       alert('Profile built successfully!');
+      setIsProfileBuilt(true);
     }, 3000);
   };
 
@@ -71,6 +83,22 @@ export function FirmSettings() {
   const handleAddTeammate = () => {
     console.log('Adding new teammate');
     alert('Add teammate functionality would open here');
+  };
+
+  const handleDeleteMember = (memberId: string) => {
+    if (window.confirm('Are you sure you want to delete this team member?')) {
+      setTeamMembers(prev => prev.filter(member => member.id !== memberId));
+      alert('Team member deleted successfully!');
+    }
+  };
+
+  const handleRoleChange = (memberId: string, newRole: 'Admin' | 'Member' | 'Customer Success') => {
+    setTeamMembers(prev => 
+      prev.map(member => 
+        member.id === memberId ? { ...member, role: newRole } : member
+      )
+    );
+    alert('Role updated successfully!');
   };
 
   return (
@@ -106,7 +134,7 @@ export function FirmSettings() {
           <div className="flex-1 p-8">
             <div className="max-w-4xl mx-auto h-full">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-4">
+                <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="general" className="flex items-center gap-2">
                     <Building className="h-4 w-4" />
                     General
@@ -118,10 +146,6 @@ export function FirmSettings() {
                   <TabsTrigger value="profile" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Firm Profile
-                  </TabsTrigger>
-                  <TabsTrigger value="ai" className="flex items-center gap-2">
-                    <Bot className="h-4 w-4" />
-                    AI
                   </TabsTrigger>
                 </TabsList>
 
@@ -180,8 +204,8 @@ export function FirmSettings() {
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-4">
-                        {mockTeamMembers.map((member) => (
-                          <div key={member.id} className="flex items-center justify-between p-4 border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-colors">
+                        {teamMembers.map((member) => (
+                          <div key={member.id} className="group flex items-center justify-between p-4 border border-foreground/10 rounded-lg hover:bg-foreground/5 transition-colors">
                             <div className="flex items-center gap-4">
                               {member.avatar ? (
                                 <img
@@ -194,33 +218,57 @@ export function FirmSettings() {
                                   <User className="w-5 h-5 text-foreground/70" />
                                 </div>
                               )}
-                              <div>
-                                <div className="font-medium">{member.name}</div>
-                                <div className="text-sm text-foreground/70">{member.email}</div>
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Badge variant="outline" className="text-xs">
-                                    {member.role}
-                                  </Badge>
-                                  <Badge 
-                                    variant={member.status === 'active' ? 'default' : 'secondary'} 
-                                    className="text-xs"
-                                  >
-                                    {member.status}
-                                  </Badge>
+                              <div className="space-y-1">
+                                <div className="font-medium flex items-center gap-2">
+                                  {member.name}
+                                  <div className="flex items-center gap-2">
+                                    <Select
+                                      value={member.role}
+                                      onValueChange={(value: 'Admin' | 'Member' | 'Customer Success') => 
+                                        handleRoleChange(member.id, value)
+                                      }
+                                    >
+                                      <SelectTrigger className="w-auto h-6 text-xs border border-foreground/20 bg-transparent p-1 hover:bg-foreground/5">
+                                        <SelectValue />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="Admin">Admin</SelectItem>
+                                        <SelectItem value="Member">Member</SelectItem>
+                                        <SelectItem value="Customer Success">Customer Success</SelectItem>
+                                      </SelectContent>
+                                    </Select>
+                                    <Badge 
+                                      variant={member.status === 'active' ? 'default' : 'secondary'} 
+                                      className="text-xs"
+                                    >
+                                      {member.status}
+                                    </Badge>
+                                    {member.status === 'pending' && (
+                                    <Button
+                                      variant="outline"
+                                      size="xs"
+                                      onClick={() => handleResendInvite(member.id)}
+                                      className="flex text-xs items-center gap-2"
+                                    >
+                                      Resend
+                                    </Button>
+                                  )}
+                                  </div>
                                 </div>
+                                <div className="text-sm text-foreground/70">{member.email}</div>
                               </div>
                             </div>
-                            {member.status === 'pending' && (
+                            
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity">
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
-                                onClick={() => handleResendInvite(member.id)}
-                                className="flex items-center gap-2"
+                                onClick={() => handleDeleteMember(member.id)}
+                                className="h-8 w-8 p-0 text-sidebar-accent/70 hover:text-sidebar-accent hover:bg-sidebar-accent/10"
                               >
-                                <Mail className="h-4 w-4" />
-                                Resend Invite
+                                <Trash2 className="h-4 w-4" />
                               </Button>
-                            )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -245,14 +293,16 @@ export function FirmSettings() {
                         <CardDescription>Complete your firm's profile information</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-6">
+                        {!isProfileBuilt && (
                         <Alert variant="destructive">
                           <AlertDescription>
                             Your profile is incomplete. Please fill out the required information below.
                           </AlertDescription>
                         </Alert>
+                        )}
 
-                        <div className="space-y-6">
-                          <div>
+                        <div className="flex items-center gap-6">
+                          <div className="flex-1">
                             <Label className="block mb-2" htmlFor="firmWebsite">Firm Website</Label>
                             <Input
                               id="firmWebsite"
@@ -263,73 +313,35 @@ export function FirmSettings() {
                             <p className="text-xs mt-1 text-foreground/70">https://example.com</p>
                           </div>
 
-                          <div>
+                          <div className="flex-1">
                             <Label className="block mb-2" htmlFor="firmCrd">Firm CRD #</Label>
                             <Input
                               id="firmCrd"
                               value={firmCrd}
+                              maxLength={7}
+                              inputMode="decimal"
+                              pattern="[0-9]*"
+                              placeholder="XXXXXXX"
                               onChange={(e) => setFirmCrd(e.target.value)}
                             />
-                            <p className="text-xs mt-1 text-foreground/70">123456</p>
+                            <p className="text-xs mt-1 text-foreground/70">Seven-digit identifer assigned by FINRA</p>
                           </div>
                         </div>
 
-                        <Button onClick={handleBuildProfile} className="bg-sidebar-primary hover:bg-sidebar-primary/80">
-                          Build Profile
-                        </Button>
+                        <div className="flex items-center gap-6">
+                          <Button variant="outline" onClick={handleResetProfile} className="">
+                            Reset Profile
+                          </Button>
+                          <Button onClick={handleBuildProfile} className="bg-sidebar-primary hover:bg-sidebar-primary/80">
+                            Build Profile
+                          </Button>
+                        </div>
                       </CardContent>
                     </Card>
                   )}
                 </TabsContent>
 
-                {/* AI Tab */}
-                <TabsContent value="ai" className="space-y-6 mt-6">
-                  <Alert variant="info">
-                    <AlertDescription>
-                      Coming Soon: You will be able to modify your AI settings here. Stay tuned for updates!
-                    </AlertDescription>
-                  </Alert>
-
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Smart Assistant Settings</CardTitle>
-                      <CardDescription>Configure your AI assistant preferences</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <Label>Auto Complete</Label>
-                          <div className="px-3">
-                            <Slider
-                              value={autoCompleteValue}
-                              onValueChange={setAutoCompleteValue}
-                              max={1}
-                              min={0}
-                              step={0.001}
-                              className="w-full"
-                            />
-                          </div>
-                          <p className="text-sm text-foreground/70">Current value: {autoCompleteValue[0]}</p>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label>Smart Assistant</Label>
-                          <div className="px-3">
-                            <Slider
-                              value={smartAssistantValue}
-                              onValueChange={setSmartAssistantValue}
-                              max={1}
-                              min={0}
-                              step={0.01}
-                              className="w-full"
-                            />
-                          </div>
-                          <p className="text-sm text-foreground/70">Current value: {smartAssistantValue[0]}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </TabsContent>
+                
               </Tabs>
             </div>
           </div>
