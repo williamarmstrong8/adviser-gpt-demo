@@ -625,14 +625,14 @@ export function VaultSidebar() {
                   <PopoverContent className="w-56 p-1" align="end">
                   <div className="space-y-1">
                       <div 
-                          className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer"
+                          className="flex items-center gap-2 p-2 hover:bg-foreground/5 rounded cursor-pointer transition active:scale-[0.98]"
                           onClick={handleProfileClick}
                       >
                           <UserRound className="w-4 h-4 text-foreground/70" />
                           <span className="text-sm">Profile</span>
                       </div>
                       <div 
-                          className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer"
+                          className="flex items-center gap-2 p-2 hover:bg-foreground/5 rounded cursor-pointer transition active:scale-[0.98]"
                           onClick={handleFirmSettingsClick}
                       >
                           <Settings className="w-4 h-4 text-foreground/70" />
@@ -640,7 +640,7 @@ export function VaultSidebar() {
                       </div>
                       <div className="border-t border-foreground/10 my-1"></div>
                       <div 
-                          className="flex items-center gap-2 p-2 hover:bg-sidebar-primary/10 rounded cursor-pointer text-sidebar-accent"
+                          className="flex items-center gap-2 p-2 hover:bg-foreground/5 rounded cursor-pointer transition active:scale-[0.98] text-sidebar-accent"
                           onClick={handleLogout}
                       >
                           <LogOut className="w-4 h-4 text-sidebar-accent/70" />
