@@ -34,6 +34,7 @@ import { TrustAnswerCard } from './TrustAnswerCard';
 import { AnswerLoadingState } from './AnswerLoadingState';
 import { SourceManagementPanel } from './SourceManagementPanel';
 import { VaultSidebar } from './VaultSidebar';
+import { ChatInput } from './ChatInput';
 
 
 
@@ -151,23 +152,6 @@ export function AdviserGPTHome() {
   const exampleQuestions = selectedMode === 'answer' ? answerModeExamples : selectedMode === 'chat' ? chatModeExamples : riaOutreachModeExamples;
 
   // File handling functions
-  const getFileIcon = (fileType: string) => {
-    if (fileType.includes('pdf')) return FileType;
-    if (fileType.includes('image')) return Image;
-    if (fileType.includes('spreadsheet') || fileType.includes('excel') || fileType.includes('csv')) return FileSpreadsheet;
-    if (fileType.includes('text') || fileType.includes('document')) return FileText;
-    return File;
-  };
-
-  const getFileTypeDisplay = (fileType: string) => {
-    if (fileType.includes('pdf')) return 'PDF Document';
-    if (fileType.includes('image')) return 'Image';
-    if (fileType.includes('spreadsheet') || fileType.includes('excel')) return 'Spreadsheet';
-    if (fileType.includes('csv')) return 'CSV File';
-    if (fileType.includes('text')) return 'Text Document';
-    if (fileType.includes('document') || fileType.includes('doc')) return 'Document';
-    return 'File';
-  };
 
   const handleFileUpload = (files: FileList | null, isFollowUp: boolean = false) => {
     if (!files) return;
@@ -228,36 +212,6 @@ export function AdviserGPTHome() {
         onComplete();
       }
     }, 50 + Math.random() * 100); // Random delay between 50-150ms for realistic typing
-  };
-
-  // FileCard component
-  const FileCard = ({ file, onRemove, showRemoveButton = true }: { file: UploadedFile; onRemove: () => void; showRemoveButton?: boolean }) => {
-    const FileIcon = getFileIcon(file.type);
-    const fileTypeDisplay = getFileTypeDisplay(file.type);
-    
-    return (
-      <div className="flex items-center gap-2 bg-sidebar-background/70 border border-foreground/20 rounded-lg px-3 py-2 min-w-0 flex-shrink-0">
-        <FileIcon className="h-4 w-4 text-foreground/60 flex-shrink-0" />
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium text-foreground/90 truncate" title={file.name}>
-            {file.name}
-          </div>
-          <div className="text-xs text-foreground/70">
-            {fileTypeDisplay}
-          </div>
-        </div>
-        {showRemoveButton && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 hover:bg-foreground/10 flex-shrink-0"
-            onClick={onRemove}
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-    );
   };
 
   // Handle URL parameters
@@ -903,82 +857,21 @@ Client relationships are built on transparency, communication, and alignment of 
                     </div>
 
                     {/* Main Input */}
-                    <div className="relative flex flex-col bg-white/80 border border-foreground/30 backdrop-blur-sm transition focus:border-sidebar-primary focus-within:border-sidebar-primary focus-within:shadow-[0_5px_15px_hsla(60deg,21%,29%,0.30)] rounded-lg shadow-[0_3px_9px_hsla(0deg,0%,0%,0.09)]">
-                      {/* File Cards */}
-                      {uploadedFiles.length > 0 && (
-                        <div className="flex gap-2 p-3 border-b border-foreground/10 overflow-x-auto">
-                          {uploadedFiles.map((file) => (
-                            <FileCard
-                              key={file.id}
-                              file={file}
-                              onRemove={() => removeFile(file.id, false)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                      
-                      <div className="flex items-stretch">
-                        <div className="flex items-center pl-2">
-                          <input
-                            type="file"
-                            multiple
-                            className="hidden"
-                            id="file-upload"
-                            onChange={(e) => handleFileUpload(e.target.files, false)}
-                            accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif"
-                          />
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-9 w-9 gap-0 text-foreground/70 hover:text-foreground"
-                                onClick={() => document.getElementById('file-upload')?.click()}
-                              >
-                                <Paperclip className="h-5 w-5" />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Add reports, files, and more</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </div>
-                        <Input
-                          placeholder="e.g. What is our investment research process?"
-                          value={inputValue}
-                          autoFocus={true}
-                          onChange={(e) => setInputValue(e.target.value)}
-                          className="flex-grow bg-transparent flex items-center resize-none border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:outline-none p-4 min-h-[60px] placeholder:text-foreground/60 text-foreground hover:shadow-none focus:shadow-none focus-visible:shadow-none"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSubmit();
-                            }
-                          }}
-                        />
-                        <div className="flex-shrink-0 flex items-center p-2 px-3 border-l border-foreground/20 gap-2">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-9 w-11 gap-0 text-foreground/70 hover:text-foreground">
-                                <Type className="h-5 w-5" />
-                                <ChevronDown className="h-4 w-4 ml-1" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem>Text</DropdownMenuItem>
-                              <DropdownMenuItem>Table</DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                          <Button 
-                            onClick={handleSubmit}
-                            disabled={!inputValue.trim() || isGenerating}
-                            className="h-9 w-9 bg-sidebar-primary hover:text-foreground"
-                          >
-                            <Send className="h-5 w-5 text-sidebar-primary-foreground" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+                    <ChatInput
+                      value={inputValue}
+                      onChange={setInputValue}
+                      onSubmit={handleSubmit}
+                      placeholder="e.g. What is our investment research process?"
+                      disabled={isGenerating}
+                      autoFocus={true}
+                      variant="main"
+                      uploadedFiles={uploadedFiles}
+                      onFileUpload={(files) => handleFileUpload(files, false)}
+                      onFileRemove={(fileId) => removeFile(fileId, false)}
+                      showFormatDropdown={true}
+                      showAttachButton={true}
+                      showFileCards={true}
+                    />
                   </div>
                 </div>
 
@@ -1013,12 +906,13 @@ Client relationships are built on transparency, communication, and alignment of 
                     {currentAnswer?.uploadedFiles && currentAnswer.uploadedFiles.length > 0 && (
                       <div className="flex gap-2 mb-2 overflow-x-auto">
                         {currentAnswer.uploadedFiles.map((file) => (
-                          <FileCard
-                            key={file.id}
-                            file={file}
-                            onRemove={() => {}} // No remove functionality in answer view
-                            showRemoveButton={false}
-                          />
+                          <div key={file.id} className="flex items-center gap-2 bg-foreground/5 border border-foreground/10 rounded-lg p-2 min-w-0 flex-shrink-0">
+                            <span className="text-sm">📄</span>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
+                              <p className="text-xs text-foreground/60">{(file.size / 1024).toFixed(1)} KB</p>
+                            </div>
+                          </div>
                         ))}
                       </div>
                     )}
@@ -1050,62 +944,20 @@ Client relationships are built on transparency, communication, and alignment of 
 
                 {/* Follow-up Input */}
                 <div id="follow-up-input" className="max-w-3xl mx-auto sticky bottom-0 self-end w-full pt-8">
-                  <div className="relative flex flex-col bg-white/80 border border-foreground/30 backdrop-blur-sm transition focus:border-sidebar-primary focus-within:border-sidebar-primary focus-within:shadow-[0_5px_15px_hsla(60deg,21%,29%,0.30)] rounded-lg shadow-[0_3px_9px_hsla(0deg,0%,0%,0.09)]">
-                    {/* Follow-up File Cards */}
-                    {followUpFiles.length > 0 && (
-                      <div className="flex gap-2 p-3 border-b border-foreground/10 overflow-x-auto">
-                        {followUpFiles.map((file) => (
-                          <FileCard
-                            key={file.id}
-                            file={file}
-                            onRemove={() => removeFile(file.id, true)}
-                          />
-                        ))}
-                      </div>
-                    )}
-                    
-                    <div className="flex items-stretch">
-                      <div className="flex items-center pl-2">
-                        <input
-                          type="file"
-                          multiple
-                          className="hidden"
-                          id="file-upload"
-                          onChange={(e) => handleFileUpload(e.target.files, false)}
-                          accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.csv,.png,.jpg,.jpeg,.gif"
-                        />
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-9 w-9 gap-0 text-foreground/70 hover:text-foreground"
-                              onClick={() => document.getElementById('file-upload')?.click()}
-                            >
-                              <Paperclip className="h-5 w-5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Add reports, files, and more</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <Input
-                        placeholder="Add follow-up instructions or click 'New Conversation' to start fresh..."
-                        onChange={(e) => setInputValue(e.target.value)}
-                        className="flex-grow bg-transparent flex items-center resize-none border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 focus:ring-0 focus:outline-none p-4 min-h-[60px] placeholder:text-foreground/60 text-foreground hover:shadow-none focus:shadow-none focus-visible:shadow-none"
-                      />
-                      <div className="flex-shrink-0 flex items-center p-2 px-3 border-l border-gray-400 gap-2">
-                        <Button variant="ghost" size="sm" className="h-9 w-11 gap-0 text-gray-500 hover:text-gray-700">
-                          <Type className="h-5 w-5" />
-                          <ChevronDown className="h-4 w-4 ml-1" />
-                        </Button>
-                        <Button className="h-9 w-9 bg-sidebar-primary hover:text-foreground">
-                            <Send className="h-5 w-5 text-sidebar-primary-foreground" />
-                          </Button>
-                      </div>
-                    </div>
-                  </div>
+                  <ChatInput
+                    value={inputValue}
+                    onChange={setInputValue}
+                    onSubmit={handleSubmit}
+                    placeholder="Add follow-up instructions or click 'New Conversation' to start fresh..."
+                    disabled={isGenerating}
+                    variant="followup"
+                    uploadedFiles={followUpFiles}
+                    onFileUpload={(files) => handleFileUpload(files, true)}
+                    onFileRemove={(fileId) => removeFile(fileId, true)}
+                    showFormatDropdown={true}
+                    showAttachButton={true}
+                    showFileCards={true}
+                  />
                 </div>
               </div>
             )}
