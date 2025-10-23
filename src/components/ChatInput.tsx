@@ -115,8 +115,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({
   return (
     <div className="relative flex flex-col bg-white/80 border border-foreground/30 backdrop-blur-sm transition focus:border-sidebar-primary focus-within:border-sidebar-primary focus-within:shadow-[0_5px_15px_hsla(60deg,21%,29%,0.30)] rounded-lg shadow-[0_3px_9px_hsla(0deg,0%,0%,0.09)]">
 
-      
-
         <div className="flex items-center">
           {/* Main Input */}
           <Input
