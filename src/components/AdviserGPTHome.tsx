@@ -624,26 +624,24 @@ export function AdviserGPTHome() {
       };
       setCurrentAnswer(answerWithFilesAndFilters);
       
-      // After a brief delay, complete the transition
+      // Set the answer immediately - the progress bar collapse is now handled in AnswerLoadingState
+      setIsGenerating(false);
+      setStreamingAnswer('');
+      
+      // Save the chat result for future retrieval (async to prevent render issues)
       setTimeout(() => {
-        setIsGenerating(false);
-        setStreamingAnswer('');
-        
-        // Save the chat result for future retrieval (async to prevent render issues)
-        setTimeout(() => {
-          saveChatResult({
-            query: inputValue.trim(),
-            answer: mockAnswer.answer,
-            sources: mockAnswer.sources,
-            vaultRatio: mockAnswer.vaultRatio,
-            aiRatio: mockAnswer.aiRatio,
-            lastSynced: mockAnswer.lastSynced,
-            version: mockAnswer.version,
-            complianceChecks: mockAnswer.complianceChecks,
-            mode: selectedMode
-          });
-        }, 0);
-      }, 800); // 800ms delay to allow progress bar fade-out animation to complete
+        saveChatResult({
+          query: inputValue.trim(),
+          answer: mockAnswer.answer,
+          sources: mockAnswer.sources,
+          vaultRatio: mockAnswer.vaultRatio,
+          aiRatio: mockAnswer.aiRatio,
+          lastSynced: mockAnswer.lastSynced,
+          version: mockAnswer.version,
+          complianceChecks: mockAnswer.complianceChecks,
+          mode: selectedMode
+        });
+      }, 0);
     });
   };
 
@@ -791,26 +789,24 @@ Client relationships are built on transparency, communication, and alignment of 
       };
       setCurrentAnswer(answerWithFiles);
       
-      // After a brief delay, complete the transition
+      // Set the answer immediately - the progress bar collapse is now handled in AnswerLoadingState
+      setIsGenerating(false);
+      setStreamingAnswer('');
+      
+      // Save the chat result for future retrieval (async to prevent render issues)
       setTimeout(() => {
-        setIsGenerating(false);
-        setStreamingAnswer('');
-        
-        // Save the chat result for future retrieval (async to prevent render issues)
-        setTimeout(() => {
-          saveChatResult({
-            query: question.trim(),
-            answer: mockAnswer.answer,
-            sources: mockAnswer.sources,
-            vaultRatio: mockAnswer.vaultRatio,
-            aiRatio: mockAnswer.aiRatio,
-            lastSynced: mockAnswer.lastSynced,
-            version: mockAnswer.version,
-            complianceChecks: mockAnswer.complianceChecks,
-            mode: selectedMode
-          });
-        }, 0);
-      }, 800); // 800ms delay to allow progress bar fade-out animation to complete
+        saveChatResult({
+          query: question.trim(),
+          answer: mockAnswer.answer,
+          sources: mockAnswer.sources,
+          vaultRatio: mockAnswer.vaultRatio,
+          aiRatio: mockAnswer.aiRatio,
+          lastSynced: mockAnswer.lastSynced,
+          version: mockAnswer.version,
+          complianceChecks: mockAnswer.complianceChecks,
+          mode: selectedMode
+        });
+      }, 0);
     });
   };
 

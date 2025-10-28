@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Copy, Save, Mail, Check, ShieldCheck, Scissors, Ruler, Drama } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
@@ -60,7 +60,24 @@ export function AnswerLoadingState({
   const [isCopied, setIsCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(answer?.answer || '');
+  const [isProgressCollapsed, setIsProgressCollapsed] = useState(false);
+  const [shouldRemoveProgress, setShouldRemoveProgress] = useState(false);
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // Handle progress bar collapse animation when answer is complete
+  useEffect(() => {
+    if (answer && !isProgressCollapsed) {
+      // Start collapse animation
+      setIsProgressCollapsed(true);
+      
+      // Remove from DOM after animation completes
+      const timer = setTimeout(() => {
+        setShouldRemoveProgress(true);
+      }, 500); // Match the CSS transition duration
+      
+      return () => clearTimeout(timer);
+    }
+  }, [answer, isProgressCollapsed]);
 
   const handleCopy = () => {
     if (answer) {
@@ -194,10 +211,11 @@ export function AnswerLoadingState({
             </div>
           </div>
           
-          <div className={`space-y-2 transition-all duration-500 ease-out ${
-            isComplete
-              ? 'opacity-0 -translate-y-2 max-h-0 p-0 m-0' 
-              : 'opacity-100 translate-y-0'
+          {!shouldRemoveProgress && (
+          <div className={`space-y-2 transition-all duration-200 ease-out transform  ${
+            isProgressCollapsed
+              ? 'opacity-0 -translate-y-10 max-h-0 p-0 m-0' 
+              : 'opacity-100 max-h-30'
             }`}>
             <div className="flex items-center justify-between text-xs text-foreground/70">
               <span>Assembling your firm's approved content...</span>
@@ -205,16 +223,15 @@ export function AnswerLoadingState({
             </div>
             
             {/* Progress Bar */}
-            <div className={`space-y-1 transition-all duration-500 ${
-              isComplete ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100'
-            }`}>
-              <Progress value={progress} className="h-2 bg-foreground/10" />
-              <div className="text-xs text-foreground/70 text-center">
-                {Math.round(progress)}% complete
+              <div className="space-y-1 transition-all duration-500">
+                <Progress value={progress} className="h-2 bg-foreground/10" />
+                <div className="text-xs text-foreground/70 text-center">
+                  {Math.round(progress)}% complete
+                </div>
               </div>
-            </div>
           </div>
-        </div>
+          )}
+          </div>
 
         {/* Body */}
         <div className="p-4">
