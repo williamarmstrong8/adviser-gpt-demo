@@ -260,7 +260,7 @@ All colors MUST be HSL.
       height: 200%;
 
       background: linear-gradient(to bottom, transparent 0%, hsl(var(--background)) 100%);
-      transform: translateY(2rem);
+      /* transform: translateY(2rem); */
       pointer-events: none;
     }
   }

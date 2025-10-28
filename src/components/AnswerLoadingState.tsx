@@ -145,7 +145,7 @@ export function AnswerLoadingState({
   const isComplete = answer && progress >= 100;
 
   return (
-    <div className="max-w-3xl mx-auto">
+    <div className="max-w-3xl w-full mx-auto">
       <div className="bg-background rounded-lg border border-foreground/20 shadow-sm">
         {/* Loading Header */}
         <div className="pt-2 px-4 bg-sidebar-background rounded-t-lg border-b border-foreground/10 transition-all duration-500 ease-out">
@@ -205,7 +205,9 @@ export function AnswerLoadingState({
             </div>
             
             {/* Progress Bar */}
-            <div className="space-y-1">
+            <div className={`space-y-1 transition-all duration-500 ${
+              isComplete ? 'opacity-0 transform scale-95' : 'opacity-100 transform scale-100'
+            }`}>
               <Progress value={progress} className="h-2 bg-foreground/10" />
               <div className="text-xs text-foreground/70 text-center">
                 {Math.round(progress)}% complete

@@ -643,7 +643,7 @@ export function AdviserGPTHome() {
             mode: selectedMode
           });
         }, 0);
-      }, 500); // 500ms delay to allow animation to complete
+      }, 800); // 800ms delay to allow progress bar fade-out animation to complete
     });
   };
 
@@ -810,7 +810,7 @@ Client relationships are built on transparency, communication, and alignment of 
             mode: selectedMode
           });
         }, 0);
-      }, 500); // 500ms delay to allow animation to complete
+      }, 800); // 800ms delay to allow progress bar fade-out animation to complete
     });
   };
 
@@ -926,8 +926,28 @@ Client relationships are built on transparency, communication, and alignment of 
       
       {/* Main Content */}
       <main className="flex-1 flex flex-col overflow-hidden bg-background mt-4 rounded-tl-2xl vault-scroll">
-        <div className="flex-1 overflow-y-auto p-8">
-          <div className="max-w-4xl mx-auto h-full">
+        <div className={`flex-1 overflow-y-auto flex flex-col
+          ${!currentAnswer && !isGenerating ? 'p-8' : 'p-0'}`}>
+          
+          {/* Header - Show when generating or when answer is loaded */}
+          {(isGenerating || currentAnswer) && (
+            <div className="border-b border-foreground/10">
+              <div className="flex items-center justify-between text-sm mb-4 px-6 pt-4">
+                <Logo aria-label="AdviserGPT" className="h-4 w-auto" />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowSourcePanel(true)}
+                  className="flex items-center gap-2"
+                >
+                  <BookOpenText className="h-4 w-4" />
+                  View Sources
+                </Button>
+              </div>
+            </div>
+          )}
+          <div className={`max-w-4xl mx-auto
+          ${!currentAnswer && !isGenerating ? 'h-full' : 'flex-1 flex flex-col w-full'}`}>
             {!currentAnswer && !isGenerating ? (
               /* Initial State */
               <div className="flex flex-col items-center justify-center space-y-12 h-full">
@@ -1092,14 +1112,14 @@ Client relationships are built on transparency, communication, and alignment of 
               </div>
             ) : (
               /* Chat State (Loading or Answer) */
-              <div className="space-y-6 h-full flex flex-col ">
+              <div className="space-y-6 flex-1 pb-8 flex flex-col justify-end w-full">
                 {/* User Question */}
-                <div className="flex justify-end">
-                  <div className="max-w-[90%] flex justify-end items-end flex-col">
-                    {/* Uploaded Files Display */}
-                    {currentAnswer?.uploadedFiles && currentAnswer.uploadedFiles.length > 0 && (
+                <div className="flex justify-end w-full">
+                  <div className="max-w-[90%] flex justify-end items-end flex-col pt-4">
+                    {/* Uploaded Files Display - Show during generation or when answer is loaded */}
+                    {((isGenerating && uploadedFiles.length > 0) || (currentAnswer?.uploadedFiles && currentAnswer.uploadedFiles.length > 0)) && (
                       <div className="w-full flex gap-2 mb-2 overflow-x-auto">
-                        {currentAnswer.uploadedFiles.map((file) => (
+                        {(isGenerating ? uploadedFiles : currentAnswer.uploadedFiles).map((file) => (
                           <div key={file.id} className="flex items-center gap-2 bg-foreground/5 border border-foreground/10 rounded-lg p-2 min-w-0 flex-shrink-0">
                             <span className="text-sm">📄</span>
                             <div className="min-w-0 flex-1">
@@ -1111,36 +1131,70 @@ Client relationships are built on transparency, communication, and alignment of 
                       </div>
                     )}
 
-                    {/* Filters Display */}
-                    {currentAnswer?.filters && (
-                      (currentAnswer.filters.tags.length > 0 || 
-                       currentAnswer.filters.strategies.length > 0 || 
-                       currentAnswer.filters.types.length > 0 || 
-                       currentAnswer.filters.priorSamples.length > 0) && (
+                    {/* Filters Display - Show during generation or when answer is loaded */}
+                    {((isGenerating && (selectedTags.length > 0 || selectedStrategies.length > 0 || selectedTypes.length > 0 || selectedPriorSamples.length > 0)) || 
+                      (currentAnswer?.filters && (
+                        currentAnswer.filters.tags.length > 0 || 
+                        currentAnswer.filters.strategies.length > 0 || 
+                        currentAnswer.filters.types.length > 0 || 
+                        currentAnswer.filters.priorSamples.length > 0
+                      ))) && (
                         <div className="flex flex-wrap gap-2 mb-2">
-                          {currentAnswer.filters.tags.map(tag => (
-                            <Badge key={tag} variant="secondary" className="text-xs">
-                              Tag: {tag}
-                            </Badge>
-                          ))}
-                          {currentAnswer.filters.strategies.map(strategy => (
-                            <Badge key={strategy} variant="secondary" className="text-xs">
-                              Strategy: {strategy}
-                            </Badge>
-                          ))}
-                          {currentAnswer.filters.types.map(type => (
-                            <Badge key={type} variant="secondary" className="text-xs">
-                              Type: {type}
-                            </Badge>
-                          ))}
-                          {currentAnswer.filters.priorSamples.map(sample => (
-                            <Badge key={sample.id} variant="secondary" className="text-xs">
-                              Sample: {sample.name}
-                            </Badge>
-                          ))}
+                          {/* Show current filters during generation */}
+                          {isGenerating ? (
+                            <>
+                              {selectedTags.map(tag => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  Tag: {tag}
+                                </Badge>
+                              ))}
+                              {selectedStrategies.map(strategy => (
+                                <Badge key={strategy} variant="secondary" className="text-xs">
+                                  Strategy: {strategy}
+                                </Badge>
+                              ))}
+                              {selectedTypes.map(type => (
+                                <Badge key={type} variant="secondary" className="text-xs">
+                                  Type: {type}
+                                </Badge>
+                              ))}
+                              {selectedPriorSamples.map(sampleId => {
+                                const sample = fileHistory.find(f => f.id === sampleId);
+                                return sample ? (
+                                  <Badge key={sampleId} variant="secondary" className="text-xs">
+                                    Sample: {sample.name}
+                                  </Badge>
+                                ) : null;
+                              })}
+                            </>
+                          ) : (
+                            /* Show saved filters from answer */
+                            <>
+                              {currentAnswer.filters.tags.map(tag => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  Tag: {tag}
+                                </Badge>
+                              ))}
+                              {currentAnswer.filters.strategies.map(strategy => (
+                                <Badge key={strategy} variant="secondary" className="text-xs">
+                                  Strategy: {strategy}
+                                </Badge>
+                              ))}
+                              {currentAnswer.filters.types.map(type => (
+                                <Badge key={type} variant="secondary" className="text-xs">
+                                  Type: {type}
+                                </Badge>
+                              ))}
+                              {currentAnswer.filters.priorSamples.map(sample => (
+                                <Badge key={sample.id} variant="secondary" className="text-xs">
+                                  Sample: {sample.name}
+                                </Badge>
+                              ))}
+                            </>
+                          )}
                         </div>
                       )
-                    )}
+                    }
                     <div className="p-2.5 rounded-lg bg-foreground/5 border border-gray-200 text-foreground text-[15px] leading-6">
                       {isGenerating ? inputValue : currentAnswer.question}
                     </div>
@@ -1148,7 +1202,7 @@ Client relationships are built on transparency, communication, and alignment of 
                 </div>
 
                 {/* Unified Loading/Answer Component */}
-                <div className="flex-1 h-full">
+                <div className="flex-1 h-full w-full">
                   <AnswerLoadingState
                     progress={loadingProgress}
                     currentStep={loadingStep}
