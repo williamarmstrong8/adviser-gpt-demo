@@ -58,6 +58,9 @@ interface FiltersPanelProps {
   priorSamples: PriorSample[];
   onClearAll: () => void;
   includeQAPairs?: boolean; // Configurable flag for future use
+  showDocumentNames?: boolean; // Default: true
+  showPriorSamples?: boolean; // Default: true
+  showDateRange?: boolean; // Default: true
 }
 
 export function FiltersPanel({
@@ -77,7 +80,10 @@ export function FiltersPanel({
   onPriorSamplesChange,
   priorSamples,
   onClearAll,
-  includeQAPairs = true // Default to including Q&A pairs
+  includeQAPairs = true, // Default to including Q&A pairs
+  showDocumentNames = true, // Default to showing document names filter
+  showPriorSamples = true, // Default to showing prior samples filter
+  showDateRange = true // Default to showing date range filter
 }: FiltersPanelProps) {
   const [priorSamplesSearch, setPriorSamplesSearch] = useState('');
   const [documentSearchQuery, setDocumentSearchQuery] = useState('');
@@ -269,8 +275,9 @@ export function FiltersPanel({
   };
 
   const totalFiltersCount = selectedTags.length + selectedStrategies.length + selectedTypes.length +
-                           selectedDocuments.length + selectedPriorSamples.length +
-                           (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0);
+                             (showDocumentNames ? selectedDocuments.length : 0) +
+                             (showPriorSamples ? selectedPriorSamples.length : 0) +
+                             (showDateRange && selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0);
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 transition duration-200" onClick={onClose}>
@@ -342,6 +349,7 @@ export function FiltersPanel({
             </div>
 
             {/* Document Names Section */}
+            {showDocumentNames && (
             <div className="border-b border-foreground/10 pb-4">
               <h3 className="text-sm font-medium mb-2">Document Names</h3>
               <div className="relative">
@@ -467,8 +475,10 @@ export function FiltersPanel({
                 </Popover>
               </div>
             </div>
+            )}
 
             {/* Last Updated Date Section */}
+            {showDateRange && (
             <div>
               <h3 className="text-sm font-medium mb-2">Last Updated Date</h3>
               <div className="space-y-3">
@@ -583,9 +593,11 @@ export function FiltersPanel({
                 )}
               </div>
             </div>
+            )}
 
-            {/* Prior Samples Section */}
-            {/* <div>
+            {/* Prior Samples Section - Currently commented out, can be enabled with showPriorSamples prop */}
+            {/* {showPriorSamples && (
+            <div>
               <h3 className="text-sm font-medium mb-3">Prior Samples</h3>
               {priorSamples.length === 0 ? (
                 <div className="text-center py-6 text-sm text-foreground/60">
@@ -595,7 +607,6 @@ export function FiltersPanel({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Search bar for prior samples *
                   <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-foreground/70" />
                     <Input
@@ -605,8 +616,6 @@ export function FiltersPanel({
                       className="pl-8 text-sm"
                     />
                   </div>
-
-                  {/* Prior samples list *
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {filteredPriorSamples.length === 0 ? (
                       <div className="text-center py-4 text-sm text-foreground/60">
@@ -616,7 +625,6 @@ export function FiltersPanel({
                       filteredPriorSamples.map((sample) => {
                         const FileIcon = getFileIcon(sample.type);
                         const isSelected = selectedPriorSamples.includes(sample.id);
-                        
                         return (
                           <div
                             key={sample.id}
@@ -646,7 +654,6 @@ export function FiltersPanel({
                       })
                     )}
                   </div>
-                  
                   {selectedPriorSamples.length > 0 && (
                     <p className="text-xs text-foreground/60">
                       {selectedPriorSamples.length} file{selectedPriorSamples.length !== 1 ? 's' : ''} selected
@@ -654,7 +661,8 @@ export function FiltersPanel({
                   )}
                 </div>
               )}
-            </div> */}
+            </div>
+            )} */}
 
           </div>
         </ScrollArea>

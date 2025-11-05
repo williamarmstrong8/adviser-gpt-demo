@@ -1649,6 +1649,7 @@ export function VaultHomepage() {
         onPriorSamplesChange={setSelectedPriorSamples}
         priorSamples={fileHistory}
         onClearAll={clearFilters}
+        showDocumentNames={false}
       />
     </div>
   );
