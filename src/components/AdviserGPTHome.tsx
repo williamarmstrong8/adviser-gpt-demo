@@ -46,6 +46,7 @@ interface Answer {
   filters?: {
     tags: string[];
     strategies: string[];
+    types?: string[];
     documents: string[];
     dateRange?: DateRange | null;
     priorSamples: Array<{
@@ -89,6 +90,7 @@ export function AdviserGPTHome() {
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
+  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
   const [selectedPriorSamples, setSelectedPriorSamples] = useState<string[]>([]);
@@ -141,6 +143,7 @@ export function AdviserGPTHome() {
   const handleClearAllFilters = () => {
     setSelectedTags([]);
     setSelectedStrategies([]);
+    setSelectedTypes([]);
     setSelectedDocuments([]);
     setSelectedDateRange(null);
     setSelectedPriorSamples([]);
@@ -239,6 +242,7 @@ export function AdviserGPTHome() {
         filters?: {
           tags: string[];
           strategies: string[];
+          types?: string[];
           documents: string[];
           dateRange?: DateRange | null;
           priorSamples: Array<{
@@ -270,6 +274,7 @@ export function AdviserGPTHome() {
       if (state?.filters) {
         setSelectedTags(state.filters.tags || []);
         setSelectedStrategies(state.filters.strategies || []);
+        setSelectedTypes(state.filters.types || []);
         setSelectedDocuments(state.filters.documents || []);
         setSelectedDateRange(state.filters.dateRange || null);
         setSelectedPriorSamples(state.filters.priorSamples?.map(s => s.id) || []);
@@ -399,6 +404,7 @@ export function AdviserGPTHome() {
       {
         tags: selectedTags,
         strategies: selectedStrategies,
+        types: selectedTypes,
         documents: selectedDocuments,
         dateRange: selectedDateRange,
         priorSamples: selectedPriorSamples.map(id => {
@@ -486,6 +492,7 @@ export function AdviserGPTHome() {
       {
         tags: selectedTags,
         strategies: selectedStrategies,
+        types: selectedTypes,
         documents: selectedDocuments,
         dateRange: selectedDateRange,
         priorSamples: selectedPriorSamples.map(id => {
@@ -747,11 +754,11 @@ export function AdviserGPTHome() {
                         >
                           <Filter className="h-4 w-4" />
                           Open Filters
-                          {(selectedTags.length + selectedStrategies.length + 
+                          {(selectedTags.length + selectedStrategies.length + selectedTypes.length +
                             selectedDocuments.length + selectedPriorSamples.length +
                             (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0)) > 0 && (
                             <Badge variant="secondary" className="text-xs">
-                              {selectedTags.length + selectedStrategies.length + 
+                              {selectedTags.length + selectedStrategies.length + selectedTypes.length +
                                selectedDocuments.length + selectedPriorSamples.length +
                                (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0)}
                             </Badge>
@@ -761,7 +768,7 @@ export function AdviserGPTHome() {
                     </div>
 
                     {/* Filter Badges */}
-                    {(selectedTags.length > 0 || selectedStrategies.length > 0 || 
+                    {(selectedTags.length > 0 || selectedStrategies.length > 0 || selectedTypes.length > 0 ||
                       selectedDocuments.length > 0 || selectedPriorSamples.length > 0 ||
                       (selectedDateRange && selectedDateRange.type !== 'any')) && (
                       <div className="flex flex-wrap gap-2 mb-4">
@@ -780,6 +787,15 @@ export function AdviserGPTHome() {
                             <X 
                               className="h-3 w-3 cursor-pointer hover:text-foreground" 
                               onClick={() => removeStrategy(strategy)}
+                            />
+                          </Badge>
+                        ))}
+                        {selectedTypes.map(type => (
+                          <Badge key={type} variant="secondary" className="flex items-center gap-1">
+                            {type}
+                            <X 
+                              className="h-3 w-3 cursor-pointer hover:text-foreground" 
+                              onClick={() => setSelectedTypes(prev => prev.filter(t => t !== type))}
                             />
                           </Badge>
                         ))}
@@ -885,10 +901,11 @@ export function AdviserGPTHome() {
                     )}
 
                     {/* Filters Display - Show during generation or when answer is loaded */}
-                    {((isGenerating && (selectedTags.length > 0 || selectedStrategies.length > 0 || selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || (selectedDateRange && selectedDateRange.type !== 'any'))) || 
+                    {((isGenerating && (selectedTags.length > 0 || selectedStrategies.length > 0 || selectedTypes.length > 0 || selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || (selectedDateRange && selectedDateRange.type !== 'any'))) || 
                       (currentAnswer?.filters && (
                         currentAnswer.filters.tags.length > 0 || 
                         currentAnswer.filters.strategies.length > 0 || 
+                        currentAnswer.filters.types?.length > 0 ||
                         currentAnswer.filters.documents.length > 0 || 
                         (currentAnswer.filters.dateRange && currentAnswer.filters.dateRange.type !== 'any') ||
                         currentAnswer.filters.priorSamples.length > 0
@@ -905,6 +922,11 @@ export function AdviserGPTHome() {
                               {selectedStrategies.map(strategy => (
                                 <Badge key={strategy} variant="secondary" className="text-xs">
                                   Strategy: {strategy}
+                                </Badge>
+                              ))}
+                              {selectedTypes.map(type => (
+                                <Badge key={type} variant="secondary" className="text-xs">
+                                  Type: {type}
                                 </Badge>
                               ))}
                               {selectedDocuments.map(document => (
@@ -944,6 +966,11 @@ export function AdviserGPTHome() {
                               {currentAnswer.filters.strategies.map(strategy => (
                                 <Badge key={strategy} variant="secondary" className="text-xs">
                                   Strategy: {strategy}
+                                </Badge>
+                              ))}
+                              {currentAnswer.filters.types?.map(type => (
+                                <Badge key={type} variant="secondary" className="text-xs">
+                                  Type: {type}
                                 </Badge>
                               ))}
                               {currentAnswer.filters.documents?.map(document => (
@@ -1062,6 +1089,8 @@ export function AdviserGPTHome() {
         onTagsChange={setSelectedTags}
         selectedStrategies={selectedStrategies}
         onStrategiesChange={setSelectedStrategies}
+        selectedTypes={selectedTypes}
+        onTypesChange={setSelectedTypes}
         selectedDocuments={selectedDocuments}
         onDocumentsChange={setSelectedDocuments}
         selectedDateRange={selectedDateRange}

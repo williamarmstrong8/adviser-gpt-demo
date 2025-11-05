@@ -15,6 +15,7 @@ export interface RecentSearchItem {
   filters?: {
     tags: string[];
     strategies: string[];
+    types?: string[];
     documents: string[];
     dateRange?: DateRange | null;
     priorSamples: Array<{
@@ -132,6 +133,7 @@ export function useRecentSearches() {
       filters?: {
         tags: string[];
         strategies: string[];
+        types?: string[];
         documents: string[];
         dateRange?: DateRange | null;
         priorSamples: Array<{

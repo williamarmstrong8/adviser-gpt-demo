@@ -17,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelectFilter } from './MultiSelectFilter';
-import { STRATEGIES, TAGS_INFO } from '@/types/vault';
+import { STRATEGIES, TAGS_INFO, CONTENT_TYPES } from '@/types/vault';
 import { MOCK_CONTENT_ITEMS } from '@/data/mockVaultData';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -47,6 +47,8 @@ interface FiltersPanelProps {
   onTagsChange: (tags: string[]) => void;
   selectedStrategies: string[];
   onStrategiesChange: (strategies: string[]) => void;
+  selectedTypes: string[];
+  onTypesChange: (types: string[]) => void;
   selectedDocuments: string[];
   onDocumentsChange: (documents: string[]) => void;
   selectedDateRange: DateRange | null;
@@ -67,6 +69,8 @@ export function FiltersPanel({
   onStrategiesChange,
   selectedDocuments,
   onDocumentsChange,
+  selectedTypes,
+  onTypesChange,
   selectedDateRange,
   onDateRangeChange,
   selectedPriorSamples,
@@ -264,7 +268,7 @@ export function FiltersPanel({
     onPriorSamplesChange(newSelection);
   };
 
-  const totalFiltersCount = selectedTags.length + selectedStrategies.length + 
+  const totalFiltersCount = selectedTags.length + selectedStrategies.length + selectedTypes.length +
                            selectedDocuments.length + selectedPriorSamples.length +
                            (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0);
 
@@ -298,22 +302,9 @@ export function FiltersPanel({
         {/* Content */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-5">
-            {/* Tags Section */}
-            <div className="border-b border-foreground/10 pb-5">
-              <h3 className="text-sm font-medium mb-3">Tags</h3>
-              <MultiSelectFilter
-                title="Tags"
-                options={TAGS_INFO.map(tag => tag.name)}
-                selectedValues={selectedTags}
-                onSelectionChange={onTagsChange}
-                placeholder="Select tags"
-                size="sm"
-              />
-            </div>
-
             {/* Strategies Section */}
             <div className="border-b border-foreground/10 pb-4">
-              <h3 className="text-sm font-medium mb-3">Strategies</h3>
+              <h3 className="text-sm font-medium mb-2">Strategies</h3>
               <MultiSelectFilter
                 title="Strategies"
                 options={STRATEGIES}
@@ -324,9 +315,35 @@ export function FiltersPanel({
               />
             </div>
 
+            {/* Types Section */}
+            <div className="border-b border-foreground/10 pb-5">
+              <h3 className="text-sm font-medium mb-2">Types</h3>
+              <MultiSelectFilter
+                title="Types"
+                options={CONTENT_TYPES}
+                selectedValues={selectedTypes}
+                onSelectionChange={onTypesChange}
+                placeholder="Select types"
+                size="sm"
+              />
+            </div>
+
+            {/* Tags Section */}
+            <div className="border-b border-foreground/10 pb-5">
+              <h3 className="text-sm font-medium mb-2">Tags</h3>
+              <MultiSelectFilter
+                title="Tags"
+                options={TAGS_INFO.map(tag => tag.name)}
+                selectedValues={selectedTags}
+                onSelectionChange={onTagsChange}
+                placeholder="Select tags"
+                size="sm"
+              />
+            </div>
+
             {/* Document Names Section */}
             <div className="border-b border-foreground/10 pb-4">
-              <h3 className="text-sm font-medium mb-3">Document Names</h3>
+              <h3 className="text-sm font-medium mb-2">Document Names</h3>
               <div className="relative">
                 <Popover open={isDocumentDropdownOpen} onOpenChange={setIsDocumentDropdownOpen}>
                   <PopoverTrigger asChild>
@@ -453,7 +470,7 @@ export function FiltersPanel({
 
             {/* Last Updated Date Section */}
             <div>
-              <h3 className="text-sm font-medium mb-3">Last Updated Date</h3>
+              <h3 className="text-sm font-medium mb-2">Last Updated Date</h3>
               <div className="space-y-3">
                 {/* Preset buttons */}
                 <div className="flex flex-wrap gap-2">
