@@ -21,7 +21,7 @@ interface Answer {
   filters?: {
     tags: string[];
     strategies: string[];
-    types: string[];
+    documents: string[];
     priorSamples: Array<{
       id: string;
       name: string;

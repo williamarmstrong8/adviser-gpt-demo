@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   X, 
   Search, 
@@ -8,14 +8,18 @@ import {
   FileSpreadsheet,
   FileType,
   Filter,
-  Check
+  Check,
+  ChevronDown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelectFilter } from './MultiSelectFilter';
-import { STRATEGIES, CONTENT_TYPES, TAGS_INFO } from '@/types/vault';
+import { STRATEGIES, TAGS_INFO } from '@/types/vault';
+import { MOCK_CONTENT_ITEMS } from '@/data/mockVaultData';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
 interface PriorSample {
   id: string;
@@ -32,12 +36,13 @@ interface FiltersPanelProps {
   onTagsChange: (tags: string[]) => void;
   selectedStrategies: string[];
   onStrategiesChange: (strategies: string[]) => void;
-  selectedTypes: string[];
-  onTypesChange: (types: string[]) => void;
+  selectedDocuments: string[];
+  onDocumentsChange: (documents: string[]) => void;
   selectedPriorSamples: string[];
   onPriorSamplesChange: (samples: string[]) => void;
   priorSamples: PriorSample[];
   onClearAll: () => void;
+  includeQAPairs?: boolean; // Configurable flag for future use
 }
 
 export function FiltersPanel({
@@ -47,20 +52,54 @@ export function FiltersPanel({
   onTagsChange,
   selectedStrategies,
   onStrategiesChange,
-  selectedTypes,
-  onTypesChange,
+  selectedDocuments,
+  onDocumentsChange,
   selectedPriorSamples,
   onPriorSamplesChange,
   priorSamples,
-  onClearAll
+  onClearAll,
+  includeQAPairs = true // Default to including Q&A pairs
 }: FiltersPanelProps) {
   const [priorSamplesSearch, setPriorSamplesSearch] = useState('');
+  const [documentSearchQuery, setDocumentSearchQuery] = useState('');
+  const [isDocumentDropdownOpen, setIsDocumentDropdownOpen] = useState(false);
+  const documentInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when dropdown opens
+  useEffect(() => {
+    if (isDocumentDropdownOpen && documentInputRef.current && isOpen) {
+      // Small delay to ensure the popover is rendered
+      setTimeout(() => {
+        documentInputRef.current?.focus();
+      }, 100);
+    }
+  }, [isDocumentDropdownOpen, isOpen]);
 
   if (!isOpen) return null;
+
+  // Get unique document names from MOCK_CONTENT_ITEMS
+  const documentNames = MOCK_CONTENT_ITEMS.map(doc => doc.title);
+  // Future: if includeQAPairs is false, filter logic here
+
+  // Filter documents based on search query (after 2+ characters)
+  const filteredDocuments = documentSearchQuery.length >= 2
+    ? documentNames.filter(name =>
+        name.toLowerCase().includes(documentSearchQuery.toLowerCase())
+      )
+    : [];
 
   const filteredPriorSamples = priorSamples.filter(sample =>
     sample.name.toLowerCase().includes(priorSamplesSearch.toLowerCase())
   );
+
+  // Handle document selection toggle
+  const handleDocumentToggle = (documentName: string) => {
+    const newSelection = selectedDocuments.includes(documentName)
+      ? selectedDocuments.filter(name => name !== documentName)
+      : [...selectedDocuments, documentName];
+    
+    onDocumentsChange(newSelection);
+  };
 
   const getFileIcon = (type: string) => {
     if (type.includes('pdf')) return FileType;
@@ -96,7 +135,7 @@ export function FiltersPanel({
   };
 
   const totalFiltersCount = selectedTags.length + selectedStrategies.length + 
-                           selectedTypes.length + selectedPriorSamples.length;
+                           selectedDocuments.length + selectedPriorSamples.length;
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 transition duration-200" onClick={onClose}>
@@ -154,17 +193,131 @@ export function FiltersPanel({
               />
             </div>
 
-            {/* Document Types Section */}
+            {/* Document Names Section */}
             <div>
-              <h3 className="text-sm font-medium mb-3">Document Types</h3>
-              <MultiSelectFilter
-                title="Document Types"
-                options={CONTENT_TYPES}
-                selectedValues={selectedTypes}
-                onSelectionChange={onTypesChange}
-                placeholder="Select document types"
-                size="sm"
-              />
+              <h3 className="text-sm font-medium mb-3">Document Names</h3>
+              <div className="relative">
+                <Popover open={isDocumentDropdownOpen} onOpenChange={setIsDocumentDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="truncate">
+                          {selectedDocuments.length === 0
+                            ? 'Search document names...'
+                            : 'Document Names'}
+                        </span>
+                        {selectedDocuments.length > 0 && (
+                          <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-medium text-white bg-primary rounded-full">
+                            {selectedDocuments.length}
+                          </span>
+                        )}
+                      </div>
+                      <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="p-0 bg-popover border z-50 w-[var(--radix-popover-trigger-width)] max-w-[300px]" 
+                    align="start"
+                  >
+                    <div className="flex flex-col">
+                      {/* Search bar */}
+                      <div className="p-3 border-b">
+                        <div className="relative">
+                          <Search className="absolute left-2 top-2.5 h-4 w-4 text-foreground/70" />
+                          <Input
+                            ref={documentInputRef}
+                            placeholder="Type to search documents..."
+                            value={documentSearchQuery}
+                            onChange={(e) => {
+                              setDocumentSearchQuery(e.target.value);
+                              if (e.target.value.length >= 2) {
+                                setIsDocumentDropdownOpen(true);
+                              }
+                            }}
+                            onFocus={() => {
+                              if (documentSearchQuery.length >= 2) {
+                                setIsDocumentDropdownOpen(true);
+                              }
+                            }}
+                            className="pl-8"
+                          />
+                        </div>
+                        {documentSearchQuery.length > 0 && documentSearchQuery.length < 2 && (
+                          <p className="text-xs text-foreground/60 mt-2">
+                            Type at least 2 characters to search
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Options list */}
+                      {documentSearchQuery.length >= 2 && (
+                        <div className="max-h-60 overflow-y-auto p-1">
+                          {filteredDocuments.length === 0 ? (
+                            <div className="py-6 text-center text-sm text-foreground/70">
+                              No documents found.
+                            </div>
+                          ) : (
+                            filteredDocuments.slice(0, 15).map((docName) => (
+                              <div
+                                key={docName}
+                                className="flex items-center space-x-2 rounded-sm px-2 py-1.5 hover:bg-foreground/10 cursor-pointer"
+                                onClick={() => handleDocumentToggle(docName)}
+                              >
+                                <Checkbox
+                                  checked={selectedDocuments.includes(docName)}
+                                  onCheckedChange={() => handleDocumentToggle(docName)}
+                                />
+                                <label className="text-sm font-normal cursor-pointer flex-1">
+                                  {docName}
+                                </label>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      )}
+
+                      {/* Selected documents display */}
+                      {selectedDocuments.length > 0 && (
+                        <div className="border-t p-2">
+                          <div className="flex flex-wrap gap-1 mb-2">
+                            {selectedDocuments.map((docName) => (
+                              <Badge
+                                key={docName}
+                                variant="secondary"
+                                className="text-xs flex items-center gap-1"
+                              >
+                                <span className="truncate max-w-[150px]">{docName}</span>
+                                <X
+                                  className="h-3 w-3 cursor-pointer hover:text-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDocumentToggle(docName);
+                                  }}
+                                />
+                              </Badge>
+                            ))}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              onDocumentsChange([]);
+                              setDocumentSearchQuery('');
+                            }}
+                            className="h-7 w-full text-xs"
+                          >
+                            Clear all
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             {/* Prior Samples Section */}

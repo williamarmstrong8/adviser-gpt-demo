@@ -14,7 +14,7 @@ export interface RecentSearchItem {
   filters?: {
     tags: string[];
     strategies: string[];
-    types: string[];
+    documents: string[];
     priorSamples: Array<{
       id: string;
       name: string;
@@ -130,7 +130,7 @@ export function useRecentSearches() {
       filters?: {
         tags: string[];
         strategies: string[];
-        types: string[];
+        documents: string[];
         priorSamples: Array<{
           id: string;
           name: string;
