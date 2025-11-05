@@ -487,6 +487,43 @@ export function VaultSidebar() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Link
+                      to="#"
+                      className={`h-10 px-2 rounded-md flex items-center justify-center transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
+                      `}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                    </Link>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">Insights</TooltipContent>
+                </Tooltip>
+              ) : (
+                <Link
+                  to="#"
+                  className={`h-10 px-2 rounded-md flex items-center gap-2 transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
+                  `}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span 
+                    className="text-md font-medium" 
+                    style={{
+                      lineHeight: "1.5",
+                      letterSpacing: "-0.3px"
+                    }}
+                  >
+                    Insights
+                  </span>
+                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4 text-[10px]">
+                    BETA
+                  </Badge>
+                </Link>
+              )}
+            </li>
+
+            <li>
+              {isCollapsed ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Link
                       to="/outreach"
                       className={`h-10 px-2 rounded-md flex items-center justify-center transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
                         ${isActiveRoute('/outreach') ? 'bg-sidebar-primary/10' : ''}
@@ -558,42 +595,7 @@ export function VaultSidebar() {
               )}
             </li> */}
 
-            <li>
-              {isCollapsed ? (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Link
-                      to="#"
-                      className={`h-10 px-2 rounded-md flex items-center justify-center transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
-                      `}
-                    >
-                      <Sparkles className="w-4 h-4" />
-                    </Link>
-                  </TooltipTrigger>
-                  <TooltipContent side="right">Insights</TooltipContent>
-                </Tooltip>
-              ) : (
-                <Link
-                  to="#"
-                  className={`h-10 px-2 rounded-md flex items-center gap-2 transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
-                  `}
-                >
-                  <Sparkles className="w-4 h-4" />
-                  <span 
-                    className="text-md font-medium" 
-                    style={{
-                      lineHeight: "1.5",
-                      letterSpacing: "-0.3px"
-                    }}
-                  >
-                    Insights
-                  </span>
-                  <Badge variant="secondary" className="text-xs px-1 py-0 h-4 text-[10px]">
-                    BETA
-                  </Badge>
-                </Link>
-              )}
-            </li>
+            
           </ul>
         </div>
 
