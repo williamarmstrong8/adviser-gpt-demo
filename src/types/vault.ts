@@ -1,10 +1,31 @@
 // AdvisorGPT Vault Data Types
 
+// Tag structure: tags have a type and a value
+export interface Tag {
+  type: string;
+  value: string;
+}
+
+// Tag type configuration for tenant
+export interface TagType {
+  id: string;
+  name: string;
+  values: string[];
+}
+
+// Tag type configuration stored per tenant
+export interface TagTypeConfig {
+  tagTypes: TagType[];
+}
+
 export interface QuestionItem {
   id: string;
   type: "Commentary" | "Policy" | "Policies" | "Quantitative" | "Questionnaire" | "Questionnaires" | "Data Files";
-  strategy: string | string[]; // Support both single and multiple strategies
-  tags: string[];
+  // Legacy field - kept for backward compatibility during migration
+  // In new system, strategies are stored as tags with type "Strategy"
+  strategy?: string | string[];
+  // New tag structure: array of tags with type and value
+  tags: Tag[];
   question?: string;
   answer?: string;
   body?: string;
@@ -31,10 +52,13 @@ export interface ContentItem {
 }
 
 export interface VaultFilters {
-  strategy?: string | string[]; // Support both single and multiple strategies
+  // Legacy fields - kept for backward compatibility
+  strategy?: string | string[];
   contentType?: string;
   tags?: string[];
   status?: string;
+  // New filter structure: tag type -> selected values
+  tagFilters?: Record<string, string[]>; // tagType -> selected values array
 }
 
 export interface VaultState {

@@ -17,8 +17,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { MultiSelectFilter } from './MultiSelectFilter';
-import { STRATEGIES, TAGS_INFO, CONTENT_TYPES } from '@/types/vault';
 import { MOCK_CONTENT_ITEMS } from '@/data/mockVaultData';
+import { useTagTypes } from '@/hooks/useTagTypes';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -43,12 +43,16 @@ export type DateRange = {
 interface FiltersPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  selectedTags: string[];
-  onTagsChange: (tags: string[]) => void;
-  selectedStrategies: string[];
-  onStrategiesChange: (strategies: string[]) => void;
-  selectedTypes: string[];
-  onTypesChange: (types: string[]) => void;
+  // New tag filter structure: tag type -> selected values
+  selectedTagFilters: Record<string, string[]>; // tagType -> selected values array
+  onTagFiltersChange: (tagFilters: Record<string, string[]>) => void;
+  // Legacy props for backward compatibility (will be removed)
+  selectedTags?: string[];
+  onTagsChange?: (tags: string[]) => void;
+  selectedStrategies?: string[];
+  onStrategiesChange?: (strategies: string[]) => void;
+  selectedTypes?: string[];
+  onTypesChange?: (types: string[]) => void;
   selectedDocuments: string[];
   onDocumentsChange: (documents: string[]) => void;
   selectedDateRange: DateRange | null;
@@ -66,14 +70,10 @@ interface FiltersPanelProps {
 export function FiltersPanel({
   isOpen,
   onClose,
-  selectedTags,
-  onTagsChange,
-  selectedStrategies,
-  onStrategiesChange,
+  selectedTagFilters,
+  onTagFiltersChange,
   selectedDocuments,
   onDocumentsChange,
-  selectedTypes,
-  onTypesChange,
   selectedDateRange,
   onDateRangeChange,
   selectedPriorSamples,
@@ -85,6 +85,8 @@ export function FiltersPanel({
   showPriorSamples = true, // Default to showing prior samples filter
   showDateRange = true // Default to showing date range filter
 }: FiltersPanelProps) {
+  const { getAllTagTypes, getTagTypeValues } = useTagTypes();
+  const tagTypes = getAllTagTypes();
   const [priorSamplesSearch, setPriorSamplesSearch] = useState('');
   const [documentSearchQuery, setDocumentSearchQuery] = useState('');
   const [isDocumentDropdownOpen, setIsDocumentDropdownOpen] = useState(false);
@@ -274,10 +276,22 @@ export function FiltersPanel({
     onPriorSamplesChange(newSelection);
   };
 
-  const totalFiltersCount = selectedTags.length + selectedStrategies.length + selectedTypes.length +
+  // Calculate total filters count
+  const totalFiltersCount = Object.values(selectedTagFilters).reduce((sum, values) => sum + values.length, 0) +
                              (showDocumentNames ? selectedDocuments.length : 0) +
                              (showPriorSamples ? selectedPriorSamples.length : 0) +
                              (showDateRange && selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0);
+
+  // Handle tag filter change for a specific tag type
+  const handleTagFilterChange = (tagTypeName: string, selectedValues: string[]) => {
+    const newTagFilters = { ...selectedTagFilters };
+    if (selectedValues.length === 0) {
+      delete newTagFilters[tagTypeName];
+    } else {
+      newTagFilters[tagTypeName] = selectedValues;
+    }
+    onTagFiltersChange(newTagFilters);
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-black/50 transition duration-200" onClick={onClose}>
@@ -309,44 +323,25 @@ export function FiltersPanel({
         {/* Content */}
         <ScrollArea className="flex-1 p-4">
           <div className="space-y-5">
-            {/* Strategies Section */}
-            <div className="border-b border-foreground/10 pb-4">
-              <h3 className="text-sm font-medium mb-2">Strategies</h3>
-              <MultiSelectFilter
-                title="Strategies"
-                options={STRATEGIES}
-                selectedValues={selectedStrategies}
-                onSelectionChange={onStrategiesChange}
-                placeholder="Select strategies"
-                size="sm"
-              />
-            </div>
-
-            {/* Types Section */}
-            <div className="border-b border-foreground/10 pb-5">
-              <h3 className="text-sm font-medium mb-2">Types</h3>
-              <MultiSelectFilter
-                title="Types"
-                options={CONTENT_TYPES}
-                selectedValues={selectedTypes}
-                onSelectionChange={onTypesChange}
-                placeholder="Select types"
-                size="sm"
-              />
-            </div>
-
-            {/* Tags Section */}
-            <div className="border-b border-foreground/10 pb-5">
-              <h3 className="text-sm font-medium mb-2">Tags</h3>
-              <MultiSelectFilter
-                title="Tags"
-                options={TAGS_INFO.map(tag => tag.name)}
-                selectedValues={selectedTags}
-                onSelectionChange={onTagsChange}
-                placeholder="Select tags"
-                size="sm"
-              />
-            </div>
+            {/* Dynamic Tag Type Filters */}
+            {tagTypes.map((tagType) => {
+              const availableValues = getTagTypeValues(tagType.name);
+              const selectedValues = selectedTagFilters[tagType.name] || [];
+              
+              return (
+                <div key={tagType.id} className="border-b border-foreground/10 pb-4">
+                  <h3 className="text-sm font-medium mb-2">{tagType.name}</h3>
+                  <MultiSelectFilter
+                    title={tagType.name}
+                    options={availableValues}
+                    selectedValues={selectedValues}
+                    onSelectionChange={(values) => handleTagFilterChange(tagType.name, values)}
+                    placeholder={`Select ${tagType.name.toLowerCase()}...`}
+                    size="sm"
+                  />
+                </div>
+              );
+            })}
 
             {/* Document Names Section */}
             {showDocumentNames && (

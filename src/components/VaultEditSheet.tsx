@@ -1,15 +1,13 @@
-import { useState, useEffect } from "react";
-import { X, Check, Lightbulb } from "lucide-react";
+import { useState, useEffect, useMemo } from "react";
+import { X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { ContentItem, QuestionItem } from "@/types/vault";
-import { STRATEGIES } from "@/types/vault";
-import StrategySelector from "@/components/StrategySelector";
+import { QuestionItem, Tag } from "@/types/vault";
+import { useTagTypes } from "@/hooks/useTagTypes";
+import { MultiSelectFilter } from "./MultiSelectFilter";
+import { migrateQuestionItem } from "@/utils/tagMigration";
 
 interface VaultEditSheetProps {
   item: QuestionItem;
@@ -20,31 +18,49 @@ interface VaultEditSheetProps {
 }
 
 export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: VaultEditSheetProps) {
-  // Helper function to normalize strategies (convert single string to array)
-  const normalizeStrategies = (strategy: string | string[]): string[] => {
-    return Array.isArray(strategy) ? strategy : [strategy];
+  const { getAllTagTypes, getTagTypeValues } = useTagTypes();
+  const tagTypes = getAllTagTypes();
+  const { toast } = useToast();
+
+  // Migrate item to new format if needed
+  const migratedItem = useMemo(() => migrateQuestionItem(item), [item]);
+
+  // Initialize tags from existing edit or migrated item
+  const getInitialTags = (): Tag[] => {
+    if (existingEdit?.tags && Array.isArray(existingEdit.tags)) {
+      // Check if already in new format
+      if (existingEdit.tags.length > 0 && typeof existingEdit.tags[0] === 'object' && 'type' in existingEdit.tags[0]) {
+        return existingEdit.tags as Tag[];
+      }
+    }
+    // Use migrated item tags
+    return migratedItem.tags || [];
   };
 
   const [question, setQuestion] = useState(existingEdit?.question || item.question || "");
   const [answer, setAnswer] = useState(existingEdit?.answer || item.answer || "");
-  const [strategies, setStrategies] = useState<string[]>(normalizeStrategies(existingEdit?.strategy || item.strategy));
-  const [tags, setTags] = useState<string[]>(existingEdit?.tags || item.tags || []);
-  const [newTag, setNewTag] = useState("");
-  const [availableStrategies, setAvailableStrategies] = useState<string[]>(STRATEGIES);
-  const { toast } = useToast();
+  const [tags, setTags] = useState<Tag[]>(getInitialTags());
 
   // Reset form when item changes
   useEffect(() => {
+    const migrated = migrateQuestionItem(item);
     if (existingEdit) {
       setQuestion(existingEdit.question || item.question || "");
       setAnswer(existingEdit.answer || item.answer || "");
-      setStrategies(normalizeStrategies(existingEdit.strategy || item.strategy));
-      setTags(existingEdit.tags || item.tags || []);
+      // Handle tags - check if already migrated
+      if (existingEdit.tags && Array.isArray(existingEdit.tags) && existingEdit.tags.length > 0) {
+        if (typeof existingEdit.tags[0] === 'object' && 'type' in existingEdit.tags[0]) {
+          setTags(existingEdit.tags as Tag[]);
+        } else {
+          setTags(migrated.tags || []);
+        }
+      } else {
+        setTags(migrated.tags || []);
+      }
     } else {
       setQuestion(item.question || "");
       setAnswer(item.answer || "");
-      setStrategies(normalizeStrategies(item.strategy));
-      setTags(item.tags || []);
+      setTags(migrated.tags || []);
     }
   }, [item, existingEdit]);
 
@@ -78,12 +94,30 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
     };
   }, [open, onClose]);
 
+  // Get selected values for a tag type
+  const getSelectedValuesForType = (tagTypeName: string): string[] => {
+    return tags
+      .filter(tag => tag.type === tagTypeName)
+      .map(tag => tag.value);
+  };
+
+  // Handle tag type selection change
+  const handleTagTypeChange = (tagTypeName: string, selectedValues: string[]) => {
+    // Remove all tags of this type
+    const otherTags = tags.filter(tag => tag.type !== tagTypeName);
+    // Add new tags for selected values
+    const newTags = selectedValues.map(value => ({
+      type: tagTypeName,
+      value,
+    }));
+    setTags([...otherTags, ...newTags]);
+  };
+
   const handleSave = () => {
     const editData = {
       question,
       answer,
-      strategy: strategies,
-      tags,
+      tags, // Save in new format
       updatedAt: new Date().toISOString(),
     };
     
@@ -93,28 +127,6 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
       title: "Changes saved",
       description: "The question has been updated successfully.",
     });
-  };
-
-  const handleAddTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag("");
-    }
-  };
-
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-
-  const handleRemoveStrategy = (strategyToRemove: string) => {
-    setStrategies(strategies.filter(strategy => strategy !== strategyToRemove));
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newTag.trim()) {
-      e.preventDefault();
-      handleAddTag();
-    }
   };
 
   if (!open) return null;
@@ -163,62 +175,25 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
               />
             </div>
 
-            {/* Strategy Field */}
-            <div className="space-y-2">
-              <Label htmlFor="strategy">Strategies</Label>
-
-              <StrategySelector
-                value={strategies}
-                onChange={setStrategies}
-                options={availableStrategies}
-                onCreateOption={(name) =>
-                  setAvailableStrategies((prev) => (prev.includes(name) ? prev : [...prev, name]))
-                }
-                maxInline={3}
-                size="sm"
-                triggerLabel="Edit"
-              />
-            </div>
-
-            {/* Tags Field */}
-            <div className="space-y-2">
-              <Label>Tags</Label>
+            {/* Tag Types - Each type on separate row */}
+            {tagTypes.map((tagType) => {
+              const availableValues = getTagTypeValues(tagType.name);
+              const selectedValues = getSelectedValuesForType(tagType.name);
               
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                {/* Existing Tags */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {tags.map((tag) => (
-                    <Badge 
-                      key={tag} 
-                      variant="secondary" 
-                      className="cursor-pointer hover:bg-sidebar-accent/5 hover:text-sidebar-accent transition-colors"
-                      onClick={() => handleRemoveTag(tag)}
-                    >
-                      #{tag} 
-                      <X className="h-3 w-3 ml-1" />
-                    </Badge>
-                  ))}
-                </div>
-
-                {/* Add New Tag */}
-                <div className="flex gap-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Add new tag"
-                    className="flex-1 h-9"
-                  />
-                  <Button 
-                    onClick={handleAddTag} 
-                    disabled={!newTag.trim()}
+              return (
+                <div key={tagType.id} className="space-y-2">
+                  <Label>{tagType.name}</Label>
+                  <MultiSelectFilter
+                    title={tagType.name}
+                    options={availableValues}
+                    selectedValues={selectedValues}
+                    onSelectionChange={(values) => handleTagTypeChange(tagType.name, values)}
+                    placeholder={`Select ${tagType.name.toLowerCase()}...`}
                     size="sm"
-                  >
-                    Add
-                  </Button>
+                  />
                 </div>
-              </div>
-            </div>
+              );
+            })}
 
             {/* Answer Field */}
             <div className="space-y-2">

@@ -1,17 +1,17 @@
 import { useState, useEffect } from "react";
-import { X, Check, Lightbulb, Plus, Search, Link, ChevronDown } from "lucide-react";
+import { X, Check, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
-import { STRATEGIES, QuestionItem } from "@/types/vault";
+import { QuestionItem, Tag } from "@/types/vault";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
+import { useTagTypes } from "@/hooks/useTagTypes";
+import { MultiSelectFilter } from "./MultiSelectFilter";
+import { migrateQuestionItem } from "@/utils/tagMigration";
 
 interface SmartUploadSheetProps {
   open: boolean;
@@ -20,14 +20,13 @@ interface SmartUploadSheetProps {
 
 export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
   const { toast } = useToast();
+  const { getAllTagTypes, getTagTypeValues } = useTagTypes();
+  const tagTypes = getAllTagTypes();
   
   // Form state
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
-  const [strategies, setStrategies] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState("");
-  const [newStrategy, setNewStrategy] = useState("");
+  const [tags, setTags] = useState<Tag[]>([]);
   const [addAnother, setAddAnother] = useState(false);
   
   // Parent question selection state
@@ -71,10 +70,7 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
     if (open) {
       setQuestion("");
       setAnswer("");
-      setStrategies([]);
       setTags([]);
-      setNewTag("");
-      setNewStrategy("");
       setAddAnother(false);
       setAttachToParent(false);
       setSelectedParent(null);
@@ -106,8 +102,7 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
     const qaPairData = {
       question: question.trim(),
       answer: answer.trim(),
-      strategy: strategies,
-      tags,
+      tags, // Save in new format
       parentId: selectedParent?.id,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
@@ -126,10 +121,7 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
       // Clear form but keep the sheet open
       setQuestion("");
       setAnswer("");
-      setStrategies([]);
       setTags([]);
-      setNewTag("");
-      setNewStrategy("");
       // Keep addAnother checked, but reset parent selection
       setAttachToParent(false);
       setSelectedParent(null);
@@ -140,33 +132,23 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
     }
   };
 
-  const handleAddTag = () => {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags([...tags, newTag.trim()]);
-      setNewTag("");
-    }
+  // Get selected values for a tag type
+  const getSelectedValuesForType = (tagTypeName: string): string[] => {
+    return tags
+      .filter(tag => tag.type === tagTypeName)
+      .map(tag => tag.value);
   };
 
-  const handleRemoveTag = (tagToRemove: string) => {
-    setTags(tags.filter(tag => tag !== tagToRemove));
-  };
-
-  const handleAddStrategy = () => {
-    if (newStrategy.trim() && !strategies.includes(newStrategy.trim())) {
-      setStrategies([...strategies, newStrategy.trim()]);
-      setNewStrategy("");
-    }
-  };
-
-  const handleRemoveStrategy = (strategyToRemove: string) => {
-    setStrategies(strategies.filter(strategy => strategy !== strategyToRemove));
-  };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && newTag.trim()) {
-      e.preventDefault();
-      handleAddTag();
-    }
+  // Handle tag type selection change
+  const handleTagTypeChange = (tagTypeName: string, selectedValues: string[]) => {
+    // Remove all tags of this type
+    const otherTags = tags.filter(tag => tag.type !== tagTypeName);
+    // Add new tags for selected values
+    const newTags = selectedValues.map(value => ({
+      type: tagTypeName,
+      value,
+    }));
+    setTags([...otherTags, ...newTags]);
   };
 
   if (!open) return null;
@@ -266,7 +248,7 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
                                 </span>
                               </div>
                               <div className="text-xs text-foreground/70 ml-8">
-                                {item.documentTitle} • {item.strategy}
+                                {item.documentTitle} • {migrateQuestionItem(item).tags.filter(t => t.type === 'Strategy').map(t => t.value).join(', ') || 'No strategy'}
                               </div>
                             </div>
                           </CommandItem>
@@ -286,9 +268,13 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
                         <p>{selectedParent.answer}</p>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-foreground/70">
-                        <Badge variant="outline" className="text-xs">
-                          {selectedParent.strategy}
-                        </Badge>
+                        {migrateQuestionItem(selectedParent).tags
+                          .filter(t => t.type === 'Strategy')
+                          .map(tag => (
+                            <Badge key={tag.value} variant="outline" className="text-xs">
+                              {tag.value}
+                            </Badge>
+                          ))}
                       </div>
                     </div>
                   )}
@@ -308,95 +294,25 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
               />
             </div>
 
-            {/* Strategy Field */}
-            <div className="space-y-2">
-              <Label htmlFor="strategy">Strategies</Label>
-
-              <div className="flex items-start justify-between gap-4">
+            {/* Tag Types - Each type on separate row */}
+            {tagTypes.map((tagType) => {
+              const availableValues = getTagTypeValues(tagType.name);
+              const selectedValues = getSelectedValuesForType(tagType.name);
               
-                {/* Current Strategies */}
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {strategies.map((strategy, index) => (
-                    <Badge 
-                      key={`${strategy}-${index}`} 
-                      variant="outline" 
-                      className="flex items-center gap-1"
-                    >
-                      <Lightbulb className="h-3 w-3" />
-                      {strategy}
-                      <X 
-                        className="h-3 w-3 cursor-pointer hover:text-sidebar-accent" 
-                        onClick={() => handleRemoveStrategy(strategy)}
-                      />
-                    </Badge>
-                  ))}
-                </div>
-                
-                {/* Add New Strategy */}
-                <div className="flex gap-2">
-                  <Select value={newStrategy} onValueChange={setNewStrategy}>
-                    <SelectTrigger className="flex-1 min-w-40 h-9">
-                      <SelectValue placeholder="Select strategy" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STRATEGIES.filter(strategy => !strategies.includes(strategy)).map(strategyOption => (
-                        <SelectItem key={strategyOption} value={strategyOption}>
-                          {strategyOption}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    type="button" 
+              return (
+                <div key={tagType.id} className="space-y-2">
+                  <Label>{tagType.name}</Label>
+                  <MultiSelectFilter
+                    title={tagType.name}
+                    options={availableValues}
+                    selectedValues={selectedValues}
+                    onSelectionChange={(values) => handleTagTypeChange(tagType.name, values)}
+                    placeholder={`Select ${tagType.name.toLowerCase()}...`}
                     size="sm"
-                    onClick={handleAddStrategy}
-                    disabled={!newStrategy.trim()}
-                  >
-                    Add
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Tags Field */}
-            <div className="space-y-2">
-              <Label>Tags</Label>
-              
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                {/* Existing Tags */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {tags.map((tag) => (
-                    <Badge 
-                      key={tag} 
-                      variant="secondary" 
-                      className="cursor-pointer hover:bg-sidebar-accent/5 hover:text-sidebar-accent transition-colors"
-                      onClick={() => handleRemoveTag(tag)}
-                    >
-                      #{tag} 
-                      <X className="h-3 w-3 ml-1" />
-                    </Badge>
-                  ))}
-                </div>
-
-                {/* Add New Tag */}
-                <div className="flex gap-2">
-                  <Input
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    placeholder="Add new tag"
-                    className="flex-1 h-9"
                   />
-                  <Button 
-                    onClick={handleAddTag} 
-                    disabled={!newTag.trim()}
-                    size="sm"
-                  >
-                    Add
-                  </Button>
                 </div>
-              </div>
-            </div>
+              );
+            })}
 
             {/* Answer Field */}
             <div className="space-y-2">

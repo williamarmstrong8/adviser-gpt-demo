@@ -20,6 +20,7 @@ import { VaultSidebar } from './VaultSidebar';
 import { ChatInput } from './ChatInput';
 import { FiltersPanel, DateRange } from './FiltersPanel';
 import { getExampleQuestions, getAvailableSources, getMockVaultData, getAnswerModeResponse, getChatModeResponse, getExampleResponse } from '@/utils/contentUtils';
+import { migrateQuestionItems } from '@/utils/tagMigration';
 import { format } from 'date-fns';
 
 
@@ -44,9 +45,7 @@ interface Answer {
   complianceChecks?: ComplianceCheck[];
   uploadedFiles?: UploadedFile[];
   filters?: {
-    tags: string[];
-    strategies: string[];
-    types?: string[];
+    tagFilters?: Record<string, string[]>; // New format
     documents: string[];
     dateRange?: DateRange | null;
     priorSamples: Array<{
@@ -54,6 +53,10 @@ interface Answer {
       name: string;
       type: string;
     }>;
+    // Legacy fields for backward compatibility
+    tags?: string[];
+    strategies?: string[];
+    types?: string[];
   };
 }
 
@@ -88,9 +91,7 @@ export function AdviserGPTHome() {
   
   // Filter state management
   const [showFiltersPanel, setShowFiltersPanel] = useState(false);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [selectedStrategies, setSelectedStrategies] = useState<string[]>([]);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>([]);
+  const [selectedTagFilters, setSelectedTagFilters] = useState<Record<string, string[]>>({});
   const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
   const [selectedPriorSamples, setSelectedPriorSamples] = useState<string[]>([]);
@@ -141,20 +142,10 @@ export function AdviserGPTHome() {
 
   // Filter helper functions
   const handleClearAllFilters = () => {
-    setSelectedTags([]);
-    setSelectedStrategies([]);
-    setSelectedTypes([]);
+    setSelectedTagFilters({});
     setSelectedDocuments([]);
     setSelectedDateRange(null);
     setSelectedPriorSamples([]);
-  };
-
-  const removeTag = (tag: string) => {
-    setSelectedTags(prev => prev.filter(t => t !== tag));
-  };
-
-  const removeStrategy = (strategy: string) => {
-    setSelectedStrategies(prev => prev.filter(s => s !== strategy));
   };
 
   const removeDocument = (document: string) => {
@@ -272,9 +263,18 @@ export function AdviserGPTHome() {
       
       // Restore filters and uploaded files from navigation state
       if (state?.filters) {
-        setSelectedTags(state.filters.tags || []);
-        setSelectedStrategies(state.filters.strategies || []);
-        setSelectedTypes(state.filters.types || []);
+        // Convert legacy filter format to new format if needed
+        const tagFilters: Record<string, string[]> = {};
+        if (state.filters.strategies && state.filters.strategies.length > 0) {
+          tagFilters['Strategy'] = state.filters.strategies;
+        }
+        if (state.filters.tags && state.filters.tags.length > 0) {
+          tagFilters['Category'] = state.filters.tags;
+        }
+        if (state.filters.types && state.filters.types.length > 0) {
+          tagFilters['Type'] = state.filters.types;
+        }
+        setSelectedTagFilters(tagFilters);
         setSelectedDocuments(state.filters.documents || []);
         setSelectedDateRange(state.filters.dateRange || null);
         setSelectedPriorSamples(state.filters.priorSamples?.map(s => s.id) || []);
@@ -402,9 +402,7 @@ export function AdviserGPTHome() {
       inputValue.trim(), 
       selectedMode,
       {
-        tags: selectedTags,
-        strategies: selectedStrategies,
-        types: selectedTypes,
+        tagFilters: selectedTagFilters,
         documents: selectedDocuments,
         dateRange: selectedDateRange,
         priorSamples: selectedPriorSamples.map(id => {
@@ -446,8 +444,7 @@ export function AdviserGPTHome() {
         ...mockAnswer,
         uploadedFiles: uploadedFiles,
         filters: {
-          tags: selectedTags,
-          strategies: selectedStrategies,
+          tagFilters: selectedTagFilters,
           documents: selectedDocuments,
           dateRange: selectedDateRange,
           priorSamples: selectedPriorSamples.map(id => {
@@ -490,9 +487,7 @@ export function AdviserGPTHome() {
       question, 
       selectedMode,
       {
-        tags: selectedTags,
-        strategies: selectedStrategies,
-        types: selectedTypes,
+        tagFilters: selectedTagFilters,
         documents: selectedDocuments,
         dateRange: selectedDateRange,
         priorSamples: selectedPriorSamples.map(id => {
@@ -754,51 +749,45 @@ export function AdviserGPTHome() {
                         >
                           <Filter className="h-4 w-4" />
                           Open Filters
-                          {(selectedTags.length + selectedStrategies.length + selectedTypes.length +
-                            selectedDocuments.length + selectedPriorSamples.length +
-                            (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0)) > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {selectedTags.length + selectedStrategies.length + selectedTypes.length +
-                               selectedDocuments.length + selectedPriorSamples.length +
-                               (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0)}
-                            </Badge>
-                          )}
+                          {(() => {
+                            const totalCount = Object.values(selectedTagFilters).reduce((sum, values) => sum + values.length, 0) +
+                                             selectedDocuments.length + selectedPriorSamples.length +
+                                             (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0);
+                            return totalCount > 0 ? (
+                              <Badge variant="secondary" className="text-xs">
+                                {totalCount}
+                              </Badge>
+                            ) : null;
+                          })()}
                         </Button>
                       </div>
                     </div>
 
                     {/* Filter Badges */}
-                    {(selectedTags.length > 0 || selectedStrategies.length > 0 || selectedTypes.length > 0 ||
+                    {(Object.values(selectedTagFilters).some(values => values.length > 0) ||
                       selectedDocuments.length > 0 || selectedPriorSamples.length > 0 ||
                       (selectedDateRange && selectedDateRange.type !== 'any')) && (
                       <div className="flex flex-wrap gap-2 mb-4">
-                        {selectedTags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                            {tag}
-                            <X 
-                              className="h-3 w-3 cursor-pointer hover:text-foreground" 
-                              onClick={() => removeTag(tag)}
-                            />
-                          </Badge>
-                        ))}
-                        {selectedStrategies.map(strategy => (
-                          <Badge key={strategy} variant="secondary" className="flex items-center gap-1">
-                            {strategy}
-                            <X 
-                              className="h-3 w-3 cursor-pointer hover:text-foreground" 
-                              onClick={() => removeStrategy(strategy)}
-                            />
-                          </Badge>
-                        ))}
-                        {selectedTypes.map(type => (
-                          <Badge key={type} variant="secondary" className="flex items-center gap-1">
-                            {type}
-                            <X 
-                              className="h-3 w-3 cursor-pointer hover:text-foreground" 
-                              onClick={() => setSelectedTypes(prev => prev.filter(t => t !== type))}
-                            />
-                          </Badge>
-                        ))}
+                        {Object.entries(selectedTagFilters).map(([tagTypeName, values]) =>
+                          values.map(value => (
+                            <Badge key={`${tagTypeName}-${value}`} variant="secondary" className="flex items-center gap-1">
+                              {tagTypeName}: {value}
+                              <X 
+                                className="h-3 w-3 cursor-pointer hover:text-foreground" 
+                                onClick={() => {
+                                  const newValues = values.filter(v => v !== value);
+                                  if (newValues.length === 0) {
+                                    const newFilters = { ...selectedTagFilters };
+                                    delete newFilters[tagTypeName];
+                                    setSelectedTagFilters(newFilters);
+                                  } else {
+                                    setSelectedTagFilters({ ...selectedTagFilters, [tagTypeName]: newValues });
+                                  }
+                                }}
+                              />
+                            </Badge>
+                          ))
+                        )}
                         {selectedDocuments.map(document => (
                           <Badge key={document} variant="secondary" className="flex items-center gap-1">
                             {document}
@@ -901,34 +890,24 @@ export function AdviserGPTHome() {
                     )}
 
                     {/* Filters Display - Show during generation or when answer is loaded */}
-                    {((isGenerating && (selectedTags.length > 0 || selectedStrategies.length > 0 || selectedTypes.length > 0 || selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || (selectedDateRange && selectedDateRange.type !== 'any'))) || 
+                    {((isGenerating && (Object.values(selectedTagFilters).some(values => values.length > 0) || selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || (selectedDateRange && selectedDateRange.type !== 'any'))) || 
                       (currentAnswer?.filters && (
-                        currentAnswer.filters.tags.length > 0 || 
-                        currentAnswer.filters.strategies.length > 0 || 
-                        currentAnswer.filters.types?.length > 0 ||
-                        currentAnswer.filters.documents.length > 0 || 
+                        (currentAnswer.filters.tagFilters && Object.values(currentAnswer.filters.tagFilters).some(values => values.length > 0)) ||
+                        currentAnswer.filters.documents?.length > 0 || 
                         (currentAnswer.filters.dateRange && currentAnswer.filters.dateRange.type !== 'any') ||
-                        currentAnswer.filters.priorSamples.length > 0
+                        currentAnswer.filters.priorSamples?.length > 0
                       ))) && (
                         <div className="flex flex-wrap gap-2 mb-2">
                           {/* Show current filters during generation */}
                           {isGenerating ? (
                             <>
-                              {selectedTags.map(tag => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  Tag: {tag}
-                                </Badge>
-                              ))}
-                              {selectedStrategies.map(strategy => (
-                                <Badge key={strategy} variant="secondary" className="text-xs">
-                                  Strategy: {strategy}
-                                </Badge>
-                              ))}
-                              {selectedTypes.map(type => (
-                                <Badge key={type} variant="secondary" className="text-xs">
-                                  Type: {type}
-                                </Badge>
-                              ))}
+                              {Object.entries(selectedTagFilters).map(([tagTypeName, values]) =>
+                                values.map(value => (
+                                  <Badge key={`${tagTypeName}-${value}`} variant="secondary" className="text-xs">
+                                    {tagTypeName}: {value}
+                                  </Badge>
+                                ))
+                              )}
                               {selectedDocuments.map(document => (
                                 <Badge key={document} variant="secondary" className="text-xs">
                                   Document: {document}
@@ -958,21 +937,13 @@ export function AdviserGPTHome() {
                           ) : (
                             /* Show saved filters from answer */
                             <>
-                              {currentAnswer.filters.tags.map(tag => (
-                                <Badge key={tag} variant="secondary" className="text-xs">
-                                  Tag: {tag}
-                                </Badge>
-                              ))}
-                              {currentAnswer.filters.strategies.map(strategy => (
-                                <Badge key={strategy} variant="secondary" className="text-xs">
-                                  Strategy: {strategy}
-                                </Badge>
-                              ))}
-                              {currentAnswer.filters.types?.map(type => (
-                                <Badge key={type} variant="secondary" className="text-xs">
-                                  Type: {type}
-                                </Badge>
-                              ))}
+                              {currentAnswer.filters.tagFilters && Object.entries(currentAnswer.filters.tagFilters).map(([tagTypeName, values]) =>
+                                values.map(value => (
+                                  <Badge key={`${tagTypeName}-${value}`} variant="secondary" className="text-xs">
+                                    {tagTypeName}: {value}
+                                  </Badge>
+                                ))
+                              )}
                               {currentAnswer.filters.documents?.map(document => (
                                 <Badge key={document} variant="secondary" className="text-xs">
                                   Document: {document}
@@ -990,7 +961,7 @@ export function AdviserGPTHome() {
                                     : 'Date range'}
                                 </Badge>
                               )}
-                              {currentAnswer.filters.priorSamples.map(sample => (
+                              {currentAnswer.filters.priorSamples?.map(sample => (
                                 <Badge key={sample.id} variant="secondary" className="text-xs">
                                   Sample: {sample.name}
                                 </Badge>
@@ -1085,12 +1056,8 @@ export function AdviserGPTHome() {
       <FiltersPanel
         isOpen={showFiltersPanel}
         onClose={() => setShowFiltersPanel(false)}
-        selectedTags={selectedTags}
-        onTagsChange={setSelectedTags}
-        selectedStrategies={selectedStrategies}
-        onStrategiesChange={setSelectedStrategies}
-        selectedTypes={selectedTypes}
-        onTypesChange={setSelectedTypes}
+        selectedTagFilters={selectedTagFilters}
+        onTagFiltersChange={setSelectedTagFilters}
         selectedDocuments={selectedDocuments}
         onDocumentsChange={setSelectedDocuments}
         selectedDateRange={selectedDateRange}

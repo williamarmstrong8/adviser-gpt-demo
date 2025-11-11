@@ -21,7 +21,9 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { QuestionItem, STRATEGIES } from '@/types/vault';
+import { QuestionItem, Tag } from '@/types/vault';
+import { useTagTypes } from '@/hooks/useTagTypes';
+import { migrateQuestionItem } from '@/utils/tagMigration';
 
 interface QuestionCardProps {
   item: QuestionItem & { documentTitle?: string; documentId?: string };
@@ -34,10 +36,8 @@ interface QuestionCardProps {
   onToggleExpansion?: (itemId: string) => void;
   onEdit?: (item: QuestionItem) => void;
   onCopyAnswer?: (answer: string) => void;
-  onStrategyRemove?: (itemId: string, strategy: string) => void;
-  onStrategyAdd?: (itemId: string, strategy: string) => void;
-  onTagRemove?: (itemId: string, tag: string) => void;
-  onTagAdd?: (itemId: string, tag: string) => void;
+  onTagRemove?: (itemId: string, tag: Tag) => void;
+  onTagAdd?: (itemId: string, tag: Tag) => void;
   onArchive?: (itemId: string) => void;
   highlightSearchTerms?: (text: string, query: string) => string;
   formatRelativeTime?: (isoString: string) => string;
@@ -55,8 +55,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onToggleExpansion,
   onEdit,
   onCopyAnswer,
-  onStrategyRemove,
-  onStrategyAdd,
   onTagRemove,
   onTagAdd,
   onArchive,
@@ -64,11 +62,15 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   formatRelativeTime = (date) => date,
   formatFullDate = (date) => date,
 }) => {
-  const [addingStrategyToItem, setAddingStrategyToItem] = useState<string | null>(null);
-  const [newStrategyValue, setNewStrategyValue] = useState('');
-  const [addingTagToItem, setAddingTagToItem] = useState<string | null>(null);
+  const { getAllTagTypes, getTagTypeValues } = useTagTypes();
+  const tagTypes = getAllTagTypes();
+  const [addingTagToItem, setAddingTagToItem] = useState<{ itemId: string; tagTypeName: string } | null>(null);
   const [newTagValue, setNewTagValue] = useState('');
+  const [selectedTagType, setSelectedTagType] = useState<string>('');
   const [isCopied, setIsCopied] = useState(false);
+  
+  // Migrate item to new format
+  const migratedItem = migrateQuestionItem(item);
 
   // Reset copy state after 3 seconds
   useEffect(() => {
@@ -80,20 +82,24 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
     }
   }, [isCopied]);
 
-  const normalizeStrategies = (strategy: string | string[]) => {
-    return Array.isArray(strategy) ? strategy : [strategy];
+  const getDisplayData = (item: QuestionItem) => {
+    const migrated = migrateQuestionItem(item);
+    return {
+      question: item.question || '',
+      answer: item.answer || '',
+      tags: migrated.tags || [],
+      isBestAnswer: item.isBestAnswer || false,
+      archived: item.archived || false,
+    };
   };
 
-  const getDisplayData = (item: QuestionItem) => ({
-    question: item.question || '',
-    answer: item.answer || '',
-    strategy: item.strategy || [],
-    tags: item.tags || [],
-    isBestAnswer: item.isBestAnswer || false,
-    archived: item.archived || false,
-  });
-
   const displayData = getDisplayData(item);
+  
+  // Group tags by type
+  const tagsByType = tagTypes.reduce((acc, tagType) => {
+    acc[tagType.name] = displayData.tags.filter((tag: Tag) => tag.type === tagType.name);
+    return acc;
+  }, {} as Record<string, Tag[]>);
   const answer = displayData.answer || '';
 
   const handleCopyAnswer = () => {
@@ -105,25 +111,22 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   const shouldTruncate = answer.length > 300;
   const displayAnswer = isExpanded ? answer : answer.substring(0, 300);
 
-  const handleStrategyAdd = (itemId: string, strategy: string) => {
-    if (onStrategyAdd) {
-      onStrategyAdd(itemId, strategy);
-    }
-    setNewStrategyValue("");
-    setAddingStrategyToItem(null);
-  };
-
-  const handleNewTagSave = (itemId: string) => {
+  const handleNewTagSave = (itemId: string, tagTypeName: string) => {
     if (newTagValue.trim() && onTagAdd) {
-      onTagAdd(itemId, newTagValue.trim());
+      const availableValues = getTagTypeValues(tagTypeName);
+      if (availableValues.includes(newTagValue.trim())) {
+        onTagAdd(itemId, { type: tagTypeName, value: newTagValue.trim() });
+        setNewTagValue("");
+        setAddingTagToItem(null);
+        setSelectedTagType("");
+      }
     }
-    setNewTagValue("");
-    setAddingTagToItem(null);
   };
 
   const handleNewTagCancel = () => {
     setNewTagValue("");
     setAddingTagToItem(null);
+    setSelectedTagType("");
   };
 
   // Determine if this is a parent question with children
@@ -248,113 +251,79 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
                 dangerouslySetInnerHTML={{ __html: highlightSearchTerms(displayData.question, query) }}
               />
              
-              {/* Tags in Question Section */}
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                {normalizeStrategies(displayData.strategy).map((strategy, index) => (
-                  <Badge 
-                    key={`${strategy}-${index}`} 
-                    variant="outline" 
-                    className="vault-tag flex items-center gap-1 cursor-pointer hover:bg-sidebar-background"
-                    onClick={() => {
-                      // Add click handler for editing strategies
-                      console.log('Edit strategy:', strategy);
-                    }}
-                  >
-                    <Lightbulb className="h-3 w-3" />
-                    {strategy}
-                    {onStrategyRemove && (
-                      <X 
-                        className="h-3 w-3 cursor-pointer hover:sidebar-accent" 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onStrategyRemove(item.id, strategy);
-                        }}
-                      />
-                    )}
-                  </Badge>
-                ))}
-                {onStrategyAdd && addingStrategyToItem === item.id ? (
-                  <Select 
-                    value={newStrategyValue} 
-                    onValueChange={(value) => {
-                      handleStrategyAdd(item.id, value);
-                    }}
-                    onOpenChange={(open) => {
-                      if (!open) {
-                        setAddingStrategyToItem(null);
-                        setNewStrategyValue("");
-                      }
-                    }}
-                  >
-                    <SelectTrigger className="h-6 text-xs w-32">
-                      <SelectValue placeholder="Select strategy" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {STRATEGIES.filter(strategy => 
-                        !normalizeStrategies(displayData.strategy).includes(strategy)
-                      ).map(strategyOption => (
-                        <SelectItem key={strategyOption} value={strategyOption}>
-                          {strategyOption}
-                        </SelectItem>
+              {/* Tags in Question Section - Grouped by type, each type on separate row */}
+              <div className="space-y-2 mt-3">
+                {tagTypes.map((tagType) => {
+                  const tagsOfType = tagsByType[tagType.name] || [];
+                  const isAdding = addingTagToItem?.itemId === item.id && addingTagToItem?.tagTypeName === tagType.name;
+                  
+                  return (
+                    <div key={tagType.id} className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-medium text-foreground/70">{tagType.name}:</span>
+                      {tagsOfType.map((tag: Tag) => (
+                        <Badge 
+                          key={`${tag.type}-${tag.value}`} 
+                          variant="outline" 
+                          className="text-xs vault-tag flex items-center gap-1"
+                        >
+                          {tag.value}
+                          {onTagRemove && (
+                            <X 
+                              className="h-3 w-3 cursor-pointer hover:text-sidebar-accent" 
+                              onClick={() => onTagRemove(item.id, tag)}
+                            />
+                          )}
+                        </Badge>
                       ))}
-                    </SelectContent>
-                  </Select>
-                ) : onStrategyAdd ? (
-                  <Badge 
-                    variant="outline" 
-                    className="text-xs text-foreground vault-tag cursor-pointer hover:bg-sidebar-background flex items-center gap-1"
-                    onClick={() => setAddingStrategyToItem(item.id)}
-                  >
-                    <Lightbulb className="h-3 w-3" />
-                    + Strategy
-                  </Badge>
-                ) : null}
-                {displayData.tags.map(tag => (
-                  <Badge key={tag} variant="outline" className="text-xs vault-tag flex items-center gap-1">
-                    {tag}
-                    {onTagRemove && (
-                      <X 
-                        className="h-3 w-3 cursor-pointer hover:text-sidebar-accent" 
-                        onClick={() => onTagRemove(item.id, tag)}
-                      />
-                    )}
-                  </Badge>
-                ))}
-                {onTagAdd && addingTagToItem === item.id ? (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      value={newTagValue}
-                      onChange={(e) => setNewTagValue(e.target.value)}
-                      className="h-6 text-xs w-24 text-foreground focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-foreground/60 transition border-foreground/20"
-                      placeholder="Tag name"
-                      autoFocus
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleNewTagSave(item.id);
-                        if (e.key === 'Escape') handleNewTagCancel();
-                      }}
-                    />
-                    <button 
-                      className="h-6 w-6 flex items-center justify-center border border-sidebar-primary bg-background hover:bg-sidebar-primary rounded text-sidebar-primary hover:text-sidebar-primary-foreground hover:border-sidebar-primary/70 transition-colors" 
-                      onClick={() => handleNewTagSave(item.id)}
-                    >
-                      <Check className="h-3 w-3" />
-                    </button>
-                    <button 
-                      className="h-6 w-6 flex items-center justify-center border border-sidebar-accent bg-background hover:bg-sidebar-accent rounded text-sidebar-accent hover:text-sidebar-accent-foreground hover:border-sidebar-accent/70 transition-colors" 
-                      onClick={handleNewTagCancel}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                ) : onTagAdd ? (
-                  <Badge 
-                    variant="outline" 
-                    className="text-xs text-foreground vault-tag cursor-pointer hover:bg-sidebar-background"
-                    onClick={() => setAddingTagToItem(item.id)}
-                  >
-                    + New
-                  </Badge>
-                ) : null}
+                      {isAdding ? (
+                        <div className="flex items-center gap-1">
+                          
+                          <Select
+                            value={newTagValue}
+                            onValueChange={setNewTagValue}
+                          >
+                            <SelectTrigger className="h-6 text-xs w-32">
+                              <SelectValue placeholder="Select value" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {getTagTypeValues(tagType.name)
+                                .filter(value => !tagsOfType.some((t: Tag) => t.value === value))
+                                .map(value => (
+                                  <SelectItem key={value} value={value}>
+                                    {value}
+                                  </SelectItem>
+                                ))}
+                            </SelectContent>
+                          </Select>
+                          <button 
+                            className="h-6 w-6 flex items-center justify-center border border-sidebar-primary bg-background hover:bg-sidebar-primary rounded text-sidebar-primary hover:text-sidebar-primary-foreground hover:border-sidebar-primary/70 transition-colors" 
+                            onClick={() => handleNewTagSave(item.id, tagType.name)}
+                            disabled={!newTagValue.trim()}
+                          >
+                            <Check className="h-3 w-3" />
+                          </button>
+                          <button 
+                            className="h-6 w-6 flex items-center justify-center border border-sidebar-accent bg-background hover:bg-sidebar-accent rounded text-sidebar-accent hover:text-sidebar-accent-foreground hover:border-sidebar-accent/70 transition-colors" 
+                            onClick={handleNewTagCancel}
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ) : onTagAdd ? (
+                        <Badge 
+                          variant="outline" 
+                          className="text-xs text-foreground vault-tag cursor-pointer hover:bg-sidebar-background"
+                          onClick={() => {
+                            setAddingTagToItem({ itemId: item.id, tagTypeName: tagType.name });
+                            setSelectedTagType(tagType.name);
+                          }}
+                        >
+                          + Add {tagType.name}
+                        </Badge>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -425,8 +394,6 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               onToggleExpansion={onToggleExpansion}
               onEdit={onEdit}
               onCopyAnswer={onCopyAnswer}
-              onStrategyRemove={onStrategyRemove}
-              onStrategyAdd={onStrategyAdd}
               onTagRemove={onTagRemove}
               onTagAdd={onTagAdd}
               onArchive={onArchive}

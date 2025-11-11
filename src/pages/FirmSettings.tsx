@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronRight, Home, Building, CreditCard, Users, User, Settings, Bot, Plus, Mail, MoreHorizontal, Trash2 } from 'lucide-react';
+import { ChevronRight, Home, Building, CreditCard, Users, User, Settings, Bot, Plus, Mail, MoreHorizontal, Trash2, Tag, X } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,6 +12,19 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { VaultSidebar } from '@/components/VaultSidebar';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useTagTypes } from '@/hooks/useTagTypes';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { MOCK_CONTENT_ITEMS } from '@/data/mockVaultData';
+import { migrateQuestionItems } from '@/utils/tagMigration';
 
 interface TeamMember {
   id: string;
@@ -56,6 +69,25 @@ export function FirmSettings() {
   const [autoCompleteValue, setAutoCompleteValue] = useState([0.5]);
   const [smartAssistantValue, setSmartAssistantValue] = useState([0.7]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
+  
+  // Tag Types management
+  const {
+    tagTypes,
+    createTagType,
+    addTagTypeValue,
+    removeTagTypeValue,
+    deleteTagType,
+    isTagValueInUse,
+  } = useTagTypes();
+  const [newTagTypeName, setNewTagTypeName] = useState('');
+  const [newValueInputs, setNewValueInputs] = useState<Record<string, string>>({});
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmData, setDeleteConfirmData] = useState<{ tagTypeName: string; value: string } | null>(null);
+  
+  // Get all vault items for checking tag usage
+  const allVaultItems = migrateQuestionItems(
+    MOCK_CONTENT_ITEMS.flatMap(doc => doc.items)
+  );
 
   const handleResetProfile = async () => {
     setIsBuildingProfile(false);
@@ -101,6 +133,63 @@ export function FirmSettings() {
     alert('Role updated successfully!');
   };
 
+  // Tag Types handlers
+  const handleCreateTagType = () => {
+    if (!newTagTypeName.trim()) {
+      alert('Please enter a tag type name');
+      return;
+    }
+    const success = createTagType(newTagTypeName.trim());
+    if (success) {
+      setNewTagTypeName('');
+      alert('Tag type created successfully!');
+    } else {
+      alert('A tag type with this name already exists');
+    }
+  };
+
+  const handleAddValue = (tagTypeName: string) => {
+    const value = newValueInputs[tagTypeName]?.trim();
+    if (!value) {
+      alert('Please enter a value');
+      return;
+    }
+    const success = addTagTypeValue(tagTypeName, value);
+    if (success) {
+      setNewValueInputs(prev => ({ ...prev, [tagTypeName]: '' }));
+      alert('Value added successfully!');
+    } else {
+      alert('This value already exists for this tag type');
+    }
+  };
+
+  const handleDeleteValueClick = (tagTypeName: string, value: string) => {
+    const inUse = isTagValueInUse(tagTypeName, value, allVaultItems);
+    if (inUse) {
+      setDeleteConfirmData({ tagTypeName, value });
+      setDeleteConfirmOpen(true);
+    } else {
+      removeTagTypeValue(tagTypeName, value);
+      alert('Value removed successfully!');
+    }
+  };
+
+  const handleConfirmDeleteValue = () => {
+    if (deleteConfirmData) {
+      removeTagTypeValue(deleteConfirmData.tagTypeName, deleteConfirmData.value);
+      setDeleteConfirmOpen(false);
+      setDeleteConfirmData(null);
+      alert('Value removed. It has been removed from all vault items that used it.');
+    }
+  };
+
+  const handleDeleteTagType = (tagTypeName: string) => {
+    if (window.confirm(`Are you sure you want to delete the tag type "${tagTypeName}"? This will remove all tags of this type from vault items.`)) {
+      deleteTagType(tagTypeName);
+      alert('Tag type deleted successfully!');
+    }
+  };
+
   return (
     <div className="h-screen bg-sidebar-background flex gap-4">
       {/* Vault Sidebar */}
@@ -134,7 +223,7 @@ export function FirmSettings() {
           <div className="flex-1 p-8">
             <div className="max-w-4xl mx-auto h-full">
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
+                <TabsList className="grid w-full grid-cols-4">
                   <TabsTrigger value="general" className="flex items-center gap-2">
                     <Building className="h-4 w-4" />
                     General
@@ -146,6 +235,10 @@ export function FirmSettings() {
                   <TabsTrigger value="profile" className="flex items-center gap-2">
                     <User className="h-4 w-4" />
                     Firm Profile
+                  </TabsTrigger>
+                  <TabsTrigger value="tags" className="flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
+                    Tag Types
                   </TabsTrigger>
                 </TabsList>
 
@@ -341,7 +434,145 @@ export function FirmSettings() {
                   )}
                 </TabsContent>
 
-                
+                {/* Tag Types Tab */}
+                <TabsContent value="tags" className="space-y-6 mt-6">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle>Tag Types</CardTitle>
+                          <CardDescription>Create and manage tag types and their allowed values</CardDescription>
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="New tag type name"
+                            value={newTagTypeName}
+                            onChange={(e) => setNewTagTypeName(e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                handleCreateTagType();
+                              }
+                            }}
+                            className="w-48"
+                          />
+                          <Button onClick={handleCreateTagType} className="flex items-center gap-2">
+                            <Plus className="h-4 w-4" />
+                            Create Tag Type
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-6">
+                        {tagTypes.map((tagType) => (
+                          <div
+                            key={tagType.id}
+                            className="border border-foreground/10 rounded-lg p-4 space-y-4"
+                          >
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h3 className="text-lg font-semibold">{tagType.name}</h3>
+                                <p className="text-sm text-foreground/70">
+                                  {tagType.values.length} value{tagType.values.length !== 1 ? 's' : ''}
+                                </p>
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteTagType(tagType.name)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+
+                            {/* Values List */}
+                            <div className="space-y-2">
+                              <Label className="text-sm font-medium">Allowed Values</Label>
+                              <div className="flex flex-wrap gap-2">
+                                {tagType.values.map((value) => (
+                                  <Badge
+                                    key={value}
+                                    variant="secondary"
+                                    className="flex items-center gap-1 px-2 py-1"
+                                  >
+                                    {value}
+                                    <X
+                                      className="h-3 w-3 cursor-pointer hover:text-destructive"
+                                      onClick={() => handleDeleteValueClick(tagType.name, value)}
+                                    />
+                                  </Badge>
+                                ))}
+                                {tagType.values.length === 0 && (
+                                  <p className="text-sm text-foreground/60">No values yet</p>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Add Value Input */}
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="Add new value"
+                                value={newValueInputs[tagType.name] || ''}
+                                onChange={(e) =>
+                                  setNewValueInputs(prev => ({
+                                    ...prev,
+                                    [tagType.name]: e.target.value,
+                                  }))
+                                }
+                                onKeyPress={(e) => {
+                                  if (e.key === 'Enter') {
+                                    handleAddValue(tagType.name);
+                                  }
+                                }}
+                                className="flex-1"
+                              />
+                              <Button
+                                onClick={() => handleAddValue(tagType.name)}
+                                size="sm"
+                              >
+                                Add
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                        {tagTypes.length === 0 && (
+                          <div className="text-center py-8 text-foreground/60">
+                            <Tag className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                            <p>No tag types yet. Create one to get started.</p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+
+                {/* Delete Confirmation Dialog */}
+                <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Confirm Deletion</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {deleteConfirmData && (
+                          <>
+                            This will remove the <strong>{deleteConfirmData.tagTypeName}</strong> tag &quot;
+                            <strong>{deleteConfirmData.value}</strong>&quot; from any vault item it is currently
+                            applied to.
+                            <br />
+                            <br />
+                            Are you sure you want to continue?
+                          </>
+                        )}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleConfirmDeleteValue} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </Tabs>
             </div>
           </div>

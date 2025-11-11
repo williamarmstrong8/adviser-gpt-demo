@@ -41,6 +41,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MOCK_CONTENT_ITEMS } from "@/data/mockVaultData";
 import { STRATEGIES, CONTENT_TYPES, STATUS_OPTIONS, TAGS_INFO, QuestionItem } from "@/types/vault";
 import { FiltersPanel, DateRange } from "./FiltersPanel";
+import { migrateQuestionItem, migrateQuestionItems } from "@/utils/tagMigration";
 import { smartSearch, getSemanticVariations, getSearchSuggestions } from "@/utils/smartSearch";
 import { format, subDays, subMonths } from "date-fns";
 
@@ -76,6 +77,23 @@ export function VaultHomepage() {
     const urlStatus = searchParams.get('status')?.split(',').filter(Boolean) || [];
     const urlShowArchived = searchParams.get('showArchived') === 'true';
     
+    // Convert legacy URL params to new tag filter format
+    const tagFilters: Record<string, string[]> = {};
+    if (urlStrategy.length > 0) {
+      tagFilters['Strategy'] = urlStrategy;
+    }
+    if (urlType.length > 0) {
+      tagFilters['Type'] = urlType;
+    }
+    if (urlTags.length > 0) {
+      tagFilters['Category'] = urlTags;
+    }
+    if (urlStatus.length > 0) {
+      tagFilters['Status'] = urlStatus;
+    }
+    setSelectedTagFilters(tagFilters);
+    
+    // Keep legacy state for backward compatibility during transition
     setSelectedStrategy(urlStrategy);
     setSelectedType(urlType);
     setSelectedTags(urlTags);
@@ -87,6 +105,9 @@ export function VaultHomepage() {
       setShowArchived(urlShowArchived);
     }
   }, [searchParams, urlQuery]);
+  // New tag filter structure
+  const [selectedTagFilters, setSelectedTagFilters] = useState<Record<string, string[]>>({});
+  // Legacy state for backward compatibility (will be removed)
   const [selectedStrategy, setSelectedStrategy] = useState<string[]>([]);
   const [selectedType, setSelectedType] = useState<string[]>([]);  
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -140,10 +161,7 @@ export function VaultHomepage() {
   // Initialize state from URL parameters
   useEffect(() => {
     setSearchInput(urlQuery);
-    setSelectedStrategy(searchParams.get('strategy')?.split(',').filter(Boolean) || []);
-    setSelectedType(searchParams.get('type')?.split(',').filter(Boolean) || []);
-    setSelectedStatus(searchParams.get('status')?.split(',').filter(Boolean) || []);
-    setSelectedTags(searchParams.get('tags')?.split(',').filter(Boolean) || []);
+    // Legacy URL params are handled in the other useEffect
   }, [urlQuery, searchParams]);
 
   // Save tab state to localStorage when it changes
@@ -184,29 +202,33 @@ export function VaultHomepage() {
     }
   };
 
-  // Flatten the nested data structure for processing
+  // Flatten the nested data structure for processing and migrate to new tag format
   const flattenItems = (): QuestionItem[] => {
+    let items: QuestionItem[] = [];
+    
     if (isFileMode && fileName) {
       // In file mode, only show items from the specific file
       const targetDoc = MOCK_CONTENT_ITEMS.find(doc => doc.title === fileName);
       if (targetDoc) {
-        return targetDoc.items.map(item => ({
+        items = targetDoc.items.map(item => ({
           ...item,
           documentTitle: targetDoc.title,
           documentId: targetDoc.id
         }));
       }
-      return []; // File not found
+    } else {
+      // In search mode, show all items
+      items = MOCK_CONTENT_ITEMS.flatMap(doc => 
+        doc.items.map(item => ({
+          ...item,
+          documentTitle: doc.title,
+          documentId: doc.id
+        }))
+      );
     }
     
-    // In search mode, show all items
-    return MOCK_CONTENT_ITEMS.flatMap(doc => 
-      doc.items.map(item => ({
-        ...item,
-        documentTitle: doc.title,
-        documentId: doc.id
-      }))
-    );
+    // Migrate items to new tag format
+    return migrateQuestionItems(items);
   };
 
   const allItems = flattenItems();
@@ -219,14 +241,32 @@ export function VaultHomepage() {
   // Helper function to merge original item with saved edits
   const getDisplayData = (item: QuestionItem) => {
     const savedEdit = getEdit(item.id);
-    if (!savedEdit) return item;
+    if (!savedEdit) {
+      // Ensure item is migrated
+      return migrateQuestionItem(item);
+    }
+
+    // Check if savedEdit tags are in new format
+    let tags = savedEdit.tags || item.tags;
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      const firstTag = tags[0];
+      // If tags are in old format (strings), migrate them
+      if (typeof firstTag === 'string') {
+        const migrated = migrateQuestionItem({ ...item, tags: tags as any });
+        tags = migrated.tags;
+      }
+    } else {
+      // No tags in savedEdit, use migrated item tags
+      const migrated = migrateQuestionItem(item);
+      tags = migrated.tags;
+    }
 
     const result = {
       ...item,
       question: savedEdit.question || item.question,
       answer: savedEdit.answer || item.answer,
-      strategy: savedEdit.strategy || item.strategy,
-      tags: savedEdit.tags || item.tags,
+      strategy: savedEdit.strategy || item.strategy, // Keep for backward compatibility
+      tags, // Use migrated tags
       archived: savedEdit.archived !== undefined ? savedEdit.archived : (item.archived || false),
     };
 
@@ -382,36 +422,51 @@ export function VaultHomepage() {
       return false;
     }
     
-    const itemStrategies = normalizeStrategies(displayData.strategy);
-    const matchesStrategy = selectedStrategy.length === 0 || 
-      selectedStrategy.some(selectedStrategy => itemStrategies.includes(selectedStrategy));
-    const matchesType = selectedType.length === 0 || 
-      selectedType.includes(displayData.type);
-    const matchesTags = selectedTags.length === 0 || 
-      selectedTags.some(tag => displayData.tags.includes(tag));
-    const matchesStatus = selectedStatus.length === 0 || 
-      selectedStatus.includes(displayData.type); // Using type as status for mock data
+    // Tag filtering: OR within each type, AND across types
+    // For each tag type filter, check if item has at least one matching tag value
+    let matchesAllTagFilters = true;
+    for (const [tagTypeName, selectedValues] of Object.entries(selectedTagFilters)) {
+      if (selectedValues.length === 0) {
+        continue; // No filter for this type
+      }
+      
+      // Get item's tags of this type
+      const itemTagsOfType = (displayData.tags || []).filter(
+        (tag: { type: string; value: string }) => tag.type === tagTypeName
+      );
+      
+      // Check if any selected value matches any item tag (OR logic within type)
+      const matchesThisType = selectedValues.some(selectedValue =>
+        itemTagsOfType.some((tag: { type: string; value: string }) => tag.value === selectedValue)
+      );
+      
+      if (!matchesThisType) {
+        matchesAllTagFilters = false;
+        break; // AND logic across types - if one fails, item is excluded
+      }
+    }
     
-    // Date range filtering
+    // Document filtering (OR logic)
+    const matchesDocument = selectedDocuments.length === 0 ||
+      selectedDocuments.includes(displayData.documentTitle || '');
+    
+    // Date range filtering (inclusive)
     const dateBounds = getDateRangeBounds(selectedDateRange);
     let matchesDateRange = true;
     if (dateBounds) {
       try {
         const itemDate = new Date(displayData.updatedAt);
-        // Check if date is valid and within range (inclusive)
         if (isNaN(itemDate.getTime())) {
-          // Invalid date - exclude from results when date filter is active
           matchesDateRange = false;
         } else {
           matchesDateRange = itemDate >= dateBounds.from && itemDate <= dateBounds.to;
         }
       } catch {
-        // If parsing fails, exclude when date filter is active
         matchesDateRange = false;
       }
     }
     
-    return matchesStrategy && matchesType && matchesTags && matchesStatus && matchesDateRange;
+    return matchesAllTagFilters && matchesDocument && matchesDateRange;
   });
 
   // Sort filtered items
@@ -429,8 +484,13 @@ export function VaultHomepage() {
 
   const sortedAndFilteredItems = sortItems(filteredItems, currentSort);
 
-  const hasActiveFilters = selectedStrategy.length > 0 || selectedType.length > 0 || selectedTags.length > 0 || selectedStatus.length > 0 ||
-                           selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || (selectedDateRange && selectedDateRange.type !== 'any');
+  const totalFiltersCount = Object.values(selectedTagFilters).reduce((sum, values) => sum + values.length, 0) +
+                           selectedDocuments.length + selectedPriorSamples.length +
+                           (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0);
+  
+  const hasActiveFilters = Object.values(selectedTagFilters).some(values => values.length > 0) ||
+                           selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || 
+                           (selectedDateRange && selectedDateRange.type !== 'any');
   const hasActiveSearch = (state.query && state.query.trim()) || hasActiveFilters;
   
   // Check if there are any parent questions with children
@@ -439,8 +499,9 @@ export function VaultHomepage() {
   const handleSearch = () => {
     // Check if there's search text or any filters selected
     const hasSearchText = searchInput.trim();
-    const hasFilters = selectedStrategy.length > 0 || selectedType.length > 0 || selectedTags.length > 0 || selectedStatus.length > 0 ||
-                       selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || (selectedDateRange && selectedDateRange.type !== 'any');
+    const hasFilters = Object.values(selectedTagFilters).some(values => values.length > 0) ||
+                       selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || 
+                       (selectedDateRange && selectedDateRange.type !== 'any');
     
     if (hasSearchText || hasFilters) {
       setQuery(searchInput);
@@ -484,10 +545,7 @@ export function VaultHomepage() {
   };
 
   const clearFilters = () => {
-    setSelectedStrategy([]);
-    setSelectedType([]);
-    setSelectedStatus([]);
-    setSelectedTags([]);
+    setSelectedTagFilters({});
     setSelectedDocuments([]);
     setSelectedDateRange(null);
     setSelectedPriorSamples([]);
@@ -825,42 +883,29 @@ export function VaultHomepage() {
     setEditingItem(null);
   };
 
-  const handleTagAdd = (id: string, tag: string) => {
+  const handleTagAdd = (id: string, tag: { type: string; value: string }) => {
     const currentEdit = getEdit(id) || {};
     const originalItem = allItems.find(item => item.id === id);
-    const currentTags = currentEdit.tags || originalItem?.tags || [];
+    const currentTags: Array<{ type: string; value: string }> = currentEdit.tags || originalItem?.tags || [];
     
-    if (!currentTags.includes(tag)) {
+    // Check if tag already exists
+    const tagExists = currentTags.some(t => t.type === tag.type && t.value === tag.value);
+    if (!tagExists) {
       saveEdit(id, { ...currentEdit, tags: [...currentTags, tag] });
     }
   };
 
-  const handleTagRemove = (id: string, tag: string) => {
+  const handleTagRemove = (id: string, tag: { type: string; value: string }) => {
     const currentEdit = getEdit(id) || {};
     const originalItem = allItems.find(item => item.id === id);
-    const currentTags = currentEdit.tags || originalItem?.tags || [];
+    const currentTags: Array<{ type: string; value: string }> = currentEdit.tags || originalItem?.tags || [];
     
-    saveEdit(id, { ...currentEdit, tags: currentTags.filter(t => t !== tag) });
+    saveEdit(id, { 
+      ...currentEdit, 
+      tags: currentTags.filter(t => !(t.type === tag.type && t.value === tag.value))
+    });
   };
 
-  const handleStrategyRemove = (id: string, strategyToRemove: string) => {
-    const currentEdit = getEdit(id) || {};
-    const originalItem = allItems.find(item => item.id === id);
-    const currentStrategies = normalizeStrategies(currentEdit.strategy || originalItem?.strategy || []);
-    
-    const updatedStrategies = currentStrategies.filter(s => s !== strategyToRemove);
-    saveEdit(id, { ...currentEdit, strategy: updatedStrategies });
-  };
-
-  const handleStrategyAdd = (id: string, strategy: string) => {
-    const currentEdit = getEdit(id) || {};
-    const originalItem = allItems.find(item => item.id === id);
-    const currentStrategies = normalizeStrategies(currentEdit.strategy || originalItem?.strategy || []);
-    
-    if (!currentStrategies.includes(strategy)) {
-      saveEdit(id, { ...currentEdit, strategy: [...currentStrategies, strategy] });
-    }
-  };
 
   return (
     <div className="h-screen w-full flex flex-col">
@@ -944,13 +989,9 @@ export function VaultHomepage() {
                     >
                       <Filter className="h-4 w-4" />
                       Open Filters
-                      {(selectedStrategy.length + selectedType.length + selectedTags.length + 
-                        selectedDocuments.length + selectedPriorSamples.length +
-                        (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0)) > 0 && (
+                      {hasActiveFilters && (
                         <Badge variant="secondary" className="text-xs">
-                          {selectedStrategy.length + selectedType.length + selectedTags.length + 
-                           selectedDocuments.length + selectedPriorSamples.length +
-                           (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0)}
+                          {totalFiltersCount}
                         </Badge>
                       )}
                     </Button>
@@ -970,54 +1011,26 @@ export function VaultHomepage() {
                       {hasActiveFilters && (
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="text-sm text-foreground/70">Active filters:</span>
-                          {selectedStrategy.map(strategy => (
-                            <Badge key={strategy} variant="secondary" className="gap-1">
-                              Strategy: {strategy}
-                              <X 
-                                className="h-3 w-3 cursor-pointer" 
-                                onClick={() => {
-                                  const newStrategies = selectedStrategy.filter(s => s !== strategy);
-                                  setSelectedStrategy(newStrategies);
-                                }}
-                              />
-                            </Badge>
-                          ))}
-                          {selectedType.map(type => (
-                            <Badge key={type} variant="secondary" className="gap-1">
-                              Type: {type}
-                              <X 
-                                className="h-3 w-3 cursor-pointer" 
-                                onClick={() => {
-                                  const newTypes = selectedType.filter(t => t !== type);
-                                  setSelectedType(newTypes);
-                                }}
-                              />
-                            </Badge>
-                          ))}
-                          {selectedStatus.map(status => (
-                            <Badge key={status} variant="secondary" className="gap-1">
-                              Status: {status}
-                              <X 
-                                className="h-3 w-3 cursor-pointer" 
-                                onClick={() => {
-                                  const newStatuses = selectedStatus.filter(s => s !== status);
-                                  setSelectedStatus(newStatuses);
-                                }}
-                              />
-                            </Badge>
-                          ))}
-                          {selectedTags.map(tag => (
-                            <Badge key={tag} variant="secondary" className="gap-1">
-                              Tag: {tag}
-                              <X 
-                                className="h-3 w-3 cursor-pointer" 
-                                onClick={() => {
-                                  const newTags = selectedTags.filter(t => t !== tag);
-                                  setSelectedTags(newTags);
-                                }}
-                              />
-                            </Badge>
-                          ))}
+                          {Object.entries(selectedTagFilters).map(([tagTypeName, values]) =>
+                            values.map(value => (
+                              <Badge key={`${tagTypeName}-${value}`} variant="secondary" className="gap-1">
+                                {tagTypeName}: {value}
+                                <X 
+                                  className="h-3 w-3 cursor-pointer" 
+                                  onClick={() => {
+                                    const newValues = values.filter(v => v !== value);
+                                    if (newValues.length === 0) {
+                                      const newFilters = { ...selectedTagFilters };
+                                      delete newFilters[tagTypeName];
+                                      setSelectedTagFilters(newFilters);
+                                    } else {
+                                      setSelectedTagFilters({ ...selectedTagFilters, [tagTypeName]: newValues });
+                                    }
+                                  }}
+                                />
+                              </Badge>
+                            ))
+                          )}
                           {selectedDocuments.map(document => (
                             <Badge key={document} variant="secondary" className="gap-1">
                               Document: {document}
@@ -1100,7 +1113,7 @@ export function VaultHomepage() {
                         </h2>
                         {hasActiveFilters && (
                           <p className="text-foreground/70 mt-1">
-                            Filtered by {selectedStrategy.length + selectedType.length + selectedTags.length + selectedStatus.length} criteria
+                            Filtered by {totalFiltersCount} criteria
                           </p>
                         )}
                       </div>
@@ -1230,8 +1243,6 @@ export function VaultHomepage() {
                             onToggleExpansion={toggleNestedExpansion}
                             onEdit={handleEdit}
                             onCopyAnswer={handleCopyAnswer}
-                            onStrategyRemove={handleStrategyRemove}
-                            onStrategyAdd={handleStrategyAdd}
                             onTagRemove={handleTagRemove}
                             onTagAdd={handleTagAdd}
                             onArchive={handleArchive}
@@ -1323,8 +1334,6 @@ export function VaultHomepage() {
                               onToggleExpansion={toggleAnswerExpansion}
                               onEdit={handleEdit}
                               onCopyAnswer={handleCopyAnswer}
-                              onStrategyRemove={handleStrategyRemove}
-                              onStrategyAdd={handleStrategyAdd}
                               onTagRemove={handleTagRemove}
                               onTagAdd={handleTagAdd}
                               onArchive={handleArchive}
@@ -1340,13 +1349,10 @@ export function VaultHomepage() {
                               No recent questions found.
                             </p>
                             <Button variant="outline" onClick={() => {
-                              setSearchInput('');
-                              setQuery('');
-                              setSelectedStrategy([]);
-                              setSelectedType([]);
-                              setSelectedTags([]);
-                              setSelectedStatus([]);
-                              navigate('/vault');
+                                  setSearchInput('');
+                                  setQuery('');
+                                  setSelectedTagFilters({});
+                                  navigate('/vault');
                             }}>
                               Browse All Questions
                             </Button>
@@ -1490,12 +1496,9 @@ export function VaultHomepage() {
                                 key={type.name}
                                 className="group flex items-center justify-between px-4 py-3 border border-foreground/10 rounded-lg hover:bg-foreground/5 transition cursor-pointer"
                                 onClick={() => {
-                                  setSelectedType([type.name]);
+                                  setSelectedTagFilters({ 'Type': [type.name] });
                                   setSearchInput('');
                                   setQuery('');
-                                  setSelectedStrategy([]);
-                                  setSelectedTags([]);
-                                  setSelectedStatus([]);
                                   const params = new URLSearchParams();
                                   params.set('type', type.name);
                                   navigate(`/vault?${params.toString()}`);
@@ -1547,12 +1550,9 @@ export function VaultHomepage() {
                                 key={group.name}
                                 className="group flex items-center justify-between px-4 py-3 border border-foreground/10 rounded-lg hover:bg-foreground/5 transition cursor-pointer"
                                 onClick={() => {
-                                  setSelectedStrategy([group.name]);
+                                  setSelectedTagFilters({ 'Strategy': [group.name] });
                                   setSearchInput('');
                                   setQuery('');
-                                  setSelectedType([]);
-                                  setSelectedTags([]);
-                                  setSelectedStatus([]);
                                   const params = new URLSearchParams();
                                   params.set('strategy', group.name);
                                   navigate(`/vault?${params.toString()}`);
@@ -1635,12 +1635,8 @@ export function VaultHomepage() {
       <FiltersPanel
         isOpen={showFiltersPanel}
         onClose={() => setShowFiltersPanel(false)}
-        selectedTags={selectedTags}
-        onTagsChange={setSelectedTags}
-        selectedStrategies={selectedStrategy}
-        onStrategiesChange={setSelectedStrategy}
-        selectedTypes={selectedType}
-        onTypesChange={setSelectedType}
+        selectedTagFilters={selectedTagFilters}
+        onTagFiltersChange={setSelectedTagFilters}
         selectedDocuments={selectedDocuments}
         onDocumentsChange={setSelectedDocuments}
         selectedDateRange={selectedDateRange}

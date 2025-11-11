@@ -13,9 +13,7 @@ export interface RecentSearchItem {
   timestamp: number;
   mode: 'answer' | 'chat' | 'riaOutreach';
   filters?: {
-    tags: string[];
-    strategies: string[];
-    types?: string[];
+    tagFilters?: Record<string, string[]>; // New format
     documents: string[];
     dateRange?: DateRange | null;
     priorSamples: Array<{
@@ -23,6 +21,10 @@ export interface RecentSearchItem {
       name: string;
       type: string;
     }>;
+    // Legacy fields for backward compatibility
+    tags?: string[];
+    strategies?: string[];
+    types?: string[];
   };
   uploadedFiles?: Array<{
     id: string;
@@ -131,9 +133,7 @@ export function useRecentSearches() {
       query: string, 
       mode: 'answer' | 'chat' | 'riaOutreach' = 'answer',
       filters?: {
-        tags: string[];
-        strategies: string[];
-        types?: string[];
+        tagFilters?: Record<string, string[]>; // New format
         documents: string[];
         dateRange?: DateRange | null;
         priorSamples: Array<{
@@ -141,6 +141,10 @@ export function useRecentSearches() {
           name: string;
           type: string;
         }>;
+        // Legacy fields for backward compatibility
+        tags?: string[];
+        strategies?: string[];
+        types?: string[];
       },
       uploadedFiles?: Array<{
         id: string;
