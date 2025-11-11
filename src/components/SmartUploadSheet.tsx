@@ -20,7 +20,7 @@ interface SmartUploadSheetProps {
 
 export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
   const { toast } = useToast();
-  const { getAllTagTypes, getTagTypeValues } = useTagTypes();
+  const { getAllTagTypes, getTagTypeValues, addTagTypeValue } = useTagTypes();
   const tagTypes = getAllTagTypes();
   
   // Form state
@@ -141,6 +141,16 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
 
   // Handle tag type selection change
   const handleTagTypeChange = (tagTypeName: string, selectedValues: string[]) => {
+    // Get current allowed values for this tag type
+    const allowedValues = getTagTypeValues(tagTypeName);
+    
+    // Auto-add any selected values that aren't in the allowed list
+    selectedValues.forEach(value => {
+      if (!allowedValues.includes(value)) {
+        addTagTypeValue(tagTypeName, value);
+      }
+    });
+    
     // Remove all tags of this type
     const otherTags = tags.filter(tag => tag.type !== tagTypeName);
     // Add new tags for selected values
@@ -299,12 +309,17 @@ export function SmartUploadSheet({ open, onClose }: SmartUploadSheetProps) {
               const availableValues = getTagTypeValues(tagType.name);
               const selectedValues = getSelectedValuesForType(tagType.name);
               
+              // Include selected values in options even if not in allowed list
+              const optionsWithSelected = Array.from(
+                new Set([...availableValues, ...selectedValues])
+              ).sort();
+              
               return (
                 <div key={tagType.id} className="space-y-2">
                   <Label>{tagType.name}</Label>
                   <MultiSelectFilter
                     title={tagType.name}
-                    options={availableValues}
+                    options={optionsWithSelected}
                     selectedValues={selectedValues}
                     onSelectionChange={(values) => handleTagTypeChange(tagType.name, values)}
                     placeholder={`Select ${tagType.name.toLowerCase()}...`}

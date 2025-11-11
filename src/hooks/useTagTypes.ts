@@ -1,7 +1,51 @@
 import { useState, useEffect, useCallback } from 'react';
-import { TagType, TagTypeConfig, STRATEGIES, TAGS_INFO } from '@/types/vault';
+import { TagType, TagTypeConfig, STRATEGIES, TAGS_INFO, QuestionItem } from '@/types/vault';
+import { MOCK_CONTENT_ITEMS } from '@/data/mockVaultData';
+import { migrateQuestionItems } from '@/utils/tagMigration';
 
 const STORAGE_KEY = 'advisergpt_tag_types_config';
+
+// Extract all unique tag values by type from vault items
+const extractTagValuesFromItems = (items: QuestionItem[]): Record<string, Set<string>> => {
+  const tagValuesByType: Record<string, Set<string>> = {};
+  
+  items.forEach(item => {
+    if (item.tags && Array.isArray(item.tags)) {
+      item.tags.forEach(tag => {
+        if (typeof tag === 'object' && 'type' in tag && 'value' in tag) {
+          const tagType = tag.type;
+          const tagValue = tag.value;
+          
+          if (!tagValuesByType[tagType]) {
+            tagValuesByType[tagType] = new Set();
+          }
+          tagValuesByType[tagType].add(tagValue);
+        }
+      });
+    }
+    
+    // Also check children if they exist
+    if (item.children && Array.isArray(item.children)) {
+      item.children.forEach(child => {
+        if (child.tags && Array.isArray(child.tags)) {
+          child.tags.forEach(tag => {
+            if (typeof tag === 'object' && 'type' in tag && 'value' in tag) {
+              const tagType = tag.type;
+              const tagValue = tag.value;
+              
+              if (!tagValuesByType[tagType]) {
+                tagValuesByType[tagType] = new Set();
+              }
+              tagValuesByType[tagType].add(tagValue);
+            }
+          });
+        }
+      });
+    }
+  });
+  
+  return tagValuesByType;
+};
 
 // Initialize default tag types from existing data
 const getDefaultTagTypes = (): TagType[] => {
@@ -19,18 +63,46 @@ const getDefaultTagTypes = (): TagType[] => {
   ];
 };
 
-// Load tag types from localStorage or return defaults
+// Load tag types from localStorage or return defaults with auto-populated values
 const loadTagTypes = (): TagType[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
+    let tagTypes: TagType[];
+    
     if (stored) {
       const config: TagTypeConfig = JSON.parse(stored);
-      return config.tagTypes;
+      tagTypes = config.tagTypes;
+    } else {
+      tagTypes = getDefaultTagTypes();
     }
+    
+    // Auto-populate tag values from vault items
+    const allItems = migrateQuestionItems(
+      MOCK_CONTENT_ITEMS.flatMap(doc => doc.items)
+    );
+    const extractedValues = extractTagValuesFromItems(allItems);
+    
+    // Merge extracted values with existing tag type values
+    tagTypes = tagTypes.map(tagType => {
+      const extractedValuesForType = extractedValues[tagType.name] || new Set();
+      const existingValues = new Set(tagType.values);
+      
+      // Merge: combine existing and extracted values
+      extractedValuesForType.forEach(value => {
+        existingValues.add(value);
+      });
+      
+      return {
+        ...tagType,
+        values: Array.from(existingValues).sort(),
+      };
+    });
+    
+    return tagTypes;
   } catch (error) {
     console.error('Error loading tag types from localStorage:', error);
+    return getDefaultTagTypes();
   }
-  return getDefaultTagTypes();
 };
 
 // Save tag types to localStorage
