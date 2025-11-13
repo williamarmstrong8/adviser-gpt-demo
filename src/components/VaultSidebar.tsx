@@ -498,7 +498,7 @@ export function VaultSidebar() {
                 </Tooltip>
               ) : (
                 <Link
-                  to="#"
+                  to="/insights"
                   className={`h-10 px-2 rounded-md flex items-center gap-2 transition active:scale-[0.98] text-sidebar-foreground hover:bg-sidebar-primary/5 border border-transparent
                   `}
                 >
