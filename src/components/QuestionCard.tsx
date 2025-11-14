@@ -13,7 +13,8 @@ import {
   ChevronRight,
   Copy,
   CopyCheck, 
-  Check
+  Check,
+  Trash2
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { QuestionItem, Tag } from '@/types/vault';
 import { useTagTypes } from '@/hooks/useTagTypes';
 import { migrateQuestionItem } from '@/utils/tagMigration';
@@ -40,6 +42,7 @@ interface QuestionCardProps {
   onTagRemove?: (itemId: string, tag: Tag) => void;
   onTagAdd?: (itemId: string, tag: Tag) => void;
   onArchive?: (itemId: string) => void;
+  onDelete?: (itemId: string) => void;
   highlightSearchTerms?: (text: string, query: string) => string;
   formatRelativeTime?: (isoString: string) => string;
   formatFullDate?: (isoString: string) => string;
@@ -59,6 +62,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   onTagRemove,
   onTagAdd,
   onArchive,
+  onDelete,
   highlightSearchTerms = (text) => text,
   formatRelativeTime = (date) => date,
   formatFullDate = (date) => date,
@@ -404,6 +408,36 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           <Archive className="h-4 w-4" />
           {displayData.archived ? 'Restore' : 'Archive'}
         </button>
+        {displayData.archived && onDelete && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium hover:bg-sidebar-background/5 transition active:scale-[0.96] text-destructive hover:text-destructive"
+                style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Permanently</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You are about to permanently delete "{displayData.question}". This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>No, cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={() => onDelete(item.id)}
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                >
+                  Yes, delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium hover:bg-sidebar-background/5 transition active:scale-[0.96]" style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}>
@@ -451,6 +485,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               onTagRemove={onTagRemove}
               onTagAdd={onTagAdd}
               onArchive={onArchive}
+              onDelete={onDelete}
               highlightSearchTerms={highlightSearchTerms}
               formatRelativeTime={formatRelativeTime}
               formatFullDate={formatFullDate}

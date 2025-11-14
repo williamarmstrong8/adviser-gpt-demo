@@ -28,13 +28,15 @@ import {
   X,
   Check,
   Archive,
-  Filter
+  Filter,
+  Trash2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useVaultState, useVaultEdits } from "@/hooks/useVaultState";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
 import { useToast } from "@/hooks/use-toast";
@@ -143,6 +145,9 @@ export function VaultHomepage() {
   const [showFirmUpdatesModal, setShowFirmUpdatesModal] = useState(false);
   const [showFindDuplicatesModal, setShowFindDuplicatesModal] = useState(false);
   const [showSmartUploadSheet, setShowSmartUploadSheet] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<QuestionItem | null>(null);
 
   // Load saved tab state from localStorage
   useEffect(() => {
@@ -417,6 +422,12 @@ export function VaultHomepage() {
   const filteredItems = smartSearchResults.filter(item => {
     const displayData = getDisplayData(item);
     
+    // Filter out deleted items
+    const edit = getEdit(item.id);
+    if (edit?.deleted) {
+      return false;
+    }
+    
     // Filter out archived items unless showArchived is true
     if (!state.showArchived && displayData.archived) {
       return false;
@@ -572,6 +583,58 @@ export function VaultHomepage() {
     });
   };
 
+  const handleDelete = (itemId: string) => {
+    const item = allItems.find(item => item.id === itemId);
+    if (item) {
+      setItemToDelete(item);
+      setDeleteConfirmOpen(true);
+    }
+  };
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+      const currentEdit = getEdit(itemToDelete.id) || {};
+      saveEdit(itemToDelete.id, { ...currentEdit, deleted: true });
+      
+      toast({
+        title: "Item deleted",
+        description: "The item has been permanently deleted.",
+      });
+      
+      setDeleteConfirmOpen(false);
+      setItemToDelete(null);
+    }
+  };
+
+  const handleDeleteAllArchived = () => {
+    setDeleteAllConfirmOpen(true);
+  };
+
+  const confirmDeleteAllArchived = () => {
+    // Get all currently visible archived items
+    const archivedItems = sortedAndFilteredItems.filter(item => {
+      const displayData = getDisplayData(item);
+      return displayData.archived;
+    });
+
+    if (archivedItems.length > 0) {
+      // Mark all as deleted
+      const deleteEdits = archivedItems.map(item => {
+        const currentEdit = getEdit(item.id) || {};
+        return [item.id, { ...currentEdit, deleted: true }] as [string, any];
+      });
+      
+      saveManyEdits(deleteEdits);
+      
+      toast({
+        title: "Items deleted",
+        description: `${archivedItems.length} archived item(s) have been permanently deleted.`,
+      });
+    }
+    
+    setDeleteAllConfirmOpen(false);
+  };
+
   const handleSortChange = (sortValue: string) => {
     setSort(sortValue);
     
@@ -656,8 +719,12 @@ export function VaultHomepage() {
 
   // Group items by file for Files view
   const fileGroups = MOCK_CONTENT_ITEMS.map(doc => {
-    // Filter out archived items unless showArchived is true
+    // Filter out deleted and archived items unless showArchived is true
     const visibleItems = doc.items.filter(item => {
+      const edit = getEdit(item.id);
+      if (edit?.deleted) {
+        return false;
+      }
       const displayData = getDisplayData(item);
       return state.showArchived || !displayData.archived;
     });
@@ -700,6 +767,10 @@ export function VaultHomepage() {
   const typeGroups = CONTENT_TYPES.map(type => ({
     name: type,
     totalItems: allItems.filter(item => {
+      const edit = getEdit(item.id);
+      if (edit?.deleted) {
+        return false;
+      }
       const displayData = getDisplayData(item);
       return item.type === type && (state.showArchived || !displayData.archived);
     }).length
@@ -709,6 +780,10 @@ export function VaultHomepage() {
   const strategyGroups = STRATEGIES.map(strategy => ({
     name: strategy,
     totalItems: allItems.filter(item => {
+      const edit = getEdit(item.id);
+      if (edit?.deleted) {
+        return false;
+      }
       const displayData = getDisplayData(item);
       const itemStrategy = Array.isArray(item.strategy) ? item.strategy : [item.strategy];
       return itemStrategy.includes(strategy) && (state.showArchived || !displayData.archived);
@@ -718,6 +793,12 @@ export function VaultHomepage() {
   // Get recent questions with sorting and filtering
   const recentQuestions = (() => {
     let filtered = allItems;
+    
+    // Filter out deleted items
+    filtered = filtered.filter(item => {
+      const edit = getEdit(item.id);
+      return !edit?.deleted;
+    });
     
     // Apply archived filter
     if (!state.showArchived) {
@@ -1147,6 +1228,18 @@ export function VaultHomepage() {
                           </DropdownMenuContent>
                         </DropdownMenu>
 
+                        {state.showArchived && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleDeleteAllArchived}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Archived
+                          </Button>
+                        )}
+
                         <Button
                           variant={state.showArchived ? "default" : "outline"}
                           size="sm"
@@ -1168,7 +1261,7 @@ export function VaultHomepage() {
                         </Button>
 
                         {/* Expand/Collapse All Nested Questions */}
-                        {hasNestedQuestions && (
+                        {/* {hasNestedQuestions && (
                           <Button
                             variant="outline"
                             size="sm"
@@ -1179,7 +1272,7 @@ export function VaultHomepage() {
                           >
                             {nestedExpanded.size > 0 ? "Collapse All" : "Expand All"}
                           </Button>
-                        )}
+                        )} */}
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -1246,6 +1339,7 @@ export function VaultHomepage() {
                             onTagRemove={handleTagRemove}
                             onTagAdd={handleTagAdd}
                             onArchive={handleArchive}
+                            onDelete={handleDelete}
                             highlightSearchTerms={highlightSearchTerms}
                             formatRelativeTime={formatRelativeTime}
                             formatFullDate={formatFullDate}
@@ -1337,6 +1431,7 @@ export function VaultHomepage() {
                               onTagRemove={handleTagRemove}
                               onTagAdd={handleTagAdd}
                               onArchive={handleArchive}
+                              onDelete={handleDelete}
                               highlightSearchTerms={highlightSearchTerms}
                               formatRelativeTime={formatRelativeTime}
                               formatFullDate={formatFullDate}
@@ -1647,6 +1742,51 @@ export function VaultHomepage() {
         onClearAll={clearFilters}
         showDocumentNames={false}
       />
+
+      {/* Delete Confirmation Dialog for Individual Item */}
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Permanently</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to permanently delete "{itemToDelete?.question}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Archived Confirmation Dialog */}
+      <AlertDialog open={deleteAllConfirmOpen} onOpenChange={setDeleteAllConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All Archived Items</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to permanently delete {sortedAndFilteredItems.filter(item => {
+                const displayData = getDisplayData(item);
+                return displayData.archived;
+              }).length} archived item(s). This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteAllArchived}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Yes, delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
