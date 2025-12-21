@@ -1,11 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ImportSession, ImportSummary } from "@/types/import";
-import { CheckCircle2, Undo2, ArrowRight } from "lucide-react";
+import { CheckCircle2, Undo2, ArrowRight, Loader2 } from "lucide-react";
 import { rollbackImport } from "@/utils/importExecution";
 import { useVaultEdits } from "@/hooks/useVaultState";
 import { deleteImportSession } from "@/utils/importStorage";
 import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 interface ImportResultScreenProps {
   session: ImportSession;
@@ -21,15 +22,95 @@ export function ImportResultScreen({
   const navigate = useNavigate();
   const { toast } = useToast();
   const { getEdit, clearEdit } = useVaultEdits();
+  const [isUndoing, setIsUndoing] = useState(false);
 
   const handleUndo = () => {
-    rollbackImport(session.id, summary.importedItemIds, getEdit, clearEdit);
-    deleteImportSession(session.id);
-    toast({
-      title: "Import rolled back",
-      description: "All imported items have been removed.",
-    });
-    onUndo();
+    if (isUndoing) return;
+    
+    setIsUndoing(true);
+    
+    try {
+      // Check if there are items to undo
+      if (!summary.importedItemIds || summary.importedItemIds.length === 0) {
+        toast({
+          title: "Nothing to undo",
+          description: "No items were imported in this session.",
+        });
+        setIsUndoing(false);
+        onUndo();
+        return;
+      }
+      
+      const itemsToClear = summary.importedItemIds;
+      
+      // Only batch if there are many items (> 100) to prevent UI freeze
+      if (itemsToClear.length > 100) {
+        let processed = 0;
+        const batchSize = 100;
+        
+        const processBatch = () => {
+          const batch = itemsToClear.slice(processed, processed + batchSize);
+          batch.forEach(itemId => {
+            const item = getEdit(itemId);
+            if (item && item.documentId === session.id) {
+              clearEdit(itemId);
+            }
+          });
+          
+          processed += batch.length;
+          
+          if (processed < itemsToClear.length) {
+            requestAnimationFrame(processBatch);
+          } else {
+            // All items processed
+            const actuallyRemoved = itemsToClear.filter(itemId => {
+              const item = getEdit(itemId);
+              return item && item.documentId === session.id;
+            }).length;
+            
+            deleteImportSession(session.id);
+            toast({
+              title: "Import rolled back",
+              description: actuallyRemoved > 0 
+                ? `${actuallyRemoved} item${actuallyRemoved !== 1 ? 's' : ''} removed.`
+                : "Import rolled back.",
+            });
+            setIsUndoing(false);
+            onUndo();
+          }
+        };
+        
+        requestAnimationFrame(processBatch);
+      } else {
+        // For small batches, clear immediately
+        let actuallyRemoved = 0;
+        itemsToClear.forEach(itemId => {
+          const item = getEdit(itemId);
+          if (item && item.documentId === session.id) {
+            clearEdit(itemId);
+            actuallyRemoved++;
+          }
+        });
+        
+        deleteImportSession(session.id);
+        toast({
+          title: "Import rolled back",
+          description: actuallyRemoved > 0
+            ? `${actuallyRemoved} item${actuallyRemoved !== 1 ? 's' : ''} removed.`
+            : "Import rolled back.",
+        });
+        setIsUndoing(false);
+        onUndo();
+      }
+    } catch (error) {
+      console.error('Error during undo:', error);
+      toast({
+        title: "Error rolling back import",
+        description: error instanceof Error ? error.message : "Failed to rollback import.",
+        variant: "destructive",
+      });
+      setIsUndoing(false);
+    }
   };
 
   const handleGoToVault = () => {
@@ -111,9 +192,19 @@ export function ImportResultScreen({
           onClick={handleUndo}
           variant="outline"
           className="w-full"
+          disabled={isUndoing}
         >
-          <Undo2 className="h-4 w-4 mr-2" />
-          Undo this import
+          {isUndoing ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Rolling back...
+            </>
+          ) : (
+            <>
+              <Undo2 className="h-4 w-4 mr-2" />
+              Undo this import
+            </>
+          )}
         </Button>
       </div>
     </div>
