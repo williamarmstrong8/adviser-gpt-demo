@@ -717,13 +717,13 @@ export function ExcelQAPair() {
 
                     {/* Tag Columns (Optional) */}
                     {sectionColumn && questionColumn && answerColumn && (
-                      <div className="space-y-4 pt-4 border-t">
+                      <div className="space-y-4 pt-4 border-t col-span-full">
                         <div>
                           <Label className="text-sm font-medium">
                             Tag Columns (Optional)
                           </Label>
                           <p className="text-xs text-foreground/70 mt-1 mb-3">
-                            Map Excel columns to your tag labels from Firm Settings
+                            Map Excel columns to the tags (found in Firm Settings)
                           </p>
                           <div className="space-y-3">
                             {tagTypes.map((tagType) => {
@@ -743,7 +743,7 @@ export function ExcelQAPair() {
                                       onValueChange={(columnName) => handleTagTypeColumnChange(tagType.name, columnName)}
                                       disabled={isAnalyzing}
                                     >
-                                      <SelectTrigger className="flex-1">
+                                      <SelectTrigger className="flex-1 max-w-[360px]">
                                         <SelectValue placeholder="Select column" />
                                       </SelectTrigger>
                                       <SelectContent>
@@ -763,17 +763,17 @@ export function ExcelQAPair() {
                                     {isAnalyzing && (
                                       <Loader2 className="h-4 w-4 animate-spin text-foreground/60" />
                                     )}
+                                    {analysis && !isAnalyzing && (
+                                      <div className="px-2 py-1 bg-sidebar-background rounded-md border border-foreground/10 flex-1">
+                                        <p className="text-xs text-foreground/70">
+                                          • <strong>{analysis.stats.matchedCount}</strong> match existing {tagType.name} labels
+                                        </p>
+                                        <p className="text-xs text-foreground/70">
+                                          • <strong>{analysis.stats.unmatchedCount}</strong> will be created as new {tagType.name} labels
+                                        </p>
+                                      </div>
+                                    )}
                                   </div>
-                                  {analysis && !isAnalyzing && (
-                                    <div className="ml-[132px] p-2 bg-sidebar-background rounded-md border border-foreground/10">
-                                      <p className="text-xs text-foreground/70">
-                                        • {analysis.stats.matchedCount} match existing {tagType.name} labels
-                                      </p>
-                                      <p className="text-xs text-foreground/70">
-                                        • {analysis.stats.unmatchedCount} will be created as new {tagType.name} labels
-                                      </p>
-                                    </div>
-                                  )}
                                 </div>
                               );
                             })}
@@ -790,7 +790,7 @@ export function ExcelQAPair() {
 
                   {sectionColumn && questionColumn && answerColumn && (
                     <div className="flex flex-col gap-2 pt-4 border-t">
-                      <Button
+                      {/* <Button
                         onClick={() => handleSaveTags()}
                         className="bg-sidebar-primary hover:bg-sidebar-primary/80 w-full"
                         size="lg"
@@ -800,16 +800,15 @@ export function ExcelQAPair() {
                       </Button>
                       <p className="text-xs text-foreground/60 text-center">
                         Use these mappings and create new labels where needed
-                      </p>
+                      </p> */}
                       
                       {getTotalUnmatchedCount() > 0 && (
                         <Button
                           onClick={() => setShowTagMapping(true)}
-                          variant="outline"
-                          className="w-full"
+                          className="w-full bg-sidebar-primary hover:bg-sidebar-primary/80"
                           size="lg"
                         >
-                          Review unmatched values ({getTotalUnmatchedCount()})
+                          Review unmatched tags ({getTotalUnmatchedCount()})
                         </Button>
                       )}
                       
