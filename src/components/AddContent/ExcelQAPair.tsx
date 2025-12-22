@@ -920,6 +920,8 @@ export function ExcelQAPair() {
         rows={parseResult?.rows || []}
         tagColumns={getTagColumnsForReview()}
         onSave={handleSaveTags}
+        tagTypeColumnMapping={tagTypeColumnMapping}
+        tagAnalyses={tagAnalyses}
       />
     </div>
   );
