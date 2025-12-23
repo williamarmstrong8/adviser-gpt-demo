@@ -956,8 +956,10 @@ export function VaultHomepage() {
     setEditingItem(item);
   };
 
-  const handleSave = (itemId: string, editData: string) => {
-    saveEdit(itemId, editData);
+  const handleSave = (itemId: string, editData: any) => {
+    // Pass the original item so saveEdit can compare against it
+    const originalItem = allItems.find(item => item.id === itemId);
+    saveEdit(itemId, editData, originalItem);
     setEditingItem(null);
   };
 

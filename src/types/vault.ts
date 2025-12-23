@@ -43,6 +43,8 @@ export interface QuestionItem {
   parentId?: string; // ID of parent question if this is a nested question
   children?: QuestionItem[]; // Child questions if this is a parent
   isExpanded?: boolean; // Whether this parent question is expanded (default true)
+  // Change tracking
+  changeHistory?: ChangeHistoryEntry[]; // History of changes to question/answer
 }
 
 export interface ContentItem {
@@ -67,6 +69,14 @@ export interface VaultState {
   activeView: "files" | "type" | "strategy" | "data";
   sort: string;
   showArchived: boolean;
+}
+
+// Change tracking types
+export interface ChangeHistoryEntry {
+  date: string; // ISO string
+  user: string;
+  question: string;
+  answer: string;
 }
 
 // Tag management types

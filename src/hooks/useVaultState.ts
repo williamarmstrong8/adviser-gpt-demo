@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { VaultState, VaultFilters } from '@/types/vault';
+import { VaultState, VaultFilters, QuestionItem } from '@/types/vault';
+import { useChangeHistory } from './useChangeHistory';
+import { useUserProfile } from './useUserProfile';
 
 // LocalStorage keys
 const STORAGE_KEYS = {
@@ -102,6 +104,8 @@ export function useVaultState() {
 // Hook for managing edits
 export function useVaultEdits() {
   const [edits, setEdits] = useState<Record<string, any>>({});
+  const { getChangeHistory, addChangeHistoryEntry, initializeChangeHistory, hasHistory } = useChangeHistory();
+  const { profile } = useUserProfile();
 
   useEffect(() => {
     try {
@@ -123,20 +127,93 @@ export function useVaultEdits() {
     }
   }, [edits]);
 
-  // const saveEdit = (itemId: string, editData: any) => {
-  //   const currentEdit = edits[itemId] || {};
-  //   const newEdit = { ...currentEdit, ...editData };
-  //   const newEdits = { ...edits, [itemId]: newEdit };
-  //   setEdits(newEdits);
-  //   localStorage.setItem(STORAGE_KEYS.edits, JSON.stringify(newEdits));
-  // };
+  // Helper function to check if question/answer changed
+  const hasQuestionOrAnswerChanged = (prevData: any, newData: any, originalItem?: any): boolean => {
+    // Get previous values: prefer prevEdit, then originalItem, then empty string
+    const prevQuestion = (prevData?.question ?? originalItem?.question ?? '').trim();
+    const prevAnswer = (prevData?.answer ?? originalItem?.answer ?? '').trim();
+    
+    // Get new values: if not provided in newData, use previous values (no change)
+    // This handles cases like archive/tag operations that don't include question/answer
+    const newQuestion = (newData?.question !== undefined 
+      ? newData.question 
+      : prevData?.question ?? originalItem?.question ?? '').trim();
+    const newAnswer = (newData?.answer !== undefined 
+      ? newData.answer 
+      : prevData?.answer ?? originalItem?.answer ?? '').trim();
+    
+    return prevQuestion !== newQuestion || prevAnswer !== newAnswer;
+  };
 
   // already existing single-item saver — keep but make it functional
-  const saveEdit = (id: string, data: any) => {
-    setEdits(prev => ({
-      ...prev,
-      [id]: { ...(prev[id] ?? {}), ...data },
-    }));
+  const saveEdit = (id: string, data: any, originalItem?: any) => {
+    // Check history before entering setEdits to avoid stale state
+    const itemHasHistory = hasHistory(id);
+    
+    setEdits(prev => {
+      const prevEdit = prev[id];
+      const isNewItem = !prevEdit && !originalItem;
+      
+      // Check if question or answer changed (not just tags)
+      // Compare against prevEdit if it exists, otherwise against originalItem
+      const hasChanged = hasQuestionOrAnswerChanged(prevEdit, data, originalItem);
+      console.log('Change detection:', {
+        id,
+        hasChanged,
+        prevEdit: prevEdit ? { question: prevEdit.question, answer: prevEdit.answer } : 'none',
+        originalItem: originalItem ? { question: originalItem.question, answer: originalItem.answer } : 'none',
+        newData: { question: data.question, answer: data.answer },
+      });
+      
+      if (hasChanged) {
+        const user = profile.fullName || data.updatedBy || 'Unknown User';
+        const timestamp = data.updatedAt || new Date().toISOString();
+        
+        if (isNewItem) {
+          // First creation - initialize history
+          const initialData: QuestionItem = {
+            id,
+            type: data.type || 'Questionnaires',
+            tags: data.tags || [],
+            question: data.question || '',
+            answer: data.answer || '',
+            updatedAt: timestamp,
+            updatedBy: user,
+            ...data,
+          };
+          initializeChangeHistory(id, initialData, user);
+        } else {
+          // Update - check if this is the first edit of an existing item
+          // If history doesn't exist yet and we have originalItem, initialize with original state first
+          if (!itemHasHistory && originalItem) {
+            // First edit of existing item - initialize history with original state
+            const originalEntry: QuestionItem = {
+              id,
+              type: originalItem.type || 'Questionnaires',
+              tags: originalItem.tags || [],
+              question: originalItem.question || '',
+              answer: originalItem.answer || '',
+              updatedAt: originalItem.updatedAt || new Date().toISOString(),
+              updatedBy: originalItem.updatedBy || 'Unknown User',
+            };
+            initializeChangeHistory(id, originalEntry, originalItem.updatedBy || 'Unknown User');
+          }
+          
+          // Add the new change entry
+          addChangeHistoryEntry(id, {
+            date: timestamp,
+            user,
+            question: data.question || '',
+            answer: data.answer || '',
+          });
+        }
+      }
+      
+      return {
+        ...prev,
+        [id]: { ...(prevEdit ?? {}), ...data },
+      };
+    });
   };
 
   // NEW: commit many edits in one state update
@@ -144,7 +221,39 @@ export function useVaultEdits() {
     setEdits(prev => {
       const next = { ...prev };
       for (const [id, data] of entries) {
-        next[id] = { ...(next[id] ?? {}), ...data };
+        const prevEdit = next[id];
+        const isNewItem = !prevEdit;
+        
+        // Check if question or answer changed (not just tags)
+        if (hasQuestionOrAnswerChanged(prevEdit, data)) {
+          const user = profile.fullName || data.updatedBy || 'Unknown User';
+          const timestamp = data.updatedAt || new Date().toISOString();
+          
+          if (isNewItem) {
+            // First creation - initialize history
+            const initialData: QuestionItem = {
+              id,
+              type: data.type || 'Questionnaires',
+              tags: data.tags || [],
+              question: data.question || '',
+              answer: data.answer || '',
+              updatedAt: timestamp,
+              updatedBy: user,
+              ...data,
+            };
+            initializeChangeHistory(id, initialData, user);
+          } else {
+            // Update - add history entry
+            addChangeHistoryEntry(id, {
+              date: timestamp,
+              user,
+              question: data.question || '',
+              answer: data.answer || '',
+            });
+          }
+        }
+        
+        next[id] = { ...(prevEdit ?? {}), ...data };
       }
       return next;
     });

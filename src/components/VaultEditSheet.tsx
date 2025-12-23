@@ -8,6 +8,7 @@ import { QuestionItem, Tag } from "@/types/vault";
 import { useTagTypes } from "@/hooks/useTagTypes";
 import { MultiSelectFilter } from "./MultiSelectFilter";
 import { migrateQuestionItem } from "@/utils/tagMigration";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 interface VaultEditSheetProps {
   item: QuestionItem;
@@ -21,6 +22,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
   const { getAllTagTypes, getTagTypeValues, addTagTypeValue } = useTagTypes();
   const tagTypes = getAllTagTypes();
   const { toast } = useToast();
+  const { profile } = useUserProfile();
 
   // Migrate item to new format if needed
   const migratedItem = useMemo(() => migrateQuestionItem(item), [item]);
@@ -129,6 +131,7 @@ export function VaultEditSheet({ item, open, onClose, onSave, existingEdit }: Va
       answer,
       tags, // Save in new format
       updatedAt: new Date().toISOString(),
+      updatedBy: profile.fullName || item.updatedBy || 'Unknown User',
     };
     
     onSave(editData);

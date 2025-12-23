@@ -7,6 +7,7 @@ import { DraftsAssistant, UploadedFile } from '@/components/DraftsAssistant';
 import { useToast } from '@/hooks/use-toast';
 import { useVaultEdits } from '@/hooks/useVaultState';
 import { QuestionItem } from '@/types/vault';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import {
   generateDraft,
   updateDraft,
@@ -19,6 +20,7 @@ import {
 export function Drafts() {
   const { toast } = useToast();
   const { saveEdit } = useVaultEdits();
+  const { profile } = useUserProfile();
 
   // Editor state
   const [content, setContent] = useState('');
@@ -230,7 +232,7 @@ export function Drafts() {
       body: content,
       answer: content,
       updatedAt: new Date().toISOString(),
-      updatedBy: "Current User", // TODO: Get from auth context
+      updatedBy: profile.fullName || "Current User",
       documentTitle: "Drafts",
     };
 

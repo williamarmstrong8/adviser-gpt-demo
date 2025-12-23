@@ -14,7 +14,8 @@ import {
   Copy,
   CopyCheck, 
   Check,
-  Trash2
+  Trash2,
+  Clock
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { QuestionItem, Tag } from '@/types/vault';
 import { useTagTypes } from '@/hooks/useTagTypes';
 import { migrateQuestionItem } from '@/utils/tagMigration';
+import { ChangeHistoryModal } from './ChangeHistoryModal';
 
 interface QuestionCardProps {
   item: QuestionItem & { documentTitle?: string; documentId?: string };
@@ -75,6 +77,7 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   const [isCopied, setIsCopied] = useState(false);
   const [tagSearchOpen, setTagSearchOpen] = useState(false);
   const [tagSearchQuery, setTagSearchQuery] = useState('');
+  const [showChangeHistory, setShowChangeHistory] = useState(false);
   
   // Migrate item to new format
   const migratedItem = migrateQuestionItem(item);
@@ -400,6 +403,14 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
             Edit
           </button>
         )}
+        <button 
+          className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium hover:bg-sidebar-background/5 transition active:scale-[0.96]"
+          style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
+          onClick={() => setShowChangeHistory(true)}
+        >
+          <Clock className="h-4 w-4" />
+          History
+        </button>
         <button
           className="flex h-8 px-2 pl-3 justify-center items-center gap-2 rounded-md bg-background text-sm font-medium hover:bg-sidebar-background/5 transition active:scale-[0.96]"
           style={{ boxShadow: '0 0 0 1px rgba(3, 7, 18, 0.12), 0 1px 3px -1px rgba(3, 7, 18, 0.11), 0 2px 5px 0 rgba(3, 7, 18, 0.06)' }}
@@ -493,6 +504,15 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
           ))}
         </div>
       )}
+
+      {/* Change History Modal */}
+      <ChangeHistoryModal
+        open={showChangeHistory}
+        onClose={() => setShowChangeHistory(false)}
+        itemId={item.id}
+        currentQuestion={displayData.question}
+        currentAnswer={displayData.answer}
+      />
     </div>
   );
 };
