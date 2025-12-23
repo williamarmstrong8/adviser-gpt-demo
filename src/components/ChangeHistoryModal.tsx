@@ -9,7 +9,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { ChangeHistoryEntry } from '@/types/vault';
-import { useChangeHistory } from '@/hooks/useChangeHistory';
 
 interface ChangeHistoryModalProps {
   open: boolean;
@@ -26,8 +25,26 @@ export function ChangeHistoryModal({
   currentQuestion = '',
   currentAnswer = '',
 }: ChangeHistoryModalProps) {
-  const { getChangeHistory } = useChangeHistory();
-  const history = getChangeHistory(itemId);
+  const [history, setHistory] = React.useState<ChangeHistoryEntry[]>([]);
+  
+  // Reload history from localStorage when modal opens or itemId changes
+  React.useEffect(() => {
+    if (open) {
+      try {
+        const savedHistory = localStorage.getItem('ag_vault_change_history');
+        if (savedHistory) {
+          const allHistory = JSON.parse(savedHistory);
+          const itemHistory = allHistory[itemId] || [];
+          setHistory(itemHistory);
+        } else {
+          setHistory([]);
+        }
+      } catch (error) {
+        console.warn('Failed to load change history:', error);
+        setHistory([]);
+      }
+    }
+  }, [open, itemId]);
 
   // Render diff-highlighted text
   const renderDiffText = (previousText: string, currentText: string) => {
@@ -66,20 +83,6 @@ export function ChangeHistoryModal({
     );
   };
 
-  // Get previous entry for comparison (for diff highlighting)
-  const getPreviousEntry = (currentIndex: number): ChangeHistoryEntry | null => {
-    if (currentIndex === history.length - 1) {
-      // This is the most recent entry, compare with current state
-      return {
-        date: new Date().toISOString(),
-        user: '',
-        question: currentQuestion || '',
-        answer: currentAnswer || '',
-      };
-    }
-    return history[currentIndex + 1] || null;
-  };
-
   // Reverse history to show newest first
   const reversedHistory = [...history].reverse();
 
@@ -97,14 +100,12 @@ export function ChangeHistoryModal({
             </div>
           ) : (
             reversedHistory.map((entry, index) => {
-              // For diff highlighting, compare with previous version
-              // Since we reversed, index 0 is newest, index 1 is second newest, etc.
-              const originalIndex = history.length - 1 - index;
-              const previousEntry = getPreviousEntry(originalIndex);
-              
+              // For diff highlighting, compare with previous chronological entry
+              // reversedHistory is newest first: [newest, ..., oldest]
+              // For entry at index i, compare with entry at index i+1 (the previous chronological entry)
               // For the oldest entry (last in reversed array), there's no previous entry
-              // So all text should be shown as new (green underlined)
-              const isFirstEntry = index === reversedHistory.length - 1;
+              const isOldestEntry = index === reversedHistory.length - 1;
+              const previousEntry = isOldestEntry ? null : reversedHistory[index + 1];
               
               const previousQuestion = previousEntry?.question || '';
               const previousAnswer = previousEntry?.answer || '';
@@ -123,7 +124,7 @@ export function ChangeHistoryModal({
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="text-sm font-semibold">
-                        {format(new Date(entry.date), 'MM/dd/yyyy')}
+                        {format(new Date(entry.date), 'MM/dd/yyyy h:mm a')}
                       </div>
                       <div className="text-sm text-foreground/70">
                         {entry.user}
@@ -131,14 +132,14 @@ export function ChangeHistoryModal({
                     </div>
                   </div>
                   
-                  {/* Always show question section if entry has question field or it's the first entry */}
-                  {(entryQuestion !== undefined || isFirstEntry) && (
+                  {/* Always show question section if entry has question field or it's the oldest entry */}
+                  {(entryQuestion !== undefined || isOldestEntry) && (
                     <div className="mb-4">
                       <div className="text-xs font-bold mb-2 text-foreground/70">
                         Question:
                       </div>
-                      {isFirstEntry ? (
-                        // First entry: show all text as new (green underlined)
+                      {isOldestEntry ? (
+                        // Oldest entry: show all text as new (green underlined)
                         <div className="text-sm leading-relaxed">
                           <span className="text-green-700 underline decoration-green-700 bg-green-50 px-1 rounded">
                             {entryQuestion || '(empty)'}
@@ -154,14 +155,14 @@ export function ChangeHistoryModal({
                     </div>
                   )}
                   
-                  {/* Always show answer section if entry has answer field or it's the first entry */}
-                  {(entryAnswer !== undefined || isFirstEntry) && (
+                  {/* Always show answer section if entry has answer field or it's the oldest entry */}
+                  {(entryAnswer !== undefined || isOldestEntry) && (
                     <div>
                       <div className="text-xs font-bold mb-2 text-foreground/70">
                         Answer:
                       </div>
-                      {isFirstEntry ? (
-                        // First entry: show all text as new (green underlined)
+                      {isOldestEntry ? (
+                        // Oldest entry: show all text as new (green underlined)
                         <div className="text-sm leading-relaxed">
                           <span className="text-green-700 underline decoration-green-700 bg-green-50 px-1 rounded">
                             {entryAnswer || '(empty)'}

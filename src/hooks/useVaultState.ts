@@ -156,16 +156,7 @@ export function useVaultEdits() {
       
       // Check if question or answer changed (not just tags)
       // Compare against prevEdit if it exists, otherwise against originalItem
-      const hasChanged = hasQuestionOrAnswerChanged(prevEdit, data, originalItem);
-      console.log('Change detection:', {
-        id,
-        hasChanged,
-        prevEdit: prevEdit ? { question: prevEdit.question, answer: prevEdit.answer } : 'none',
-        originalItem: originalItem ? { question: originalItem.question, answer: originalItem.answer } : 'none',
-        newData: { question: data.question, answer: data.answer },
-      });
-      
-      if (hasChanged) {
+      if (hasQuestionOrAnswerChanged(prevEdit, data, originalItem)) {
         const user = profile.fullName || data.updatedBy || 'Unknown User';
         const timestamp = data.updatedAt || new Date().toISOString();
         
@@ -182,31 +173,35 @@ export function useVaultEdits() {
             ...data,
           };
           initializeChangeHistory(id, initialData, user);
-        } else {
-          // Update - check if this is the first edit of an existing item
-          // If history doesn't exist yet and we have originalItem, initialize with original state first
-          if (!itemHasHistory && originalItem) {
-            // First edit of existing item - initialize history with original state
-            const originalEntry: QuestionItem = {
-              id,
-              type: originalItem.type || 'Questionnaires',
-              tags: originalItem.tags || [],
-              question: originalItem.question || '',
-              answer: originalItem.answer || '',
-              updatedAt: originalItem.updatedAt || new Date().toISOString(),
-              updatedBy: originalItem.updatedBy || 'Unknown User',
-            };
-            initializeChangeHistory(id, originalEntry, originalItem.updatedBy || 'Unknown User');
+          } else {
+            // Update - check if this is the first edit of an existing item
+            // If history doesn't exist yet and we have originalItem, initialize with original state first
+            if (!itemHasHistory && originalItem) {
+              // First edit of existing item - initialize history with original state
+              const originalEntry: QuestionItem = {
+                id,
+                type: originalItem.type || 'Questionnaires',
+                tags: originalItem.tags || [],
+                question: originalItem.question || '',
+                answer: originalItem.answer || '',
+                updatedAt: originalItem.updatedAt || new Date().toISOString(),
+                updatedBy: originalItem.updatedBy || 'Unknown User',
+              };
+              initializeChangeHistory(id, originalEntry, originalItem.updatedBy || 'Unknown User');
+            }
+            
+            // Get previous values for fallback
+            const prevQuestion = prevEdit?.question ?? originalItem?.question ?? '';
+            const prevAnswer = prevEdit?.answer ?? originalItem?.answer ?? '';
+            
+            // Add the new change entry - use nullish coalescing to ensure complete entries
+            addChangeHistoryEntry(id, {
+              date: timestamp,
+              user,
+              question: data.question ?? prevQuestion,
+              answer: data.answer ?? prevAnswer,
+            });
           }
-          
-          // Add the new change entry
-          addChangeHistoryEntry(id, {
-            date: timestamp,
-            user,
-            question: data.question || '',
-            answer: data.answer || '',
-          });
-        }
       }
       
       return {
@@ -244,11 +239,16 @@ export function useVaultEdits() {
             initializeChangeHistory(id, initialData, user);
           } else {
             // Update - add history entry
+            // Get previous values for fallback (use prevEdit since originalItem not available in batch saves)
+            const prevQuestion = prevEdit?.question ?? '';
+            const prevAnswer = prevEdit?.answer ?? '';
+            
+            // Use nullish coalescing to ensure complete entries
             addChangeHistoryEntry(id, {
               date: timestamp,
               user,
-              question: data.question || '',
-              answer: data.answer || '',
+              question: data.question ?? prevQuestion,
+              answer: data.answer ?? prevAnswer,
             });
           }
         }

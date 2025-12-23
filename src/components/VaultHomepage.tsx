@@ -7,6 +7,7 @@ import { FirmUpdatesModal } from "./FirmUpdatesModal";
 import { FindDuplicatesModal } from "./FindDuplicatesModal";
 import { SmartUploadSheet } from "./SmartUploadSheet";
 import { SaveSearchPrompt } from "./SaveSearchPrompt";
+import { ChangeHistoryModal } from "./ChangeHistoryModal";
 import { SortAndArchiveControls, SortColumn, SortDirection } from "./SortAndArchiveControls";
 import { 
   Search, 
@@ -145,6 +146,7 @@ export function VaultHomepage() {
   const [expandedAnswers, setExpandedAnswers] = useState<Set<string>>(new Set());
   const [nestedExpanded, setNestedExpanded] = useState<Set<string>>(new Set());
   const [editingItem, setEditingItem] = useState<QuestionItem | null>(null);
+  const [editingOriginalItem, setEditingOriginalItem] = useState<QuestionItem | null>(null);
   const [activeTab, setActiveTab] = useState<"recent" | "documents">("recent");
   const [showFirmUpdatesModal, setShowFirmUpdatesModal] = useState(false);
   const [showFindDuplicatesModal, setShowFindDuplicatesModal] = useState(false);
@@ -152,6 +154,10 @@ export function VaultHomepage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<QuestionItem | null>(null);
+  const [historyModalItemId, setHistoryModalItemId] = useState<string | null>(null);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
+  const [historyModalQuestion, setHistoryModalQuestion] = useState<string>('');
+  const [historyModalAnswer, setHistoryModalAnswer] = useState<string>('');
 
   // Load saved tab state from localStorage (only on mount)
   useEffect(() => {
@@ -952,15 +958,54 @@ export function VaultHomepage() {
     }
   };
 
+  // Helper to find original item including nested children
+  const findOriginalItem = (itemId: string): QuestionItem | undefined => {
+    // First try allItems (top-level items)
+    let found = allItems.find(item => item.id === itemId);
+    if (found) return found;
+    
+    // If not found, search nested children
+    for (const doc of MOCK_CONTENT_ITEMS) {
+      for (const item of doc.items) {
+        if (item.id === itemId) {
+          return item;
+        }
+        // Check children
+        if (item.children) {
+          for (const child of item.children) {
+            if (child.id === itemId) {
+              return child;
+            }
+          }
+        }
+      }
+    }
+    return undefined;
+  };
+
   const handleEdit = (item: QuestionItem) => {
-    setEditingItem(item);
+    // Find the original item (without edits) for comparison
+    const originalItem = findOriginalItem(item.id);
+    setEditingItem(item); // Store the display item (with edits)
+    setEditingOriginalItem(originalItem || null); // Store the original item for comparison
   };
 
   const handleSave = (itemId: string, editData: any) => {
-    // Pass the original item so saveEdit can compare against it
-    const originalItem = allItems.find(item => item.id === itemId);
+    // Use the original item we stored when editing started
+    const originalItem = editingOriginalItem;
+    if (!originalItem) {
+      console.warn('handleSave: editingOriginalItem is null, itemId:', itemId);
+    }
     saveEdit(itemId, editData, originalItem);
     setEditingItem(null);
+    setEditingOriginalItem(null);
+  };
+
+  const handleViewHistory = (itemId: string, question: string, answer: string) => {
+    setHistoryModalItemId(itemId);
+    setHistoryModalQuestion(question);
+    setHistoryModalAnswer(answer);
+    setHistoryModalOpen(true);
   };
 
   const handleTagAdd = (id: string, tag: { type: string; value: string }) => {
@@ -1346,6 +1391,7 @@ export function VaultHomepage() {
                             onTagAdd={handleTagAdd}
                             onArchive={handleArchive}
                             onDelete={handleDelete}
+                            onViewHistory={handleViewHistory}
                             highlightSearchTerms={highlightSearchTerms}
                             formatRelativeTime={formatRelativeTime}
                             formatFullDate={formatFullDate}
@@ -1438,6 +1484,7 @@ export function VaultHomepage() {
                               onTagAdd={handleTagAdd}
                               onArchive={handleArchive}
                               onDelete={handleDelete}
+                              onViewHistory={handleViewHistory}
                               highlightSearchTerms={highlightSearchTerms}
                               formatRelativeTime={formatRelativeTime}
                               formatFullDate={formatFullDate}
@@ -1793,6 +1840,15 @@ export function VaultHomepage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Change History Modal */}
+      <ChangeHistoryModal
+        open={historyModalOpen}
+        onClose={() => setHistoryModalOpen(false)}
+        itemId={historyModalItemId || ''}
+        currentQuestion={historyModalQuestion}
+        currentAnswer={historyModalAnswer}
+      />
     </div>
   );
 }
