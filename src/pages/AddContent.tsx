@@ -46,18 +46,18 @@ export function AddContent() {
       helpText: "Upload numerical data, statistics, or metrics",
     },
     {
-      id: "policy-docs" as UploadType,
-      title: "Policy Docs",
-      description: "Upload regulatory documents, guidelines, or compliance-related materials",
-      icon: FileText,
-      helpText: "Upload regulatory documents, guidelines, or compliance-related materials",
-    },
-    {
       id: "commentary" as UploadType,
       title: "Commentary",
       description: "Upload market commentary, insights, or promotional materials.",
       icon: Megaphone,
       helpText: "Upload market commentary, insights, or promotional materials.",
+    },
+    {
+      id: "policy-docs" as UploadType,
+      title: "Policy Docs",
+      description: "Upload regulatory documents, guidelines, or compliance-related materials",
+      icon: FileText,
+      helpText: "Upload regulatory documents, guidelines, or compliance-related materials",
     },
   ];
 
