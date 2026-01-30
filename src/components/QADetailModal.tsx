@@ -30,6 +30,8 @@ interface QADetailModalProps {
   onClose: () => void;
   item: QuestionItem;
   mode: 'view' | 'edit';
+  /** Mode when the modal was opened; used to decide Cancel behavior (close vs return to view). */
+  openedInMode?: 'view' | 'edit';
   onModeChange?: (mode: 'view' | 'edit') => void;
   onSave: (editData: QAModalEditData) => void;
   existingEdit?: QAModalExistingEdit;
@@ -40,6 +42,7 @@ export function QADetailModal({
   onClose,
   item,
   mode: initialMode,
+  openedInMode,
   onModeChange,
   onSave,
   existingEdit,
@@ -186,7 +189,31 @@ export function QADetailModal({
   };
 
   const handleCancel = () => {
-    // Reset form to original values
+    // If opened via Edit (table row), close the modal. If opened via Show more, return to view.
+    if (openedInMode === 'edit') {
+      // Reset form so next open is clean, then close
+      const migrated = migrateQuestionItem(item);
+      if (existingEdit) {
+        setQuestion(existingEdit.question || item.question || "");
+        setAnswer(existingEdit.answer || item.answer || "");
+        if (existingEdit.tags && Array.isArray(existingEdit.tags) && existingEdit.tags.length > 0) {
+          if (typeof existingEdit.tags[0] === 'object' && 'type' in existingEdit.tags[0]) {
+            setTags(existingEdit.tags as Tag[]);
+          } else {
+            setTags(migrated.tags || []);
+          }
+        } else {
+          setTags(migrated.tags || []);
+        }
+      } else {
+        setQuestion(item.question || "");
+        setAnswer(item.answer || "");
+        setTags(migrated.tags || []);
+      }
+      onClose();
+      return;
+    }
+    // Opened in view (or prop not passed): reset form and switch to view mode
     const migrated = migrateQuestionItem(item);
     if (existingEdit) {
       setQuestion(existingEdit.question || item.question || "");

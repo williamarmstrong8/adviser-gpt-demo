@@ -204,6 +204,7 @@ export function VaultHomepage() {
   const [qaModalOpen, setQaModalOpen] = useState(false);
   const [qaModalItem, setQaModalItem] = useState<QuestionItem | null>(null);
   const [qaModalMode, setQaModalMode] = useState<'view' | 'edit'>('view');
+  const [qaModalOpenedInMode, setQaModalOpenedInMode] = useState<'view' | 'edit'>('view');
   type VaultTab = "documents" | "documents-list";
   const ACTIVE_TAB_KEY = "vault-homepage-active-tab";
   const [activeTab, setActiveTab] = useState<VaultTab>(() => {
@@ -1155,6 +1156,7 @@ export function VaultHomepage() {
   const handleOpenQAModal = (item: QuestionItem, mode: 'view' | 'edit' = 'view') => {
     setQaModalItem(item);
     setQaModalMode(mode);
+    setQaModalOpenedInMode(mode);
     setQaModalOpen(true);
   };
 
@@ -2982,6 +2984,7 @@ export function VaultHomepage() {
           }}
           item={qaModalItem}
           mode={qaModalMode}
+          openedInMode={qaModalOpenedInMode}
           onModeChange={handleQAModalModeChange}
           onSave={handleQAModalSave}
           existingEdit={getEdit(qaModalItem.id)}
