@@ -8,6 +8,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useVaultEdits } from '@/hooks/useVaultState';
 import { QuestionItem } from '@/types/vault';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { SavedDraft } from '@/types/drafts';
 import {
   generateDraft,
   updateDraft,
@@ -294,6 +295,22 @@ export function Drafts() {
 
   const hasContent = content.trim().length > 0;
 
+  // Handle loading saved draft
+  const handleLoadDraft = (draft: SavedDraft) => {
+    setContent(draft.content);
+    setOriginalContent(draft.content);
+    setUpdatedContent(null);
+    setHasPendingDiffs(false);
+    if (draft.prompt) {
+      setPrompt(draft.prompt);
+    }
+    // Note: File restoration would require file storage/retrieval system
+    toast({
+      title: 'Draft loaded',
+      description: `"${draft.title}" has been loaded.`,
+    });
+  };
+
   return (
     <div className="h-screen bg-sidebar-background flex gap-4">
       {/* Vault Sidebar */}
@@ -305,7 +322,7 @@ export function Drafts() {
           {/* Header */}
           <div className="border-b border-foreground/10 bg-background flex-shrink-0">
             {/* Main Title */}
-            <div className="flex items-center justify-between px-6 py-6 max-w-[100rem] mx-auto">
+            <div className="flex items-center justify-between px-6 py-6">
               <div>
                 <h1 className="text-2xl font-semibold">Drafts</h1>
                 <p className="text-foreground/70">Generate and manage drafts</p>
@@ -329,6 +346,10 @@ export function Drafts() {
                 onSave={handleSave}
                 onEdit={handleEdit}
                 isLoading={isLoading}
+                prompt={prompt}
+                sampleFile={sampleFile}
+                informationalFiles={informationalFiles}
+                includeWebSources={includeWebSources}
               />
             </div>
 
@@ -349,6 +370,8 @@ export function Drafts() {
                 onPromptChange={setPrompt}
                 onGenerate={handleGenerateOrUpdate}
                 isLoading={isLoading}
+                onLoadPrompt={setPrompt}
+                onLoadDraft={handleLoadDraft}
               />
             </div>
           </div>

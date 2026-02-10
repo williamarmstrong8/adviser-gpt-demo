@@ -10,6 +10,7 @@ import { SavedSearchesPage } from "./components/SavedSearchesPage";
 import { HistoryPage } from "./components/HistoryPage";
 import { SavedSearchesProvider } from "./contexts/SavedSearchesContext";
 import { AuthProvider } from "./contexts/AuthContext";
+import { DraftsProvider } from "./contexts/DraftsContext";
 import { SuggestedUpdates } from "./pages/SuggestedUpdates";
 import { DuplicateDetail } from "./pages/DuplicateDetail";
 import { ProfilePage } from "./components/ProfilePage";
@@ -31,9 +32,10 @@ const App = () => (
     <TooltipProvider>
       <AuthProvider>
         <SavedSearchesProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+          <DraftsProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
             <Routes>
               {/* Public routes - no authentication required */}
               <Route path="/auth" element={<Auth />} />
@@ -59,6 +61,7 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
+          </DraftsProvider>
         </SavedSearchesProvider>
       </AuthProvider>
     </TooltipProvider>

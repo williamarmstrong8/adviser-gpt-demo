@@ -1,5 +1,5 @@
 import React, { useRef, useState, useMemo } from 'react';
-import { Upload, X, Globe, ChevronDown } from 'lucide-react';
+import { Upload, X, Globe, ChevronDown, PlusCircle, Save } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,8 +7,13 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MOCK_CONTENT_ITEMS } from '@/data/mockVaultData';
 import { migrateQuestionItems } from '@/utils/tagMigration';
+import { SavePromptDialog } from '@/components/SavePromptDialog';
+import { SavedPromptsPanel } from '@/components/SavedPromptsPanel';
+import { SavedDraftsPanel } from '@/components/SavedDraftsPanel';
+import { SavedDraft } from '@/types/drafts';
 
 export interface UploadedFile {
   id: string;
@@ -83,6 +88,10 @@ interface DraftsAssistantProps {
   // Actions
   onGenerate: () => void;
   isLoading?: boolean;
+  
+  // Saved items handlers
+  onLoadPrompt?: (prompt: string) => void;
+  onLoadDraft?: (draft: SavedDraft) => void;
 }
 
 export function DraftsAssistant({
@@ -100,6 +109,8 @@ export function DraftsAssistant({
   onPromptChange,
   onGenerate,
   isLoading = false,
+  onLoadPrompt,
+  onLoadDraft,
 }: DraftsAssistantProps) {
   const sampleFileInputRef = useRef<HTMLInputElement>(null);
   const informationalFilesInputRef = useRef<HTMLInputElement>(null);
@@ -184,12 +195,69 @@ export function DraftsAssistant({
   const placeholderText = hasContent ? 'What should I update?' : 'What should I write?';
   const isButtonDisabled = !prompt.trim() || isLoading || (hasContent && hasPendingDiffs);
 
+  // Sample prompts for drafts
+  const samplePrompts = [
+    "Draft a market recap for U.S. equities for January 2026.",
+    "Summarize the attached Informational Inputs into a short email cover letter.",
+    "Draft a Q4 2025 quarterly commentary with the research files and attribution report as Informational Inputs for themes and data.",
+    "Draft client talking points for the prior quarter by using the attached client meeting notes and quarterly portfolio report as Informational Inputs."
+  ];
+
+  const handleSamplePromptClick = (samplePrompt: string) => {
+    onPromptChange(samplePrompt);
+  };
+
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
+  const [activeTab, setActiveTab] = useState<'assistant' | 'prompts' | 'drafts'>('assistant');
+
+  const handleLoadPrompt = (promptText: string) => {
+    onPromptChange(promptText);
+    setActiveTab('assistant');
+    onLoadPrompt?.(promptText);
+  };
+
+  const handleLoadDraft = (draft: SavedDraft) => {
+    onLoadDraft?.(draft);
+    setActiveTab('assistant');
+  };
+
   return (
     <div className="h-full flex flex-col bg-sidebar-background border-l border-foreground/10">
-      <div className="p-6 space-y-8 flex-1 overflow-y-auto">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'assistant' | 'prompts' | 'drafts')} className="h-full flex flex-col">
+        <div className="p-4 h-[69px] border-b border-foreground/10">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="assistant" className="text-xs">Assistant</TabsTrigger>
+            <TabsTrigger value="prompts" className="text-xs">Saved Prompts</TabsTrigger>
+            <TabsTrigger value="drafts" className="text-xs">Saved Drafts</TabsTrigger>
+          </TabsList>
+        </div>
+
+        <TabsContent value="assistant" className="flex-1 flex flex-col overflow-hidden m-0">
+          <div className="p-6 space-y-8 flex-1 overflow-y-auto">
         <div>
           <h2 className="text-lg font-semibold mb-4">Drafts Assistant</h2>
         </div>
+
+        {/* Sample Prompts */}
+        {!hasContent && (
+          <div className="space-y-2">
+            <p className="text-sm text-foreground/80">Try one of these examples:</p>
+            <div className="grid grid-cols-1 gap-2">
+              {samplePrompts.map((samplePrompt, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="text-sm font-normal bg-sidebar-background/50 flex flex-wrap justify-between min-h-14 h-auto px-4 py-2 items-center text-sidebar-foreground hover:bg-sidebar-background/70 border-foreground/10 hover:border-foreground/20 whitespace-normal text-left"
+                  onClick={() => handleSamplePromptClick(samplePrompt)}
+                >
+                  <span className="flex flex-1">{samplePrompt}</span>
+                  <PlusCircle className="h-4 w-4 text-sidebar-foreground/70 flex-shrink-0 ml-2" />
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Add Sample Section */}
         <div className="space-y-1">
@@ -313,9 +381,22 @@ export function DraftsAssistant({
 
         {/* Prompt Input */}
         <div className="space-y-3">
-          <Label htmlFor="prompt" className="text-sm font-medium">
-            Prompt
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="prompt" className="text-sm font-medium">
+              Prompt
+            </Label>
+            {prompt.trim() && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSaveDialog(true)}
+                className="h-7 text-xs"
+              >
+                <Save className="h-3 w-3 mr-1" />
+                Save
+              </Button>
+            )}
+          </div>
           <Textarea
             id="prompt"
             value={prompt}
@@ -325,30 +406,47 @@ export function DraftsAssistant({
             disabled={isLoading}
           />
         </div>
-      </div>
+          </div>
 
-      {/* Generate Button */}
-      <div className="p-6 border-t border-foreground/10">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div>
-              <Button
-                onClick={onGenerate}
-                disabled={isButtonDisabled}
-                className="w-full bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/80"
-                size="lg"
-              >
-                {isLoading ? 'Generating...' : buttonText}
-              </Button>
-            </div>
-          </TooltipTrigger>
-          {hasPendingDiffs && (
-            <TooltipContent>
-              <p>Accept or reject changes before updating the draft again.</p>
-            </TooltipContent>
-          )}
-        </Tooltip>
-      </div>
+          {/* Save Prompt Dialog */}
+          <SavePromptDialog
+            open={showSaveDialog}
+            onOpenChange={setShowSaveDialog}
+            prompt={prompt}
+          />
+
+          {/* Generate Button */}
+          <div className="p-6 border-t border-foreground/10">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Button
+                    onClick={onGenerate}
+                    disabled={isButtonDisabled}
+                    className="w-full bg-sidebar-primary text-sidebar-primary-foreground hover:bg-sidebar-primary/80"
+                    size="lg"
+                  >
+                    {isLoading ? 'Generating...' : buttonText}
+                  </Button>
+                </div>
+              </TooltipTrigger>
+              {hasPendingDiffs && (
+                <TooltipContent>
+                  <p>Accept or reject changes before updating the draft again.</p>
+                </TooltipContent>
+              )}
+            </Tooltip>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="prompts" className="h-full overflow-hidden m-0">
+          <SavedPromptsPanel onLoadPrompt={handleLoadPrompt} />
+        </TabsContent>
+
+        <TabsContent value="drafts" className="h-full overflow-hidden m-0">
+          <SavedDraftsPanel onLoadDraft={handleLoadDraft} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

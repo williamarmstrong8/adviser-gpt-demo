@@ -5,6 +5,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useToast } from '@/hooks/use-toast';
 import { InlineDiffEditor } from './InlineDiffEditor';
 import { diffWords } from 'diff';
+import { SaveDraftDialog } from './SaveDraftDialog';
+import { UploadedFile } from './DraftsAssistant';
 
 interface DraftEditorProps {
   content: string;
@@ -18,6 +20,10 @@ interface DraftEditorProps {
   onSave: () => void;
   onEdit: (type: 'grammar' | 'shorter' | 'longer' | 'tone') => void;
   isLoading?: boolean;
+  prompt?: string;
+  sampleFile?: UploadedFile | null;
+  informationalFiles?: UploadedFile[];
+  includeWebSources?: boolean;
 }
 
 export function DraftEditor({
@@ -32,9 +38,14 @@ export function DraftEditor({
   onSave,
   onEdit,
   isLoading = false,
+  prompt,
+  sampleFile,
+  informationalFiles,
+  includeWebSources,
 }: DraftEditorProps) {
   const { toast } = useToast();
   const [isCopied, setIsCopied] = useState(false);
+  const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   const handleCopy = () => {
     onCopy();
@@ -83,7 +94,7 @@ export function DraftEditor({
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="border-b border-foreground/10 bg-background px-6 py-4">
-        <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold">Drafts Editor</h2>
           <div className="flex items-center gap-2">
             <Tooltip>
@@ -99,19 +110,19 @@ export function DraftEditor({
               </TooltipTrigger>
               <TooltipContent>Copy</TooltipContent>
             </Tooltip>
-            {/* <Tooltip>
+            <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={handleSave}
-                  disabled={!content.trim() || isLoading}
+                  onClick={() => setShowSaveDialog(true)}
+                  disabled={!content.trim() || isLoading || hasPendingDiffs}
                 >
                   <Save className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Save to Vault</TooltipContent>
-            </Tooltip> */}
+              <TooltipContent>Save Draft</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </div>
@@ -206,6 +217,17 @@ export function DraftEditor({
           )}
         </div>
       </div>
+
+      {/* Save Draft Dialog */}
+      <SaveDraftDialog
+        open={showSaveDialog}
+        onOpenChange={setShowSaveDialog}
+        content={content}
+        prompt={prompt}
+        sampleFile={sampleFile}
+        informationalFiles={informationalFiles}
+        includeWebSources={includeWebSources}
+      />
     </div>
   );
 }
