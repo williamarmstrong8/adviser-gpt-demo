@@ -55,6 +55,9 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useVaultState, useVaultEdits } from "@/hooks/useVaultState";
 import { useTagTypes } from "@/hooks/useTagTypes";
 import { useSearchHistory } from "@/hooks/useSearchHistory";
@@ -215,6 +218,11 @@ export function VaultHomepage() {
   });
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set());
   const [quarterFilter, setQuarterFilter] = useState<string>("all");
+  const [documentViewMode, setDocumentViewMode] = useState<"quarter" | "type">("quarter");
+  const [quarterAssignDocument, setQuarterAssignDocument] = useState<{ name: string; currentQuarter?: string } | null>(null);
+  const [quarterAssignSelected, setQuarterAssignSelected] = useState<string>("unassigned");
+  const [collapsedDocSections, setCollapsedDocSections] = useState<Set<string>>(new Set());
+  const [quarterPopoverDocName, setQuarterPopoverDocName] = useState<string | null>(null);
   
   const hasActiveFilters = Object.values(selectedTagFilters).some(values => values.length > 0) ||
                            selectedDocuments.length > 0 || selectedPriorSamples.length > 0 || 
@@ -410,6 +418,7 @@ export function VaultHomepage() {
       strategy: savedEdit.strategy || item.strategy, // Keep for backward compatibility
       tags, // Use migrated tags
       archived: savedEdit.archived !== undefined ? savedEdit.archived : (item.archived || false),
+      quarter: savedEdit.quarter !== undefined ? savedEdit.quarter : item.quarter,
     };
 
     return result;
@@ -484,6 +493,35 @@ export function VaultHomepage() {
       const displayData = getDisplayData(item);
       return displayData.archived;
     });
+  };
+
+  // Assign or update quarter for all items in a document
+  const applyQuarterToDocument = (documentTitle: string, newQuarter: string | undefined) => {
+    const docItems = allItems.filter(item => item.documentTitle === documentTitle);
+    if (docItems.length === 0) return;
+    const entries: Array<[string, { quarter?: string }]> = docItems.map(item => [
+      item.id,
+      { quarter: newQuarter },
+    ]);
+    saveManyEdits(entries);
+    toast({
+      title: "Quarter updated",
+      description: `"${documentTitle}" is now ${newQuarter ? formatQuarter(newQuarter) : "Unassigned"}.`,
+    });
+  };
+
+  const handleAssignQuarter = () => {
+    if (!quarterAssignDocument) return;
+    const newQuarter = quarterAssignSelected === "unassigned" ? undefined : quarterAssignSelected;
+    applyQuarterToDocument(quarterAssignDocument.name, newQuarter);
+    setQuarterAssignDocument(null);
+    setQuarterAssignSelected("unassigned");
+  };
+
+  // Open quarter assignment dialog for a document
+  const openQuarterAssignDialog = (doc: { name: string; quarter?: string }) => {
+    setQuarterAssignDocument({ name: doc.name, currentQuarter: doc.quarter });
+    setQuarterAssignSelected(doc.quarter ?? "unassigned");
   };
 
   // Simple function to archive/restore all items of a strategy
@@ -2037,61 +2075,73 @@ export function VaultHomepage() {
                         <div>
                           <h2 className="text-2xl font-bold">Documents</h2>
                           <p className="text-foreground/70">Source materials and uploaded documents</p>
-                              </div>
-                        <div className="flex items-center gap-2">
+                        </div>  
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex rounded-full border border-foreground/20 p-0.5 bg-sidebar-background/50">
+                          <Button
+                            variant={documentViewMode === "type" ? "default" : "ghost"}
+                            size="sm"
+                            className="rounded-full h-8 px-4"
+                            onClick={() => setDocumentViewMode("type")}
+                          >
+                            By Type
+                          </Button>
+                          <Button
+                            variant={documentViewMode === "quarter" ? "default" : "ghost"}
+                            size="sm"
+                            className="rounded-full h-8 px-4"
+                            onClick={() => setDocumentViewMode("quarter")}
+                          >
+                            By Quarter
+                          </Button>
+                        </div>
+                        {documentViewMode === "quarter" && (
                           <Select value={quarterFilter} onValueChange={setQuarterFilter}>
-                            <SelectTrigger className="w-[200px]">
+                            <SelectTrigger className="w-[200px] h-8">
                               <SelectValue placeholder="Filter by quarter" />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Time</SelectItem>
                               <SelectItem value="ytd">YTD (Current Year)</SelectItem>
                               <SelectItem value="last-year">Last Year</SelectItem>
-                              {getQuarterOptions().slice(0, 4).map((quarter) => (
-                                <SelectItem key={quarter} value={quarter}>
-                                  {formatQuarter(quarter)}
-                                </SelectItem>
-                              ))}
-                              {getQuarterOptions().slice(4).map((quarter) => (
+                              {getQuarterOptions().map((quarter) => (
                                 <SelectItem key={quarter} value={quarter}>
                                   {formatQuarter(quarter)}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
-                          </div>
+                        )}
                         </div>
 
-                      {/* Group documents by type */}
                       {(() => {
-                        // Extract documents from vault items
-                        const documentsByType: Record<string, Array<{
-                          id: string;
-                          name: string;
-                          type: string;
-                          uploadedAt: string;
-                          uploadedBy: string;
-                          documentId?: string;
-                        }>> = {
-                          "Policy Docs": [],
-                          "Commentary Docs": [],
-                          "Questionnaires": [],
-                          "Data Files": []
+                        // Display type for "By Type" view: Data files, Insights, Questionnaires, Samples
+                        type DisplayType = "Data files" | "Insights" | "Questionnaires" | "Samples";
+                        const getDisplayType = (docType: string): DisplayType => {
+                          if (docType === "Data Files") return "Data files";
+                          if (docType === "Policy Docs") return "Insights";
+                          if (docType === "Commentary Docs") return "Samples";
+                          return "Questionnaires";
                         };
 
-                        // Get unique documents from all items
-                        const documentMap = new Map<string, {
+                        type DocType = {
                           id: string;
                           name: string;
                           type: string;
+                          displayType: DisplayType;
                           uploadedAt: string;
                           uploadedBy: string;
                           documentId?: string;
                           quarter?: string;
-                        }>();
+                        };
+
+                        // Get unique documents from all items
+                        const documentMap = new Map<string, DocType>();
 
                         allItems.forEach(item => {
                           if (item.documentTitle) {
+                            const displayData = getDisplayData(item);
                             const docKey = item.documentTitle;
                             if (!documentMap.has(docKey)) {
                               let docType = "Questionnaires";
@@ -2107,10 +2157,11 @@ export function VaultHomepage() {
                                 id: item.documentId || item.id,
                                 name: item.documentTitle,
                                 type: docType,
-                                uploadedAt: item.updatedAt,
-                                uploadedBy: item.updatedBy,
+                                displayType: getDisplayType(docType),
+                                uploadedAt: displayData.updatedAt,
+                                uploadedBy: displayData.updatedBy,
                                 documentId: item.documentId,
-                                quarter: item.quarter
+                                quarter: displayData.quarter
                               });
                             }
                           }
@@ -2134,16 +2185,9 @@ export function VaultHomepage() {
                           return doc.quarter === quarterFilter;
                         });
 
-                        // Group by quarter for display
-                        type DocType = {
-                          id: string;
-                          name: string;
-                          type: string;
-                          uploadedAt: string;
-                          uploadedBy: string;
-                          documentId?: string;
-                          quarter?: string;
-                        };
+                        const DISPLAY_TYPE_ORDER: DisplayType[] = ["Data files", "Insights", "Questionnaires", "Samples"];
+
+                        // Group by quarter for "By Quarter" view
                         const docsByQuarter = new Map<string, DocType[]>();
                         filteredDocs.forEach(doc => {
                           const quarter = doc.quarter || "Unassigned";
@@ -2159,141 +2203,230 @@ export function VaultHomepage() {
                           return b.localeCompare(a);
                         }) as Array<[string, DocType[]]>;
 
-                        return (
-                          <div className="space-y-6">
-                            {(sortedQuarters as Array<[string, DocType[]]>).map(([quarter, quarterDocs]) => {
-                                // Group by type within quarter
-                                const byType: Record<string, DocType[]> = {};
-                                quarterDocs.forEach(doc => {
-                                  if (!byType[doc.type]) byType[doc.type] = [];
-                                  byType[doc.type].push(doc);
-                                });
+                        // Group by display type for "By Type" view (all docs, no quarter filter)
+                        const allDocs = Array.from(documentMap.values());
+                        const docsByDisplayType = new Map<DisplayType, DocType[]>();
+                        DISPLAY_TYPE_ORDER.forEach(t => docsByDisplayType.set(t, []));
+                        allDocs.forEach(doc => {
+                          docsByDisplayType.get(doc.displayType)!.push(doc);
+                        });
 
-                                return (
-                                  <div key={quarter} className="space-y-4">
-                                    <h3 className="text-lg font-semibold">
-                                      {quarter === "Unassigned" ? "Unassigned" : formatQuarter(quarter)}
-                                    </h3>
-                                    {Object.entries(byType).map(([typeName, docs]) => {
-                                      if (docs.length === 0) return null;
-                                      
-                                      return (
-                                        <div key={typeName} className="space-y-3 ml-4">
-                                          <h4 className="text-md font-medium text-foreground/70">{typeName}</h4>
-                                          <div className="space-y-2">
-                                            {docs.map((doc) => (
-                                              <div
-                                                key={doc.id}
-                                                className="group flex items-center justify-between p-4 border border-foreground/10 rounded-lg hover:bg-sidebar-background transition"
-                                              >
-                                                <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                  <FileText className="h-5 w-5 text-foreground/70 flex-shrink-0" />
-                                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2">
-                                                      <h4 className="font-medium truncate">{doc.name}</h4>
-                                        </div>
-                                                    <div className="flex items-center gap-2 mt-1 text-sm text-foreground/70">
-                                                      <span>Uploaded {formatRelativeTime(doc.uploadedAt)}</span>
-                                                      <span>•</span>
-                                                      <span>{doc.type}</span>
-                                                      <span>•</span>
-                                                      <span>by {doc.uploadedBy}</span>
-                                    </div>
-                                    </div>
-                                  </div>
-                                                <div className="flex items-center gap-2">
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                      // TODO: Implement view document in browser
-                                                      toast({
-                                                        title: "View Document",
-                                                        description: "Document viewing will be implemented.",
-                                                      });
-                                                    }}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                  >
-                                                    <ExternalLink className="h-4 w-4 mr-1" />
-                                                    View Document
-                                                  </Button>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                      // TODO: Implement download
-                                                      toast({
-                                                        title: "Download Document",
-                                                        description: "Document download will be implemented.",
-                                                      });
-                                                    }}
-                                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                  >
-                                                    <Download className="h-4 w-4 mr-1" />
-                                                    Download
-                                                  </Button>
-                                                  {doc.type === "Data Files" && (
-                                                    <Button
-                                                      variant="ghost"
-                                                      size="sm"
-                                                      onClick={() => {
-                                                        // Navigate to vault filtered by this document
-                                                        navigate(`/vault?fileName=${encodeURIComponent(doc.name)}`);
-                                                      }}
-                                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                    >
-                                                      <Database className="h-4 w-4 mr-1" />
-                                                      View Data
-                                                    </Button>
-                                                  )}
-                                                  <DropdownMenu>
-                                                    <DropdownMenuTrigger asChild>
-                                                      <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="opacity-0 group-hover:opacity-100 transition-opacity"
-                                                      >
-                                                        <MoreHorizontal className="h-4 w-4" />
-                                                      </Button>
-                                                    </DropdownMenuTrigger>
-                                                    <DropdownMenuContent align="end">
-                                                      <DropdownMenuItem
-                                                        className="text-destructive"
-                                                        onClick={() => {
-                                                          setItemToDelete(null);
-                                                          // TODO: Implement document deletion
-                                                          toast({
-                                                            title: "Delete Document",
-                                                            description: "Document deletion will be implemented.",
-                                                            variant: "destructive",
-                                                          });
-                                                        }}
-                                                      >
-                                                        <Trash2 className="h-4 w-4 mr-2" />
-                                                        Delete
-                                                      </DropdownMenuItem>
-                                                    </DropdownMenuContent>
-                                                  </DropdownMenu>
+                        const gridTemplateColumns = "300px 150px 120px 150px 200px min-content";
+                        
+                        const TableHeaderRow = () => (
+                          <div 
+                            className="grid sticky top-0 bg-background border-b border-foreground/10 items-start z-10"
+                            style={{ gridTemplateColumns }}
+                          >
+                            <div className="font-medium text-sm px-4 py-3">Document name</div>
+                            <div className="font-medium text-sm px-4 py-3">Type</div>
+                            <div className="font-medium text-sm px-4 py-3">Quarter</div>
+                            <div className="font-medium text-sm px-4 py-3">Uploaded</div>
+                            <div className="font-medium text-sm px-4 py-3">Uploaded by</div>
+                            <div className="font-medium text-sm px-4 py-3">Actions</div>
+                          </div>
+                        );
+
+                        const renderDocTableRow = (doc: DocType, index: number) => {
+                          const isEvenRow = index % 2 === 0;
+                          return (
+                            <div
+                              key={doc.id}
+                              className={`grid bg-background hover:bg-itemHoverBackground transition-all items-start ${
+                                isEvenRow ? 'bg-sidebar-background' : ''
+                              }`}
+                              style={{ gridTemplateColumns }}
+                            >
+                              <div className="min-w-0 px-4 py-3">
+                                <div className="flex items-center gap-2">
+                                  <FileText className="h-4 w-4 text-foreground/70 flex-shrink-0" />
+                                  <span className="text-sm font-medium text-foreground truncate">{doc.name}</span>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                        </div>
-                                      );
-                                    })}
-                                  </div>
+                              <div className="px-4 py-3">
+                                <Badge variant="outline" className="text-xs font-normal">
+                                  {doc.displayType}
+                                </Badge>
+                              </div>
+                              <div className="px-4 py-3">
+                                <Popover open={quarterPopoverDocName === doc.name} onOpenChange={(open) => setQuarterPopoverDocName(open ? doc.name : null)}>
+                                  <PopoverTrigger asChild>
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center gap-1 rounded-md border border-transparent bg-foreground/5 px-2 py-0.5 text-xs font-normal text-secondary-foreground hover:bg-foreground/10 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 group"
+                                    >
+                                      <span>{doc.quarter ? formatQuarter(doc.quarter) : "Unassigned"}</span>
+                                      <Edit className="h-3 w-3 -ml-3 opacity-0 -translate-x-0.5 transition-all duration-150 group-hover:opacity-100 group-hover:translate-x-0 group-hover:-ml-0" />
+                                    </button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-48 p-1" align="start">
+                                    <div className="flex flex-col gap-0.5">
+                                      <button
+                                        type="button"
+                                        className={`flex items-center justify-between rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent ${(!doc.quarter ? "bg-accent font-medium" : "")}`}
+                                        onClick={() => {
+                                          applyQuarterToDocument(doc.name, undefined);
+                                          setQuarterPopoverDocName(null);
+                                        }}
+                                      >
+                                        Unassigned
+                                        {!doc.quarter && <Check className="h-4 w-4" />}
+                                      </button>
+                                      {getQuarterOptions().map((quarter) => (
+                                        <button
+                                          key={quarter}
+                                          type="button"
+                                          className={`flex items-center justify-between rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent ${(doc.quarter === quarter ? "bg-accent font-medium" : "")}`}
+                                          onClick={() => {
+                                            applyQuarterToDocument(doc.name, quarter);
+                                            setQuarterPopoverDocName(null);
+                                          }}
+                                        >
+                                          {formatQuarter(quarter)}
+                                          {doc.quarter === quarter && <Check className="h-4 w-4" />}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </PopoverContent>
+                                </Popover>
+                              </div>
+                              <div className="text-sm text-foreground/70 px-4 py-3">
+                                {formatRelativeTime(doc.uploadedAt)}
+                              </div>
+                              <div className="text-sm text-foreground/70 px-4 py-3">
+                                {doc.uploadedBy}
+                              </div>
+                              <div className="grid items-start justify-center px-4 py-3 gap-1">
+                                <div className="flex items-center gap-1">
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => toast({ title: "View Document", description: "Document viewing will be implemented." })}
+                                      >
+                                        <ExternalLink className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <p>View Document</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 w-7 p-0"
+                                        onClick={() => toast({ title: "Download Document", description: "Document download will be implemented." })}
+                                      >
+                                        <Download className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <p>Download</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                  {doc.type === "Data Files" && (
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          size="sm"
+                                          className="h-7 w-7 p-0"
+                                          onClick={() => navigate(`/vault?fileName=${encodeURIComponent(doc.name)}`)}
+                                        >
+                                          <Database className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent side="top">
+                                        <p>View Data</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  )}
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="h-7 w-7 p-0 text-destructive"
+                                        onClick={() => toast({ title: "Delete Document", description: "Document deletion will be implemented.", variant: "destructive" })}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      <p>Delete</p>
+                                    </TooltipContent>
+                                  </Tooltip>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        };
+
+                        return (
+                          <div className="space-y-3">
+                            {documentViewMode === "quarter" ? (
+                              (sortedQuarters as Array<[string, DocType[]]>).map(([quarter, quarterDocs]) => (
+                                <Collapsible
+                                  key={quarter}
+                                  open={!collapsedDocSections.has(quarter)}
+                                  onOpenChange={(open) => setCollapsedDocSections(prev => { const next = new Set(prev); if (open) next.delete(quarter); else next.add(quarter); return next; })}
+                                >
+                                  <CollapsibleTrigger asChild>
+                                    <Button variant="ghost" className="w-full justify-start rounded-full h-10 rounded-none px-4 border-b border-foreground/10 active:scale-[0.99]">
+                                      {collapsedDocSections.has(quarter) ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                      <span className="font-lg">{quarter === "Unassigned" ? "Unassigned" : formatQuarter(quarter)}</span>
+                                      <span className="flex items-center gap-2">
+                                        <Badge variant="secondary" className="font-normal">{quarterDocs.length}</Badge>
+                                      </span>
+                                    </Button>
+                                  </CollapsibleTrigger>
+                                  <CollapsibleContent>
+                                    <div className="divide-y divide-foreground/10">
+                                      <TableHeaderRow />
+                                      {quarterDocs.map((doc, index) => renderDocTableRow(doc, index))}
+                                    </div>
+                                  </CollapsibleContent>
+                                </Collapsible>
+                              ))
+                            ) : (
+                              DISPLAY_TYPE_ORDER.map(displayType => {
+                                const typeDocs = docsByDisplayType.get(displayType)!;
+                                if (typeDocs.length === 0) return null;
+                                return (
+                                  <Collapsible
+                                    key={displayType}
+                                    open={!collapsedDocSections.has(displayType)}
+                                    onOpenChange={(open) => setCollapsedDocSections(prev => { const next = new Set(prev); if (open) next.delete(displayType); else next.add(displayType); return next; })}
+                                  >
+                                    <CollapsibleTrigger asChild>
+                                      <Button variant="ghost" className="w-full justify-start rounded-none h-10 px-4 border-b border-foreground/10 active:scale-[0.99]">
+                                        {collapsedDocSections.has(displayType) ? <ChevronRight className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                                        <span className="font-lg">{displayType}</span>
+                                        <span className="flex items-center gap-2">
+                                          <Badge variant="secondary" className="font-normal">{typeDocs.length}</Badge>
+                                        </span>
+                                      </Button>
+                                    </CollapsibleTrigger>
+                                    <CollapsibleContent>
+                                      <div className="divide-y divide-foreground/10">
+                                        <TableHeaderRow />
+                                        {typeDocs.map((doc, index) => renderDocTableRow(doc, index))}
+                                      </div>
+                                    </CollapsibleContent>
+                                  </Collapsible>
                                 );
-                              })}
-                            {filteredDocs.length === 0 && (
+                              })
+                            )}
+                            {(documentViewMode === "quarter" ? filteredDocs.length === 0 : allDocs.length === 0) && (
                               <div className="text-center py-12">
-                                <p className="text-lg text-foreground/70 mb-4">
-                                  No documents found.
-                                </p>
-                                <Button variant="outline" onClick={() => navigate('/vault/add-content')}>
-                                  Upload Documents
-                                </Button>
-                    </div>
-                  )}
+                                <p className="text-lg text-foreground/70 mb-4">No documents found.</p>
+                                <Button variant="outline" onClick={() => navigate('/vault/add-content')}>Upload Documents</Button>
+                              </div>
+                            )}
                           </div>
                         );
                       })() as React.ReactElement}
@@ -2317,6 +2450,46 @@ export function VaultHomepage() {
         open={showFindDuplicatesModal}
         onClose={() => setShowFindDuplicatesModal(false)}
       />
+
+      {/* Quarter assignment dialog for documents */}
+      <Dialog open={!!quarterAssignDocument} onOpenChange={(open) => !open && setQuarterAssignDocument(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Assign quarter</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {quarterAssignDocument && (
+              <p className="text-sm text-foreground/70">
+                Document: <span className="font-medium text-foreground">{quarterAssignDocument.name}</span>
+              </p>
+            )}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Quarter</label>
+              <Select value={quarterAssignSelected} onValueChange={setQuarterAssignSelected}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select quarter" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {getQuarterOptions().map((quarter) => (
+                    <SelectItem key={quarter} value={quarter}>
+                      {formatQuarter(quarter)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setQuarterAssignDocument(null)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignQuarter}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <SmartUploadSheet
         open={showSmartUploadSheet}

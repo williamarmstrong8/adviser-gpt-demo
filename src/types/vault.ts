@@ -147,18 +147,21 @@ export function formatQuarter(quarterStr: string): string {
 export function getQuarterOptions(): string[] {
   const now = new Date();
   const currentYear = now.getFullYear();
+  const currentQuarterNum = Math.floor(now.getMonth() / 3) + 1; // 1-4
   const lastYear = currentYear - 1;
   const options: string[] = [];
-  
-  // Current year quarters
-  for (let q = 1; q <= 4; q++) {
-    options.push(`${currentYear}-Q${q}`);
+
+  // Current year: Q4, Q3, Q2, Q1 — only if that quarter has passed or is current
+  for (let q = 4; q >= 1; q--) {
+    if (q <= currentQuarterNum) {
+      options.push(`${currentYear}-Q${q}`);
+    }
   }
-  
-  // Last year quarters
-  for (let q = 1; q <= 4; q++) {
+
+  // Last year: Q4, Q3, Q2, Q1
+  for (let q = 4; q >= 1; q--) {
     options.push(`${lastYear}-Q${q}`);
   }
-  
+
   return options;
 }
