@@ -1600,7 +1600,7 @@ export function VaultHomepage() {
                           {(() => {
                             const tagTypes = getAllTagTypes();
                             // Calculate grid template columns: [checkbox] [Question] [Answer] [Document] [Last Updated] [Actions]
-                            const gridTemplateColumns = `40px 450px 1fr 250px 200px min-content`;
+                            const gridTemplateColumns = `40px 1fr 1fr 200px 200px min-content`;
                             
                             return (
                               <div className="relative">
@@ -1673,7 +1673,7 @@ export function VaultHomepage() {
                                       <React.Fragment key={item.id}>
                                         {/* Main Row */}
                                         <div
-                                          className={`group grid bg-background hover:bg-itemHoverBackground transition-all items-start grid-cols-[40px,450px,528px,250px,200px,min-content] ${
+                                          className={`group grid bg-background hover:bg-itemHoverBackground transition-all items-start grid-cols-[40px,1fr,1fr,200px,200px,min-content] ${
                                             isSelected ? 'bg-itemHoverBackground' : ''
                                           } ${
                                             displayData.archived 
