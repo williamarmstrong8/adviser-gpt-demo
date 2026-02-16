@@ -1562,7 +1562,7 @@ export function VaultHomepage() {
                           {(() => {
                             const tagTypes = getAllTagTypes();
                             // Calculate grid template columns: [checkbox] [Question] [Answer] [Document] [Last Updated] [Actions]
-                            const gridTemplateColumns = `auto 3fr 3fr 2fr 1fr auto`;
+                            const gridTemplateColumns = `40px 450px 1fr 250px 200px min-content`;
                             
                             return (
                               <div className="relative">
@@ -1635,7 +1635,7 @@ export function VaultHomepage() {
                                       <React.Fragment key={item.id}>
                                         {/* Main Row */}
                                         <div
-                                          className={`group grid bg-background hover:bg-itemHoverBackground transition-all items-start ${
+                                          className={`group grid bg-background hover:bg-itemHoverBackground transition-all items-start grid-cols-[40px,450px,528px,250px,200px,min-content] ${
                                             isSelected ? 'bg-itemHoverBackground' : ''
                                           } ${
                                             displayData.archived 
@@ -1644,7 +1644,6 @@ export function VaultHomepage() {
                                           } ${
                                             isEvenRow && !isSelected && !displayData.archived ? 'bg-sidebar-background' : ''
                                           }`}
-                                          style={{ gridTemplateColumns }}
                                         >
                                           <div className="flex items-start pr-4 pl-2 py-3">
                                             <Checkbox

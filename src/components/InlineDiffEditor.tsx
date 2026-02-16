@@ -101,10 +101,16 @@ export function InlineDiffEditor({
       editorRef.current.innerHTML = diffHTML;
     } else {
       // Show plain text
+      // Clear innerHTML first to remove any previous diff HTML, then set textContent
       const currentText = editorRef.current.textContent || '';
       const newText = displayContent || '';
+      // Always clear innerHTML when not showing diff, to prevent HTML remnants
       if (currentText !== newText) {
-        editorRef.current.textContent = newText || placeholder;
+        editorRef.current.innerHTML = '';
+        editorRef.current.textContent = newText;
+      } else if (editorRef.current.innerHTML && !newText) {
+        // If content is empty but innerHTML has content, clear it
+        editorRef.current.innerHTML = '';
       }
     }
   }, [hasPendingDiffs, originalContent, displayContent, placeholder, isEditing, isFocused]);
@@ -116,6 +122,7 @@ export function InlineDiffEditor({
       const currentText = editorRef.current.textContent || '';
       const newText = displayContent || '';
       if (currentText !== newText) {
+        // Set to empty string if no content, so placeholder overlay disappears
         editorRef.current.textContent = newText;
       }
     }

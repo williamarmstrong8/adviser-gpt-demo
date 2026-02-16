@@ -53,7 +53,7 @@ const formatDate = (dateString: string) => {
 };
 
 export function SavedDraftsPanel({ onLoadDraft }: SavedDraftsPanelProps) {
-  const { myDrafts, firmDrafts, deleteDraft, shareDraft, unshareDraft } = useDrafts();
+  const { myDrafts, firmDrafts, savedDrafts, deleteDraft, shareDraft, unshareDraft } = useDrafts();
   const { profile } = useUserProfile();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -133,6 +133,9 @@ export function SavedDraftsPanel({ onLoadDraft }: SavedDraftsPanelProps) {
       description: 'Duplication will be available soon.',
     });
   };
+
+  const draftBeingDeleted = draftToDelete ? savedDrafts.find((d) => d.id === draftToDelete) : null;
+  const isDeletingSharedDraft = draftBeingDeleted?.isShared ?? false;
 
   return (
     <div className="h-full flex flex-col">
@@ -269,6 +272,11 @@ export function SavedDraftsPanel({ onLoadDraft }: SavedDraftsPanelProps) {
             <AlertDialogTitle>Delete Draft?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this draft? This action cannot be undone.
+              {isDeletingSharedDraft && (
+                <span className="block mt-2 font-medium text-foreground">
+                  This draft is shared with your firm. Deleting it will remove it from the shared list for everyone.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

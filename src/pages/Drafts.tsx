@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ChevronRight, Home } from 'lucide-react';
+import { ChevronRight, Home, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { VaultSidebar } from '@/components/VaultSidebar';
 import { DraftEditor } from '@/components/DraftsEditor';
@@ -9,6 +9,10 @@ import { useVaultEdits } from '@/hooks/useVaultState';
 import { QuestionItem } from '@/types/vault';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { SavedDraft } from '@/types/drafts';
+import { useDrafts } from '@/contexts/DraftsContext';
+import { Button } from '@/components/ui/button';
+import { NewDraftDialog } from '@/components/NewDraftDialog';
+import { SaveDraftDialog } from '@/components/SaveDraftDialog';
 import {
   generateDraft,
   updateDraft,
@@ -22,6 +26,7 @@ export function Drafts() {
   const { toast } = useToast();
   const { saveEdit } = useVaultEdits();
   const { profile } = useUserProfile();
+  const { savedDrafts } = useDrafts();
 
   // Editor state
   const [content, setContent] = useState('');
@@ -40,6 +45,10 @@ export function Drafts() {
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+
+  // Dialog state
+  const [showNewDraftDialog, setShowNewDraftDialog] = useState(false);
+  const [showSaveDraftDialog, setShowSaveDraftDialog] = useState(false);
 
   // File handlers
   const handleSampleFileAdd = (file: File) => {
@@ -311,6 +320,34 @@ export function Drafts() {
     });
   };
 
+  // Clear draft handler
+  const handleClearDraft = () => {
+    setContent('');
+    setOriginalContent('');
+    setUpdatedContent(null);
+    setHasPendingDiffs(false);
+    setPrompt('');
+    setSampleFile(null);
+    setInformationalFiles([]);
+    setIncludeWebSources(false);
+    toast({
+      title: 'New draft',
+      description: 'Ready to create a new draft.',
+    });
+  };
+
+  // Handle save from NewDraftDialog
+  const handleSaveFromNewDraft = () => {
+    setShowNewDraftDialog(false);
+    setShowSaveDraftDialog(true);
+  };
+
+  // Handle save completion - clear after saving and close NewDraftDialog
+  const handleSaveDraftComplete = () => {
+    setShowNewDraftDialog(false);
+    handleClearDraft();
+  };
+
   return (
     <div className="h-screen bg-sidebar-background flex gap-4">
       {/* Vault Sidebar */}
@@ -327,6 +364,16 @@ export function Drafts() {
                 <h1 className="text-2xl font-semibold">Drafts</h1>
                 <p className="text-foreground/70">Generate and manage drafts</p>
               </div>
+              {hasContent && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowNewDraftDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Draft
+                </Button>
+              )}
             </div>
           </div>
 
@@ -376,6 +423,28 @@ export function Drafts() {
             </div>
           </div>
         </div>
+
+        {/* New Draft Dialog */}
+        <NewDraftDialog
+          open={showNewDraftDialog}
+          onOpenChange={setShowNewDraftDialog}
+          content={content}
+          savedDrafts={savedDrafts}
+          onSave={handleSaveFromNewDraft}
+          onClear={handleClearDraft}
+        />
+
+        {/* Save Draft Dialog */}
+        <SaveDraftDialog
+          open={showSaveDraftDialog}
+          onOpenChange={setShowSaveDraftDialog}
+          content={content}
+          prompt={prompt}
+          sampleFile={sampleFile}
+          informationalFiles={informationalFiles}
+          includeWebSources={includeWebSources}
+          onSaved={handleSaveDraftComplete}
+        />
       </main>
     </div>
   );

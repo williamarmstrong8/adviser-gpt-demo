@@ -52,7 +52,7 @@ interface SavedPromptsPanelProps {
 }
 
 export function SavedPromptsPanel({ onLoadPrompt }: SavedPromptsPanelProps) {
-  const { myPrompts, firmPrompts, deletePrompt, sharePrompt, unsharePrompt, updatePrompt } = useDrafts();
+  const { myPrompts, firmPrompts, savedPrompts, deletePrompt, sharePrompt, unsharePrompt, updatePrompt } = useDrafts();
   const { profile } = useUserProfile();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState('');
@@ -121,6 +121,9 @@ export function SavedPromptsPanel({ onLoadPrompt }: SavedPromptsPanelProps) {
   const handleEdit = (prompt: typeof myPrompts[0]) => {
     setEditPromptId(prompt.id);
   };
+
+  const promptBeingDeleted = promptToDelete ? savedPrompts.find((p) => p.id === promptToDelete) : null;
+  const isDeletingSharedPrompt = promptBeingDeleted?.isShared ?? false;
 
   return (
     <div className="h-full flex flex-col">
@@ -287,6 +290,11 @@ export function SavedPromptsPanel({ onLoadPrompt }: SavedPromptsPanelProps) {
             <AlertDialogTitle>Delete Prompt?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this prompt? This action cannot be undone.
+              {isDeletingSharedPrompt && (
+                <span className="block mt-2 font-medium text-foreground">
+                  This prompt is shared with your firm. Deleting it will remove it from the shared list for everyone.
+                </span>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

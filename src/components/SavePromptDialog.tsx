@@ -126,44 +126,6 @@ export function SavePromptDialog({ open, onOpenChange, prompt, onSaved }: SavePr
             />
           </div>
 
-          <div>
-            <Label htmlFor="tags">Tags (optional)</Label>
-            <div className="mt-1 space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  id="tags"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  placeholder="Add a tag and press Enter"
-                  onKeyDown={handleKeyDown}
-                />
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddTag}
-                  disabled={!tagInput.trim()}
-                >
-                  Add
-                </Button>
-              </div>
-              {tags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveTag(tag)}
-                        className="ml-1 hover:text-destructive"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
 
           <div className="text-sm text-foreground/70 bg-foreground/5 p-3 rounded-lg">
             <p className="font-medium mb-1">Prompt preview:</p>

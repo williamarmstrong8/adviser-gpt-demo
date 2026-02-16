@@ -238,27 +238,6 @@ export function DraftsAssistant({
           <h2 className="text-lg font-semibold mb-4">Drafts Assistant</h2>
         </div>
 
-        {/* Sample Prompts */}
-        {!hasContent && (
-          <div className="space-y-2">
-            <p className="text-sm text-foreground/80">Try one of these examples:</p>
-            <div className="grid grid-cols-1 gap-2">
-              {samplePrompts.map((samplePrompt, index) => (
-                <Button
-                  key={index}
-                  variant="outline"
-                  size="sm"
-                  className="text-sm font-normal bg-sidebar-background/50 flex flex-wrap justify-between min-h-14 h-auto px-4 py-2 items-center text-sidebar-foreground hover:bg-sidebar-background/70 border-foreground/10 hover:border-foreground/20 whitespace-normal text-left"
-                  onClick={() => handleSamplePromptClick(samplePrompt)}
-                >
-                  <span className="flex flex-1">{samplePrompt}</span>
-                  <PlusCircle className="h-4 w-4 text-sidebar-foreground/70 flex-shrink-0 ml-2" />
-                </Button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Add Sample Section */}
         <div className="space-y-1">
           <Label className="text-sm font-medium">Writing Sample</Label>
@@ -405,8 +384,29 @@ export function DraftsAssistant({
             className="min-h-32 resize-none"
             disabled={isLoading}
           />
-        </div>
+
+        {/* Sample Prompts */}
+        {!hasContent && (
+          <div className="space-y-2">
+            <p className="text-sm text-foreground/80">Try one of these examples:</p>
+            <div className="grid grid-cols-1 gap-2">
+              {samplePrompts.map((samplePrompt, index) => (
+                <Button
+                  key={index}
+                  variant="outline"
+                  size="sm"
+                  className="text-sm font-normal bg-sidebar-background/50 flex flex-wrap justify-between min-h-14 h-auto px-4 py-2 items-center text-sidebar-foreground hover:bg-sidebar-background/70 border-foreground/10 hover:border-foreground/20 whitespace-normal text-left"
+                  onClick={() => handleSamplePromptClick(samplePrompt)}
+                >
+                  <span className="flex flex-1">{samplePrompt}</span>
+                  <PlusCircle className="h-4 w-4 text-sidebar-foreground/70 flex-shrink-0 ml-2" />
+                </Button>
+              ))}
+            </div>
           </div>
+        )}
+        </div>
+      </div>
 
           {/* Save Prompt Dialog */}
           <SavePromptDialog
