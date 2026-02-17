@@ -68,7 +68,7 @@ export function FirmSettings() {
   const [firmWebsite, setFirmWebsite] = useState('');
   const [firmCrd, setFirmCrd] = useState('');
   const [autoCompleteValue, setAutoCompleteValue] = useState([0.5]);
-  const [smartAssistantValue, setSmartAssistantValue] = useState([0.7]);
+  const [smartAgentValue, setSmartAgentValue] = useState([0.7]);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>(mockTeamMembers);
   
   // Tag Types management

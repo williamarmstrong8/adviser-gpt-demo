@@ -3,7 +3,7 @@ import { ChevronRight, Home, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { VaultSidebar } from '@/components/VaultSidebar';
 import { DraftEditor } from '@/components/DraftsEditor';
-import { DraftsAssistant, UploadedFile } from '@/components/DraftsAssistant';
+import { DraftsAgent, UploadedFile } from '@/components/DraftsAgent';
 import { useToast } from '@/hooks/use-toast';
 import { useVaultEdits } from '@/hooks/useVaultState';
 import { QuestionItem } from '@/types/vault';
@@ -400,9 +400,9 @@ export function Drafts() {
               />
             </div>
 
-            {/* Right: Drafts Assistant */}
+            {/* Right: Drafts Agent */}
             <div className="w-[400px] flex-shrink-0 overflow-hidden">
-              <DraftsAssistant
+              <DraftsAgent
                 hasContent={hasContent}
                 hasPendingDiffs={hasPendingDiffs}
                 sampleFile={sampleFile}

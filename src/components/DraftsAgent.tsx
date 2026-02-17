@@ -64,7 +64,7 @@ const FileCard: React.FC<FileCardProps> = ({ file, onRemove }) => {
   );
 };
 
-interface DraftsAssistantProps {
+interface DraftsAgentProps {
   // Editor state
   hasContent: boolean;
   hasPendingDiffs: boolean;
@@ -94,7 +94,7 @@ interface DraftsAssistantProps {
   onLoadDraft?: (draft: SavedDraft) => void;
 }
 
-export function DraftsAssistant({
+export function DraftsAgent({
   hasContent,
   hasPendingDiffs,
   sampleFile,
@@ -111,7 +111,7 @@ export function DraftsAssistant({
   isLoading = false,
   onLoadPrompt,
   onLoadDraft,
-}: DraftsAssistantProps) {
+}: DraftsAgentProps) {
   const sampleFileInputRef = useRef<HTMLInputElement>(null);
   const informationalFilesInputRef = useRef<HTMLInputElement>(null);
   const [selectedCommentaryDoc, setSelectedCommentaryDoc] = useState<string>("");
@@ -208,34 +208,34 @@ export function DraftsAssistant({
   };
 
   const [showSaveDialog, setShowSaveDialog] = useState(false);
-  const [activeTab, setActiveTab] = useState<'assistant' | 'prompts' | 'drafts'>('assistant');
+  const [activeTab, setActiveTab] = useState<'agent' | 'prompts' | 'drafts'>('agent');
 
   const handleLoadPrompt = (promptText: string) => {
     onPromptChange(promptText);
-    setActiveTab('assistant');
+    setActiveTab('agent');
     onLoadPrompt?.(promptText);
   };
 
   const handleLoadDraft = (draft: SavedDraft) => {
     onLoadDraft?.(draft);
-    setActiveTab('assistant');
+    setActiveTab('agent');
   };
 
   return (
     <div className="h-full flex flex-col bg-sidebar-background border-l border-foreground/10">
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'assistant' | 'prompts' | 'drafts')} className="h-full flex flex-col">
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'agent' | 'prompts' | 'drafts')} className="h-full flex flex-col">
         <div className="p-4 h-[69px] border-b border-foreground/10">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="assistant" className="text-xs">Assistant</TabsTrigger>
+            <TabsTrigger value="agent" className="text-xs">Agent</TabsTrigger>
             <TabsTrigger value="prompts" className="text-xs">Saved Prompts</TabsTrigger>
             <TabsTrigger value="drafts" className="text-xs">Saved Drafts</TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="assistant" className="flex-1 flex flex-col overflow-hidden m-0">
+        <TabsContent value="agent" className="flex-1 flex flex-col overflow-hidden m-0">
           <div className="p-6 space-y-8 flex-1 overflow-y-auto">
         <div>
-          <h2 className="text-lg font-semibold mb-4">Drafts Assistant</h2>
+          <h2 className="text-lg font-semibold mb-4">Drafts Agent</h2>
         </div>
 
         {/* Add Sample Section */}

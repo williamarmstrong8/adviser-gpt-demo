@@ -6,7 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { InlineDiffEditor } from './InlineDiffEditor';
 import { diffWords } from 'diff';
 import { SaveDraftDialog } from './SaveDraftDialog';
-import { UploadedFile } from './DraftsAssistant';
+import { UploadedFile } from './DraftsAgent';
 
 interface DraftEditorProps {
   content: string;
