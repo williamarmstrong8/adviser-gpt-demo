@@ -20,44 +20,44 @@ export function AddContent() {
     {
       id: "questionnaire" as UploadType,
       title: "Completed Questionnaire",
-      description: "Upload a filled-out questionnaire document",
+      description: "Upload a completed Word or PDF file of question/answer pairs",
       icon: FileCheck,
-      helpText: "Upload a filled-out questionnaire document",
-    },
-    {
-      id: "commentary" as UploadType,
-      title: "Commentary",
-      description: "Upload market commentary, insights, or promotional materials.",
-      icon: Megaphone,
-      helpText: "Upload market commentary, insights, or promotional materials.",
-    },
-    {
-      id: "single-qa" as UploadType,
-      title: "Single Q&A Pair",
-      description: "Add a single question and answer to the vault",
-      icon: MessageSquare,
-      helpText: "Add a single question and answer to the vault",
+      helpText: "Upload a completed Word or PDF file of question/answer pairs",
     },
     {
       id: "data-updates" as UploadType,
       title: "Data Files",
-      description: "Upload numerical data, statistics, or metrics",
+      description: "Upload an Excel file of performance and personnel data, attribution, and related strategy characteristics",
       icon: Database,
-      helpText: "Upload numerical data, statistics, or metrics",
+      helpText: "Upload an Excel file of performance and personnel data, attribution, and related strategy characteristics",
+    },
+    {
+      id: "single-qa" as UploadType,
+      title: "Single Q&A Pair",
+      description: "Add a single question/answer pair",
+      icon: MessageSquare,
+      helpText: "Add a single question/answer pair",
+    },
+    {
+      id: "commentary" as UploadType,
+      title: "Insights Files",
+      description: "Add recent interview transcripts, short policy documents, Form CRS and ADVs",
+      icon: FileText,
+      helpText: "Add recent interview transcripts, short policy documents, Form CRS and ADVs",
     },
     {
       id: "excel-qa" as UploadType,
-      title: "Excel Q&A Pair",
-      description: "Use an Excel file to add question and answer pairs to the vault",
+      title: "Excel Q&A Pairs",
+      description: "Upload an Excel file of question/answer pairs",
       icon: FileSpreadsheet,
-      helpText: "Use an Excel file to add question and answer pairs to the vault",
+      helpText: "Upload an Excel file of question/answer pairs",
     },
     {
       id: "policy-docs" as UploadType,
-      title: "Policies",
-      description: "Upload regulatory documents, guidelines, or compliance-related materials",
+      title: "Samples",
+      description: "Upload compliance-approved templates for drafting client talking points, market recaps, and commentary",
       icon: FileText,
-      helpText: "Upload regulatory documents, guidelines, or compliance-related materials",
+      helpText: "Upload compliance-approved templates for drafting client talking points, market recaps, and commentary",
     },
   ];
 
@@ -109,7 +109,7 @@ export function AddContent() {
             <div className="flex items-center justify-between px-6 pb-6 max-w-[100rem] mx-auto">
               <div>
                 <h1 className="text-2xl font-semibold">Add Content</h1>
-                <p className="text-foreground/70">Choose a method to add content to your vault</p>
+                <p className="text-foreground/70">Choose a method to add content for your Vault</p>
               </div>
             </div>
           </div>

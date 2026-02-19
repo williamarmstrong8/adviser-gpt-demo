@@ -1,7 +1,6 @@
 import React, { useRef, useState, useMemo } from 'react';
-import { Upload, X, Globe, ChevronDown, PlusCircle, Save } from 'lucide-react';
+import { Upload, X, Globe, PlusCircle, Save, FolderOpen, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
@@ -13,7 +12,11 @@ import { migrateQuestionItems } from '@/utils/tagMigration';
 import { SavePromptDialog } from '@/components/SavePromptDialog';
 import { SavedPromptsPanel } from '@/components/SavedPromptsPanel';
 import { SavedDraftsPanel } from '@/components/SavedDraftsPanel';
+import { FiltersPanel, DateRange } from '@/components/FiltersPanel';
 import { SavedDraft } from '@/types/drafts';
+import { useToast } from '@/hooks/use-toast';
+import { useVaultEdits } from '@/hooks/useVaultState';
+import { Badge } from '@/components/ui/badge';
 
 export interface UploadedFile {
   id: string;
@@ -29,36 +32,16 @@ interface FileCardProps {
 }
 
 const FileCard: React.FC<FileCardProps> = ({ file, onRemove }) => {
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  const getFileIcon = (type: string) => {
-    if (type.includes('pdf')) return '📄';
-    if (type.includes('image')) return '🖼️';
-    if (type.includes('spreadsheet') || type.includes('excel')) return '📊';
-    if (type.includes('word') || type.includes('document')) return '📝';
-    return '📁';
-  };
-
   return (
-    <div className="flex items-center gap-2 bg-foreground/5 border border-foreground/10 rounded-lg p-2 min-w-0">
-      <span className="text-sm">{getFileIcon(file.type)}</span>
-      <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-foreground truncate">{file.name}</p>
-        <p className="text-xs text-foreground/60">{formatFileSize(file.size)}</p>
-      </div>
+    <div className="inline-flex items-center gap-1.5 bg-foreground/5 border border-foreground/10 rounded-md px-2 py-1 text-xs">
+      <span className="text-foreground/70 truncate max-w-[200px]">{file.name}</span>
       <Button
         variant="ghost"
         size="sm"
         onClick={onRemove}
-        className="h-6 w-6 p-0 text-foreground/60 hover:text-foreground"
+        className="h-4 w-4 p-0 text-foreground/50 hover:text-foreground shrink-0"
       >
-        <X className="h-4 w-4" />
+        <X className="h-3 w-3" />
       </Button>
     </div>
   );
@@ -80,6 +63,28 @@ interface DraftsAgentProps {
   // Settings
   includeWebSources: boolean;
   onIncludeWebSourcesChange: (value: boolean) => void;
+  includeVaultContent: boolean;
+  onIncludeVaultContentChange: (value: boolean) => void;
+  
+  // Filter state
+  showFiltersPanel: boolean;
+  onShowFiltersPanelChange: (show: boolean) => void;
+  selectedTagFilters: Record<string, string[]>;
+  onTagFiltersChange: (filters: Record<string, string[]>) => void;
+  selectedDocuments: string[];
+  onDocumentsChange: (documents: string[]) => void;
+  selectedDateRange: DateRange | null;
+  onDateRangeChange: (range: DateRange | null) => void;
+  selectedPriorSamples: string[];
+  onPriorSamplesChange: (samples: string[]) => void;
+  fileHistory: Array<{
+    id: string;
+    name: string;
+    type: string;
+    size: number;
+    uploadedAt: Date;
+  }>;
+  onClearAllFilters: () => void;
   
   // Prompt
   prompt: string;
@@ -105,6 +110,20 @@ export function DraftsAgent({
   onInformationalFileRemove,
   includeWebSources,
   onIncludeWebSourcesChange,
+  includeVaultContent,
+  onIncludeVaultContentChange,
+  showFiltersPanel,
+  onShowFiltersPanelChange,
+  selectedTagFilters,
+  onTagFiltersChange,
+  selectedDocuments,
+  onDocumentsChange,
+  selectedDateRange,
+  onDateRangeChange,
+  selectedPriorSamples,
+  onPriorSamplesChange,
+  fileHistory,
+  onClearAllFilters,
   prompt,
   onPromptChange,
   onGenerate,
@@ -112,30 +131,55 @@ export function DraftsAgent({
   onLoadPrompt,
   onLoadDraft,
 }: DraftsAgentProps) {
-  const sampleFileInputRef = useRef<HTMLInputElement>(null);
+  const { toast } = useToast();
+  const { edits } = useVaultEdits();
   const informationalFilesInputRef = useRef<HTMLInputElement>(null);
-  const [selectedCommentaryDoc, setSelectedCommentaryDoc] = useState<string>("");
   const [selectedDataFile, setSelectedDataFile] = useState<string>("");
 
-  // Get available Commentary documents
-  const commentaryDocuments = useMemo(() => {
-    const allItems = migrateQuestionItems(MOCK_CONTENT_ITEMS.flatMap(doc => doc.items));
-    const commentaryItems = allItems.filter(item => item.type === "Commentary");
+  // Get available Samples (Policies) from Vault: MOCK_CONTENT_ITEMS + edits
+  const sampleDocuments = useMemo(() => {
     const uniqueDocs = new Map<string, { id: string; name: string; uploadedAt: string; uploadedBy: string }>();
-    
-    commentaryItems.forEach(item => {
-      if (item.documentTitle && !uniqueDocs.has(item.documentTitle)) {
-        uniqueDocs.set(item.documentTitle, {
-          id: item.documentId || item.id,
-          name: item.documentTitle,
-          uploadedAt: item.updatedAt,
-          uploadedBy: item.updatedBy
+
+    // From MOCK_CONTENT_ITEMS: items with type Policies or Policy
+    const mockItems = migrateQuestionItems(MOCK_CONTENT_ITEMS.flatMap(doc =>
+      doc.items.map(item => ({
+        ...item,
+        documentTitle: doc.title,
+        documentId: doc.id
+      }))
+    ));
+    const policiesFromMock = mockItems.filter(item => item.type === "Policies" || item.type === "Policy");
+    policiesFromMock.forEach(item => {
+      const docId = item.documentId || item.id;
+      const name = item.documentTitle || 'Untitled';
+      if (!uniqueDocs.has(docId)) {
+        uniqueDocs.set(docId, {
+          id: docId,
+          name,
+          uploadedAt: item.updatedAt || '',
+          uploadedBy: item.updatedBy || ''
         });
       }
     });
-    
+
+    // From edits: entries with type Policies (edit-only documents from Add Content -> Samples)
+    Object.entries(edits).forEach(([itemId, edit]) => {
+      const type = edit?.type;
+      if (type !== "Policies" && type !== "Policy") return;
+      const documentId = edit.documentId || itemId;
+      const documentTitle = edit.documentTitle || 'Untitled';
+      if (!uniqueDocs.has(documentId)) {
+        uniqueDocs.set(documentId, {
+          id: documentId,
+          name: documentTitle,
+          uploadedAt: edit.updatedAt || '',
+          uploadedBy: edit.updatedBy || ''
+        });
+      }
+    });
+
     return Array.from(uniqueDocs.values());
-  }, []);
+  }, [edits]);
 
   // Get available Data Files
   const dataFiles = useMemo(() => {
@@ -157,27 +201,73 @@ export function DraftsAgent({
     return Array.from(uniqueDocs.values());
   }, []);
 
-  const handleCommentaryDocSelect = (docId: string) => {
-    setSelectedCommentaryDoc(docId);
-    // TODO: Load document and convert to File for onSampleFileAdd
-    // For now, just track selection
+  // Convert a Policies (Samples) document to a File object (from MOCK and/or edits)
+  const convertDocumentToFile = (docId: string): File => {
+    const items: Array<{ question?: string; answer?: string; body?: string }> = [];
+
+    // From MOCK_CONTENT_ITEMS: ContentItem with id === docId or items with documentId === docId
+    const mockDoc = MOCK_CONTENT_ITEMS.find(d => d.id === docId);
+    if (mockDoc) {
+      const policiesItems = mockDoc.items.filter(item => item.type === "Policies" || item.type === "Policy");
+      items.push(...policiesItems);
+    } else {
+      const mockItemsWithDocId = MOCK_CONTENT_ITEMS.flatMap(doc =>
+        doc.items.filter(item => (item.documentId || doc.id) === docId && (item.type === "Policies" || item.type === "Policy"))
+      );
+      items.push(...mockItemsWithDocId);
+    }
+
+    // From edits: all entries with documentId === docId and type Policies
+    Object.entries(edits).forEach(([, edit]) => {
+      if ((edit?.type === "Policies" || edit?.type === "Policy") && (edit?.documentId === docId)) {
+        items.push({
+          question: edit.question,
+          answer: edit.answer,
+          body: edit.body
+        });
+      }
+    });
+
+    if (items.length === 0) {
+      throw new Error('No sample content found for this document');
+    }
+
+    const content = items
+      .map(item => {
+        const q = item.question || '';
+        const a = item.answer || item.body || '';
+        return q ? `Q: ${q}\nA: ${a}\n\n` : `${a}\n\n`;
+      })
+      .join('');
+
+    const docName = sampleDocuments.find(d => d.id === docId)?.name || docId;
+    const fileName = `${docName}.txt`;
+    const blob = new Blob([content], { type: 'text/plain' });
+    return new File([blob], fileName, { type: 'text/plain' });
+  };
+
+  const handleSampleSelect = (docId: string) => {
+    try {
+      const file = convertDocumentToFile(docId);
+      onSampleFileAdd(file);
+      toast({
+        title: "Sample loaded from vault",
+        description: "Document has been loaded as writing sample.",
+      });
+    } catch (error) {
+      console.error('Error loading sample:', error);
+      toast({
+        title: "Error loading sample",
+        description: error instanceof Error ? error.message : "Failed to load sample.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleDataFileSelect = (docId: string) => {
     setSelectedDataFile(docId);
     // TODO: Load document and convert to File for onInformationalFilesAdd
     // For now, just track selection
-  };
-
-  const handleSampleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (files && files.length > 0) {
-      onSampleFileAdd(files[0]);
-    }
-    // Reset input so same file can be selected again
-    if (sampleFileInputRef.current) {
-      sampleFileInputRef.current.value = '';
-    }
   };
 
   const handleInformationalFilesSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -197,10 +287,10 @@ export function DraftsAgent({
 
   // Sample prompts for drafts
   const samplePrompts = [
-    "Draft a market recap for U.S. equities for January 2026.",
+    "Draft a market recap for U.S. equities in a specific time period.",
     "Summarize the attached Informational Inputs into a short email cover letter.",
-    "Draft a Q4 2025 quarterly commentary with the research files and attribution report as Informational Inputs for themes and data.",
-    "Draft client talking points for the prior quarter by using the attached client meeting notes and quarterly portfolio report as Informational Inputs."
+    "Draft a quarterly commentary with the research files and attribution report as Informational Inputs for themes and data.",
+    "Draft client talking points by using the attached meeting notes and portfolio report as Informational Inputs."
   ];
 
   const handleSamplePromptClick = (samplePrompt: string) => {
@@ -238,50 +328,33 @@ export function DraftsAgent({
           <h2 className="text-lg font-semibold mb-4">Drafts Agent</h2>
         </div>
 
-        {/* Add Sample Section */}
+        {/* Writing Sample - from Vault Add Content -> Samples only */}
         <div className="space-y-1">
           <Label className="text-sm font-medium">Writing Sample</Label>
-          <p className="text-xs text-foreground/70">Add a sample to guide the style, structure, and tone only.</p>
+          <p className="text-xs text-foreground/70">Choose a sample from the vault to guide style, structure, and tone. Add samples via Vault → Add Content → Samples.</p>
           
-          {/* Commentary Documents Dropdown */}
-          {commentaryDocuments.length > 0 && (
-            <div className="mb-2">
-              <Select value={selectedCommentaryDoc} onValueChange={handleCommentaryDocSelect}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select Commentary document..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {commentaryDocuments.map((doc) => (
-                    <SelectItem key={doc.id} value={doc.id}>
-                      {doc.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
-          <input
-            ref={sampleFileInputRef}
-            type="file"
-            className="hidden"
-            onChange={handleSampleFileSelect}
-            accept=".pdf,.doc,.docx,.txt"
-          />
           {sampleFile ? (
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
               <FileCard file={sampleFile} onRemove={onSampleFileRemove} />
             </div>
+          ) : sampleDocuments.length > 0 ? (
+            <Select onValueChange={handleSampleSelect}>
+              <SelectTrigger className="w-full font-medium">
+                <FolderOpen className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="Select from Vault" />
+              </SelectTrigger>
+              <SelectContent>
+                {sampleDocuments.map((doc) => (
+                  <SelectItem key={doc.id} value={doc.id}>
+                    {doc.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           ) : (
-            <Button
-              variant="outline"
-              onClick={() => sampleFileInputRef.current?.click()}
-              className="w-full"
-              disabled={!!sampleFile || !!selectedCommentaryDoc}
-            >
-              <Upload className="h-4 w-4 mr-2" />
-              Add Sample
-            </Button>
+            <p className="text-xs text-foreground/60 py-2">
+              No samples yet. Add samples via Vault → Add Content → Samples.
+            </p>
           )}
         </div>
 
@@ -289,7 +362,7 @@ export function DraftsAgent({
         <div className="space-y-1">
           <Label className="text-sm font-medium">Informational Inputs</Label>
           <p className="text-xs text-foreground/70">
-            Add files with data to use for draft generation.
+          Add files with data to inform draft generation.
           </p>
           
           {/* Data Files Dropdown */}
@@ -319,7 +392,7 @@ export function DraftsAgent({
             accept=".pdf,.doc,.docx,.txt,.xls,.xlsx,.csv"
           />
           {informationalFiles.length > 0 && (
-            <div className="space-y-2">
+            <div className="flex flex-wrap gap-2">
               {informationalFiles.map((file) => (
                 <FileCard
                   key={file.id}
@@ -357,6 +430,111 @@ export function DraftsAgent({
             />
           </div>
         </div>
+
+        {/* Include Vault Content Toggle */}
+        <div className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="vault-content" className="text-sm font-medium">
+                Include Vault Content
+              </Label>
+              <p className="text-xs text-foreground/70">
+                Use content from your vault when generating or updating draft.
+              </p>
+            </div>
+            <Switch
+              id="vault-content"
+              checked={includeVaultContent}
+              onCheckedChange={onIncludeVaultContentChange}
+            />
+          </div>
+
+          {/* Filter Button - Only show when Include Vault Content is enabled */}
+        {includeVaultContent && (
+          <div className="space-y-2">
+            <Button
+              variant="outline"
+              onClick={() => onShowFiltersPanelChange(true)}
+              className="w-full flex items-center gap-2"
+            >
+              <Filter className="h-4 w-4" />
+              Open Filters
+              {(() => {
+                const totalCount = Object.values(selectedTagFilters).reduce((sum, values) => sum + values.length, 0) +
+                                 selectedDocuments.length + selectedPriorSamples.length +
+                                 (selectedDateRange && selectedDateRange.type !== 'any' ? 1 : 0);
+                return totalCount > 0 ? (
+                  <Badge variant="secondary" className="text-xs">
+                    {totalCount}
+                  </Badge>
+                ) : null;
+              })()}
+            </Button>
+
+            {/* Filter Badges */}
+            {(Object.values(selectedTagFilters).some(values => values.length > 0) ||
+              selectedDocuments.length > 0 || selectedPriorSamples.length > 0 ||
+              (selectedDateRange && selectedDateRange.type !== 'any')) && (
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(selectedTagFilters).map(([tagTypeName, values]) =>
+                  values.map(value => (
+                    <Badge key={`${tagTypeName}-${value}`} variant="secondary" className="flex items-center gap-1">
+                      {tagTypeName}: {value}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-foreground"
+                        onClick={() => {
+                          const newValues = values.filter(v => v !== value);
+                          if (newValues.length === 0) {
+                            const newFilters = { ...selectedTagFilters };
+                            delete newFilters[tagTypeName];
+                            onTagFiltersChange(newFilters);
+                          } else {
+                            onTagFiltersChange({ ...selectedTagFilters, [tagTypeName]: newValues });
+                          }
+                        }}
+                      />
+                    </Badge>
+                  ))
+                )}
+                {selectedDocuments.map(doc => (
+                  <Badge key={doc} variant="secondary" className="flex items-center gap-1">
+                    {doc}
+                    <X
+                      className="h-3 w-3 cursor-pointer hover:text-foreground"
+                      onClick={() => onDocumentsChange(selectedDocuments.filter(d => d !== doc))}
+                    />
+                  </Badge>
+                ))}
+                {selectedPriorSamples.map(sampleId => {
+                  const sample = fileHistory.find(f => f.id === sampleId);
+                  return sample ? (
+                    <Badge key={sampleId} variant="secondary" className="flex items-center gap-1">
+                      {sample.name}
+                      <X
+                        className="h-3 w-3 cursor-pointer hover:text-foreground"
+                        onClick={() => onPriorSamplesChange(selectedPriorSamples.filter(id => id !== sampleId))}
+                      />
+                    </Badge>
+                  ) : null;
+                })}
+                {selectedDateRange && selectedDateRange.type !== 'any' && (
+                  <Badge variant="secondary" className="flex items-center gap-1">
+                    {selectedDateRange.type === 'custom' && selectedDateRange.from && selectedDateRange.to
+                      ? `${selectedDateRange.from.toLocaleDateString()} - ${selectedDateRange.to.toLocaleDateString()}`
+                      : selectedDateRange.type}
+                    <X
+                      className="h-3 w-3 cursor-pointer hover:text-foreground"
+                      onClick={() => onDateRangeChange(null)}
+                    />
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        </div>
+
+        
 
         {/* Prompt Input */}
         <div className="space-y-3">
@@ -447,6 +625,24 @@ export function DraftsAgent({
           <SavedDraftsPanel onLoadDraft={handleLoadDraft} />
         </TabsContent>
       </Tabs>
+
+      {/* Filters Panel */}
+      {includeVaultContent && (
+        <FiltersPanel
+          isOpen={showFiltersPanel}
+          onClose={() => onShowFiltersPanelChange(false)}
+          selectedTagFilters={selectedTagFilters}
+          onTagFiltersChange={onTagFiltersChange}
+          selectedDocuments={selectedDocuments}
+          onDocumentsChange={onDocumentsChange}
+          selectedDateRange={selectedDateRange}
+          onDateRangeChange={onDateRangeChange}
+          selectedPriorSamples={selectedPriorSamples}
+          onPriorSamplesChange={onPriorSamplesChange}
+          priorSamples={fileHistory}
+          onClearAll={onClearAllFilters}
+        />
+      )}
     </div>
   );
 }

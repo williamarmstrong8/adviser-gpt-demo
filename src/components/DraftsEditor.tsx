@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { Copy, Save, ShieldCheck, Scissors, Ruler, Drama, Check, X } from 'lucide-react';
+import { Copy, Save, ShieldCheck, Scissors, Ruler, Drama, Check, Download, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { useToast } from '@/hooks/use-toast';
-import { InlineDiffEditor } from './InlineDiffEditor';
+import { DraftBlockEditor } from './DraftBlockEditor';
 import { diffWords } from 'diff';
 import { SaveDraftDialog } from './SaveDraftDialog';
 import { UploadedFile } from './DraftsAgent';
@@ -17,10 +17,14 @@ interface DraftEditorProps {
   onAcceptDiff: () => void;
   onRejectDiff: () => void;
   onCopy: () => void;
+  onDownload: () => void;
   onSave: () => void;
   onEdit: (type: 'grammar' | 'shorter' | 'longer' | 'tone') => void;
   isLoading?: boolean;
   prompt?: string;
+  lastSentPrompt?: string;
+  showCtaMessage?: boolean;
+  streamingText?: string;
   sampleFile?: UploadedFile | null;
   informationalFiles?: UploadedFile[];
   includeWebSources?: boolean;
@@ -35,16 +39,21 @@ export function DraftEditor({
   onAcceptDiff,
   onRejectDiff,
   onCopy,
+  onDownload,
   onSave,
   onEdit,
   isLoading = false,
   prompt,
+  lastSentPrompt,
+  showCtaMessage = false,
+  streamingText = '',
   sampleFile,
   informationalFiles,
   includeWebSources,
 }: DraftEditorProps) {
   const { toast } = useToast();
   const [isCopied, setIsCopied] = useState(false);
+  const [isDownloaded, setIsDownloaded] = useState(false);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
   const handleCopy = () => {
@@ -54,6 +63,16 @@ export function DraftEditor({
     toast({
       title: "Copied to clipboard ✓",
       description: "Draft copied successfully.",
+    });
+  };
+
+  const handleDownload = () => {
+    onDownload();
+    setIsDownloaded(true);
+    setTimeout(() => setIsDownloaded(false), 2000);
+    toast({
+      title: "Downloaded ✓",
+      description: "Draft downloaded successfully.",
     });
   };
 
@@ -94,9 +113,67 @@ export function DraftEditor({
     <div className="h-full flex flex-col bg-background">
       {/* Header */}
       <div className="border-b border-foreground/10 bg-background px-6 py-4">
-          <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Drafts Editor</h2>
-          <div className="flex items-center gap-2">
+        <div className="flex items-center">
+          {/* Edit AI Tools - always visible when content exists */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEdit('grammar')}
+                className="flex items-center gap-1.5"
+                disabled={!content.trim() || isLoading || hasPendingDiffs}
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                <span>Grammar</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEdit('shorter')}
+                className="flex items-center gap-1.5"
+                disabled={!content.trim() || isLoading || hasPendingDiffs}
+              >
+                <Scissors className="h-3 w-3" />
+                <span>Shorter</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEdit('longer')}
+                className="flex items-center gap-1.5"
+                disabled={!content.trim() || isLoading || hasPendingDiffs}
+              >
+                <Ruler className="h-3 w-3" />
+                <span>Longer</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleEdit('tone')}
+                className="flex items-center gap-1.5"
+                disabled={!content.trim() || isLoading || hasPendingDiffs}
+              >
+                <Drama className="h-3 w-3" />
+                <span>Tone</span>
+              </Button>
+            </div>
+          </div>
+          <div className="flex flex-1 justify-end items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  className={isDownloaded ? "text-green-600" : ""}
+                  disabled={!content.trim() || isLoading || hasPendingDiffs}
+                >
+                  {isDownloaded ? <Check className="h-4 w-4" /> : <Download className="h-4 w-4" />}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Download Draft</TooltipContent>
+            </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -104,11 +181,12 @@ export function DraftEditor({
                   size="sm"
                   onClick={handleCopy}
                   className={isCopied ? "text-green-600" : ""}
+                  disabled={!content.trim() || isLoading || hasPendingDiffs}
                 >
                   {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Copy</TooltipContent>
+              <TooltipContent>Copy Draft</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -127,95 +205,69 @@ export function DraftEditor({
         </div>
       </div>
 
-      {/* Editor Content */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="space-y-4">
-          {/* Inline Diff Editor - always visible */}
-          <InlineDiffEditor
-            content={content}
-            onContentChange={onContentChange}
-            originalContent={originalContent}
-            updatedContent={updatedContent}
-            hasPendingDiffs={hasPendingDiffs}
-            disabled={isLoading}
-            placeholder="Your draft will appear here..."
-          />
-          
-          {/* Accept/Reject Controls - visible when there are pending diffs */}
-          {hasPendingDiffs && changeCount > 0 && (
-            <div className="flex items-center justify-between pt-4 border-t border-foreground/10">
-              <div className="text-sm text-foreground/70">
-                {changeCount} {changeCount === 1 ? 'change' : 'changes'} detected
-              </div>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  onClick={onRejectDiff}
-                  className="text-sidebar-accent hover:text-sidebar-accent hover:bg-sidebar-accent/10"
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Reject
-                </Button>
-                <Button
-                  onClick={onAcceptDiff}
-                  className="bg-primary hover:bg-primary/80 text-white"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Accept
-                </Button>
+      {/* Conversational Editor Content */}
+      <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-6">
+        {/* User bubble (top right) - shown after generate/update */}
+        {lastSentPrompt && (
+          <div className="flex justify-end w-full">
+            <div className="max-w-[90%] flex justify-end items-end flex-col">
+              <div className="py-2.5 px-4 rounded-lg bg-foreground/5 border border-gray-200 text-foreground text-sm leading-6 whitespace-pre-wrap">
+                {lastSentPrompt}
               </div>
             </div>
-          )}
-          
-          {/* Edit AI Tools - always visible when content exists */}
-          {(content.trim() || (hasPendingDiffs && updatedContent)) && (
-            <div className="space-y-2 pt-4 border-t border-foreground/10">
-              <p className="text-xs text-foreground/70 mb-2">Adjust draft with AI</p>
-              <div className="flex items-center gap-2 flex-wrap">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit('grammar')}
-                  className="flex items-center gap-1.5"
-                  disabled={isLoading || hasPendingDiffs}
-                >
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  <span>Grammar</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit('shorter')}
-                  className="flex items-center gap-1.5"
-                  disabled={isLoading || hasPendingDiffs}
-                >
-                  <Scissors className="h-3 w-3" />
-                  <span>Shorter</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit('longer')}
-                  className="flex items-center gap-1.5"
-                  disabled={isLoading || hasPendingDiffs}
-                >
-                  <Ruler className="h-3 w-3" />
-                  <span>Longer</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleEdit('tone')}
-                  className="flex items-center gap-1.5"
-                  disabled={isLoading || hasPendingDiffs}
-                >
-                  <Drama className="h-3 w-3" />
-                  <span>Tone</span>
-                </Button>
+          </div>
+        )}
+
+        {/* System reply: draft content */}
+        {(content.trim() || isLoading) && (
+          <div className="flex justify-start w-full">
+            <div className="max-w-[90%] flex justify-start items-start flex-col w-full">
+              <div className="p-4 pr-[50px] rounded-lg bg-white border border-foreground/10 text-foreground w-full relative">
+                <DraftBlockEditor
+                  content={content}
+                  onContentChange={onContentChange}
+                  disabled={isLoading}
+                  placeholder="Your draft will appear here..."
+                  isLoading={isLoading}
+                  streamingText={streamingText}
+                />
+                {hasPendingDiffs && changeCount > 0 && (
+                  <div className="flex items-center justify-between pt-4 mt-4 border-t border-foreground/10">
+                    <div className="text-sm text-foreground/70">
+                      {changeCount} {changeCount === 1 ? 'change' : 'changes'} detected
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={onRejectDiff}
+                        className="text-sidebar-accent hover:text-sidebar-accent hover:bg-sidebar-accent/10"
+                      >
+                        <X className="h-4 w-4 mr-2" />
+                        Reject
+                      </Button>
+                      <Button
+                        onClick={onAcceptDiff}
+                        className="bg-primary hover:bg-primary/80 text-white"
+                      >
+                        <Check className="h-4 w-4 mr-2" />
+                        Accept
+                      </Button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* System reply: CTA to use Agent panel (only after generation completes) */}
+        {showCtaMessage && (
+          <div className="flex justify-start self-start rounded-lg bg-white border border-foreground/10 p-4">
+            <p className="text-sm text-foreground/80">
+              You can update or adjust your prompt in the Agent panel to the right to refine this draft.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Save Draft Dialog */}

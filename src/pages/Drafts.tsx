@@ -13,6 +13,7 @@ import { useDrafts } from '@/contexts/DraftsContext';
 import { Button } from '@/components/ui/button';
 import { NewDraftDialog } from '@/components/NewDraftDialog';
 import { SaveDraftDialog } from '@/components/SaveDraftDialog';
+import { FiltersPanel, DateRange } from '@/components/FiltersPanel';
 import {
   generateDraft,
   updateDraft,
@@ -40,11 +41,28 @@ export function Drafts() {
 
   // Settings
   const [includeWebSources, setIncludeWebSources] = useState(false);
+  const [includeVaultContent, setIncludeVaultContent] = useState(false);
   const [prompt, setPrompt] = useState('');
+  const [lastSentPrompt, setLastSentPrompt] = useState('');
+
+  // Filter state management
+  const [showFiltersPanel, setShowFiltersPanel] = useState(false);
+  const [selectedTagFilters, setSelectedTagFilters] = useState<Record<string, string[]>>({});
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [selectedDateRange, setSelectedDateRange] = useState<DateRange | null>(null);
+  const [selectedPriorSamples, setSelectedPriorSamples] = useState<string[]>([]);
+  const [fileHistory, setFileHistory] = useState<Array<{
+    id: string;
+    name: string;
+    type: string;
+    size: number;
+    uploadedAt: Date;
+  }>>([]);
 
   // Loading state
   const [isLoading, setIsLoading] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const [showCtaMessage, setShowCtaMessage] = useState(false);
 
   // Dialog state
   const [showNewDraftDialog, setShowNewDraftDialog] = useState(false);
@@ -79,6 +97,17 @@ export function Drafts() {
       file: file,
     }));
     setInformationalFiles(prev => [...prev, ...newFiles]);
+    
+    // Add to file history for prior samples filter
+    const newHistoryEntries = newFiles.map(file => ({
+      id: file.id,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      uploadedAt: new Date(),
+    }));
+    setFileHistory(prev => [...prev, ...newHistoryEntries]);
+    
     toast({
       title: "Files uploaded ✓",
       description: `${files.length} file(s) added successfully.`,
@@ -93,6 +122,8 @@ export function Drafts() {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
 
+    const promptText = prompt.trim();
+    setLastSentPrompt(promptText);
     setIsLoading(true);
     setStreamingText('');
     setHasPendingDiffs(false);
@@ -100,7 +131,7 @@ export function Drafts() {
 
     try {
       const params: GenerateDraftParams = {
-        prompt: prompt.trim(),
+        prompt: promptText,
         sampleFile: sampleFile || undefined,
         informationalFiles: informationalFiles.length > 0 ? informationalFiles : undefined,
         includeWebSources,
@@ -116,6 +147,7 @@ export function Drafts() {
 
       setOriginalContent(finalContent);
       setPrompt('');
+      setShowCtaMessage(true);
       toast({
         title: "Draft generated ✓",
         description: "Your draft has been generated successfully.",
@@ -138,6 +170,8 @@ export function Drafts() {
     if (!prompt.trim() || !content.trim()) return;
     if (hasPendingDiffs) return;
 
+    const promptText = prompt.trim();
+    setLastSentPrompt(promptText);
     setIsLoading(true);
     setStreamingText('');
     // Use current content as the baseline (which may have been manually edited)
@@ -147,7 +181,7 @@ export function Drafts() {
     try {
       const params: UpdateDraftParams = {
         originalText: baselineContent,
-        prompt: prompt.trim(),
+        prompt: promptText,
         sampleFile: sampleFile || undefined,
         informationalFiles: informationalFiles.length > 0 ? informationalFiles : undefined,
         includeWebSources,
@@ -165,6 +199,7 @@ export function Drafts() {
       setContent(newContent);
       setHasPendingDiffs(true);
       setPrompt('');
+      setShowCtaMessage(true);
       toast({
         title: "Draft updated ✓",
         description: "Review the changes and accept or reject them.",
@@ -320,6 +355,14 @@ export function Drafts() {
     });
   };
 
+  // Filter helper functions
+  const handleClearAllFilters = () => {
+    setSelectedTagFilters({});
+    setSelectedDocuments([]);
+    setSelectedDateRange(null);
+    setSelectedPriorSamples([]);
+  };
+
   // Clear draft handler
   const handleClearDraft = () => {
     setContent('');
@@ -327,9 +370,13 @@ export function Drafts() {
     setUpdatedContent(null);
     setHasPendingDiffs(false);
     setPrompt('');
+    setLastSentPrompt('');
+    setShowCtaMessage(false);
     setSampleFile(null);
     setInformationalFiles([]);
     setIncludeWebSources(false);
+    setIncludeVaultContent(false);
+    handleClearAllFilters();
     toast({
       title: 'New draft',
       description: 'Ready to create a new draft.',
@@ -390,10 +437,14 @@ export function Drafts() {
                 onAcceptDiff={handleAcceptDiff}
                 onRejectDiff={handleRejectDiff}
                 onCopy={handleCopy}
+                onDownload={() => {}}
                 onSave={handleSave}
                 onEdit={handleEdit}
                 isLoading={isLoading}
                 prompt={prompt}
+                lastSentPrompt={lastSentPrompt}
+                showCtaMessage={showCtaMessage}
+                streamingText={streamingText}
                 sampleFile={sampleFile}
                 informationalFiles={informationalFiles}
                 includeWebSources={includeWebSources}
@@ -413,6 +464,20 @@ export function Drafts() {
                 onInformationalFileRemove={handleInformationalFileRemove}
                 includeWebSources={includeWebSources}
                 onIncludeWebSourcesChange={setIncludeWebSources}
+                includeVaultContent={includeVaultContent}
+                onIncludeVaultContentChange={setIncludeVaultContent}
+                showFiltersPanel={showFiltersPanel}
+                onShowFiltersPanelChange={setShowFiltersPanel}
+                selectedTagFilters={selectedTagFilters}
+                onTagFiltersChange={setSelectedTagFilters}
+                selectedDocuments={selectedDocuments}
+                onDocumentsChange={setSelectedDocuments}
+                selectedDateRange={selectedDateRange}
+                onDateRangeChange={setSelectedDateRange}
+                selectedPriorSamples={selectedPriorSamples}
+                onPriorSamplesChange={setSelectedPriorSamples}
+                fileHistory={fileHistory}
+                onClearAllFilters={handleClearAllFilters}
                 prompt={prompt}
                 onPromptChange={setPrompt}
                 onGenerate={handleGenerateOrUpdate}

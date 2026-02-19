@@ -1,10 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
-import { SavedPrompt, SavedDraft, FirmContext } from '@/types/drafts';
+import { SavedPrompt, SavedDraft, FirmContext, SavedSampleFile } from '@/types/drafts';
 import { generateFirmId } from '@/utils/draftUtils';
 import { useUserProfile } from '@/hooks/useUserProfile';
 
 const SAVED_PROMPTS_KEY = 'drafts-saved-prompts';
 const SAVED_DRAFTS_KEY = 'drafts-saved-drafts';
+const SAVED_SAMPLE_FILES_KEY = 'drafts-saved-sample-files';
 const FIRM_ID_KEY = 'drafts-firm-id';
 
 interface DraftsContextType {
@@ -28,6 +29,13 @@ interface DraftsContextType {
   unshareDraft: (id: string) => void;
   updateDraft: (id: string, updates: Partial<SavedDraft>) => void;
 
+  // Sample Files
+  savedSampleFiles: SavedSampleFile[];
+  mySampleFiles: SavedSampleFile[];
+  saveSampleFile: (file: File) => Promise<SavedSampleFile>;
+  deleteSampleFile: (id: string) => void;
+  getSampleFileAsFile: (id: string) => Promise<File | null>;
+
   // Firm context
   firmContext: FirmContext | null;
   getFirmId: () => string;
@@ -43,6 +51,7 @@ export function DraftsProvider({ children }: DraftsProviderProps) {
   const { profile } = useUserProfile();
   const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([]);
   const [savedDrafts, setSavedDrafts] = useState<SavedDraft[]>([]);
+  const [savedSampleFiles, setSavedSampleFiles] = useState<SavedSampleFile[]>([]);
   const [firmContext, setFirmContext] = useState<FirmContext | null>(null);
 
   // Initialize firm ID
@@ -89,6 +98,19 @@ export function DraftsProvider({ children }: DraftsProviderProps) {
     }
   }, []);
 
+  // Load saved sample files
+  useEffect(() => {
+    const stored = localStorage.getItem(SAVED_SAMPLE_FILES_KEY);
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setSavedSampleFiles(parsed);
+      } catch {
+        setSavedSampleFiles([]);
+      }
+    }
+  }, []);
+
   // Save prompts to localStorage
   const persistPrompts = useCallback((prompts: SavedPrompt[]) => {
     try {
@@ -106,6 +128,16 @@ export function DraftsProvider({ children }: DraftsProviderProps) {
       setSavedDrafts(drafts);
     } catch (error) {
       console.error('Failed to save drafts:', error);
+    }
+  }, []);
+
+  // Save sample files to localStorage
+  const persistSampleFiles = useCallback((files: SavedSampleFile[]) => {
+    try {
+      localStorage.setItem(SAVED_SAMPLE_FILES_KEY, JSON.stringify(files));
+      setSavedSampleFiles(files);
+    } catch (error) {
+      console.error('Failed to save sample files:', error);
     }
   }, []);
 
@@ -216,6 +248,65 @@ export function DraftsProvider({ children }: DraftsProviderProps) {
     persistDrafts(updated);
   }, [savedDrafts, persistDrafts]);
 
+  // Sample File functions
+  const saveSampleFile = useCallback(async (file: File): Promise<SavedSampleFile> => {
+    const firmId = getFirmId();
+    const userId = getUserId();
+    
+    // Convert file to base64
+    const content = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        // Remove data URL prefix (e.g., "data:text/plain;base64,")
+        const base64 = result.includes(',') ? result.split(',')[1] : result;
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    const newSampleFile: SavedSampleFile = {
+      id: `sample-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: file.name,
+      type: file.type,
+      size: file.size,
+      content,
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: profile.fullName || profile.email || 'Unknown',
+      firmId,
+      userId,
+    };
+
+    const updated = [newSampleFile, ...savedSampleFiles];
+    persistSampleFiles(updated);
+    return newSampleFile;
+  }, [savedSampleFiles, getFirmId, getUserId, persistSampleFiles, profile]);
+
+  const deleteSampleFile = useCallback((id: string) => {
+    const updated = savedSampleFiles.filter(f => f.id !== id);
+    persistSampleFiles(updated);
+  }, [savedSampleFiles, persistSampleFiles]);
+
+  const getSampleFileAsFile = useCallback(async (id: string): Promise<File | null> => {
+    const sampleFile = savedSampleFiles.find(f => f.id === id);
+    if (!sampleFile) return null;
+
+    try {
+      // Convert base64 back to File
+      const binaryString = atob(sampleFile.content);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: sampleFile.type });
+      return new File([blob], sampleFile.name, { type: sampleFile.type });
+    } catch (error) {
+      console.error('Error converting sample file:', error);
+      return null;
+    }
+  }, [savedSampleFiles]);
+
   // Filter prompts and drafts
   const firmId = firmContext?.firmId || getFirmId();
   const userId = getUserId();
@@ -226,6 +317,8 @@ export function DraftsProvider({ children }: DraftsProviderProps) {
 
   const myDrafts = savedDrafts.filter(d => d.userId === userId);
   const firmDrafts = savedDrafts.filter(d => d.firmId === firmId && d.isShared);
+
+  const mySampleFiles = savedSampleFiles.filter(f => f.userId === userId);
 
   const value: DraftsContextType = {
     savedPrompts,
@@ -244,6 +337,11 @@ export function DraftsProvider({ children }: DraftsProviderProps) {
     shareDraft,
     unshareDraft,
     updateDraft,
+    savedSampleFiles,
+    mySampleFiles,
+    saveSampleFile,
+    deleteSampleFile,
+    getSampleFileAsFile,
     firmContext,
     getFirmId,
   };
