@@ -650,7 +650,7 @@ export function DraftsAgent({
                 Include Vault Content
               </Label>
               <p className="text-xs text-foreground/70">
-                Use content from your vault when generating or updating draft.
+                Use content from your Vault when generating or updating draft.
               </p>
             </div>
             <Switch
