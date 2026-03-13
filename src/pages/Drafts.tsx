@@ -453,6 +453,15 @@ export function Drafts() {
     setHasPendingDiffs(false);
   }, [isActive, steps, currentStepIndex, content]);
 
+  useEffect(() => {
+    if (!isActive) return;
+    const currentStepId = steps[currentStepIndex]?.id;
+    if (currentStepId !== 'drafts-workspace' && currentStepId !== 'drafts-completed') return;
+
+    setIncludeWebSources(true);
+    setIncludeVaultContent(true);
+  }, [isActive, steps, currentStepIndex]);
+
   return (
     <div className="h-screen bg-sidebar-background flex gap-4">
       {/* Vault Sidebar */}
@@ -510,7 +519,7 @@ export function Drafts() {
             </div>
 
             {/* Right: Drafts Agent */}
-            <div className="w-[400px] flex-shrink-0 overflow-hidden">
+            <div data-tour-id="drafts-agent-sidebar" className="w-[400px] flex-shrink-0 overflow-hidden">
               <DraftsAgent
                 hasContent={hasContent}
                 hasPendingDiffs={hasPendingDiffs}

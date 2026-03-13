@@ -65,16 +65,16 @@ export const mainTourSteps: TourStep[] = [
   {
     id: "word-plugin-demo",
     tourId: "word-plugin-panel",
-    title: "AdviserGPT Word Plugin",
+    title: "AdviserGPT Microsoft 365 Plug-in",
     content:
-      "This is the AdviserGPT plugin view inside a Word-style workflow, where you can draft, improve, and search approved language alongside the document.",
+      "This is the AdviserGPT Plug-in view inside a Micrrosoft Word document workflow, where you can draft, improve, and search approved language alongside the document.",
     placement: "left",
     route: "/word-plugin-demo",
   },
   {
     id: "word-plugin-bulk-answer",
     tourId: "word-plugin-bulk-answer",
-    title: "Show Bulk Answer in MS Word Plug-in",
+    title: "Bulk Answer in MSFT Word Plug-in",
     content:
       "Users can highlight many questions at a time, section by section or the entire document, and answer them at once automatically using your Vault. The Trust Score and answer sources are always displayed as comments in the margin as your answers are populated. We maintain your text, tables, and image formatting.",
     placement: "left",
@@ -83,7 +83,7 @@ export const mainTourSteps: TourStep[] = [
   {
     id: "word-plugin-improve",
     tourId: "word-plugin-improve",
-    title: "Show Improve in MS Word Plug-in",
+    title: "Improve in MSFT Word Plug-in",
     content:
       "Users can iterate and improve their answers generated, and save to the Vault if the user wants. Collaboration between coworkers and compliance teams is handled in MS Office documents via comments. All changes are tracked in our audit trail.",
     placement: "left",
@@ -91,8 +91,8 @@ export const mainTourSteps: TourStep[] = [
   },
   {
     id: "drafts-workspace",
-    tourId: "drafts-workspace-overlay",
-    title: "Show Drafts in the Web App",
+    tourId: "drafts-agent-sidebar",
+    title: "Drafts in the Web App",
     content:
       "Users can also leverage their Vault + the Web + one-time Informational Inputs to draft content that adheres to the outline and tone of an approved writing sample.",
     placement: "left",
