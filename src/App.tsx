@@ -27,12 +27,14 @@ import SearchResults from "./pages/SearchResults";
 import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { CodeGate } from "./components/CodeGate";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
+      <CodeGate>
       <AuthProvider>
         <SavedSearchesProvider>
           <DraftsProvider>
@@ -71,6 +73,7 @@ const App = () => (
           </DraftsProvider>
         </SavedSearchesProvider>
       </AuthProvider>
+      </CodeGate>
     </TooltipProvider>
   </QueryClientProvider>
 );

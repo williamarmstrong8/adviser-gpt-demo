@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { TourStep } from "@/types/tour";
 
 const TOOLTIP_WIDTH = 320;
@@ -279,17 +279,10 @@ export function TourTooltip({
       {floating.anchored && <Arrow side={floating.anchored.arrowSide} offset={floating.anchored.arrowOffset} />}
 
       {/* Header */}
-      <div className="flex items-start justify-between px-5 pt-5 pb-3">
+      <div className="px-5 pt-5 pb-3">
         <span className="text-[11px] font-semibold text-muted-foreground tracking-wider uppercase">
           {stepIndex + 1} of {totalSteps}
         </span>
-        <button
-          onClick={onEnd}
-          className="text-muted-foreground hover:text-foreground transition-colors rounded-md p-0.5 -mr-1 -mt-1"
-          aria-label="Close tour"
-        >
-          <X className="w-4 h-4" />
-        </button>
       </div>
 
       {/* Body */}
@@ -371,15 +364,7 @@ export function TourTooltip({
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-between px-5 pb-5 gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onEnd}
-          className="text-muted-foreground hover:text-foreground text-xs h-8"
-        >
-          Skip tour
-        </Button>
+      <div className="flex items-center justify-end px-5 pb-5 gap-2">
         <div className="flex items-center gap-2">
           {!isFirst && (
             <Button variant="outline" size="sm" onClick={onPrev} className="h-8 px-3 gap-1">
